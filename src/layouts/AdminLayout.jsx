@@ -24,6 +24,7 @@ const AdminLayout = () => {
     { name: 'Analytics', path: '/admin/destinations', icon: Compass },
     { name: 'Packages', path: '/admin/packages', icon: Package },
     { name: 'Customizations', path: '/admin/customizations', icon: Settings },
+    { name: 'Accounts', path: '/admin/accounts', icon: Users },
   ];
 
   const isActive = (path) => location.pathname === path;
