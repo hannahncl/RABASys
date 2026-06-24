@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+:root {
+  /* Default Light Mode: White background, warm grey/slate tones, butter yellow accents */
+  --slate-950: #ffffff;
+  --slate-900: #fdfdfc;
+  --slate-850: #f5f5ee;
+  --slate-800: #e6e6dc;
+  --slate-600: #57574e;
+  --slate-500: #7a7a6e;
+  --slate-400: #42423b;
+  --slate-300: #292925;
+  --slate-200: #1a1a17;
+  --slate-100: #0c0c0a;
+
+  /* Butter Yellow Accents */
+  --cyan-400: #f5d061; /* Warm Butter Yellow */
+  --cyan-500: #e2bd4f; /* Hover */
+  --cyan-300: #fbeaa6; /* Lighter highlight */
+  --cyan-200: #fff7d6;
+
+  /* Glassmorphism settings for light mode */
+  --glass-panel: rgba(255, 255, 255, 0.7);
+  --glass-card: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Night Mode: Black background, dark slate tones, glowing butter yellow accents */
+    --slate-950: #000000;
+    --slate-900: #0c0c0e;
+    --slate-850: #16161a;
+    --slate-800: #222228;
+    --slate-600: #475569;
+    --slate-500: #64748b;
+    --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f8fafc;
+
+    --cyan-400: #f5d061;
+    --cyan-500: #e2bd4f;
+    --cyan-300: #fbeaa6;
+    --cyan-200: #fff7d6;
+
+    /* Glassmorphism settings for dark mode */
+    --glass-panel: rgba(15, 23, 42, 0.65);
+    --glass-card: rgba(30, 41, 59, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  
+  /* Redefine Tailwind standard slate colors to map to our dynamic properties */
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-850: var(--slate-850);
+  --color-slate-800: var(--slate-800);
+  --color-slate-600: var(--slate-600);
+  --color-slate-500: var(--slate-500);
+  --color-slate-400: var(--slate-400);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
+
+  /* Map cyan tailwind utilities directly to butter yellow accents */
+  --color-cyan-400: var(--cyan-400);
+  --color-cyan-500: var(--cyan-500);
+  --color-cyan-300: var(--cyan-300);
+  --color-cyan-200: var(--cyan-200);
+  
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+}
+
+/* Base custom styles */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom UI enhancements */
+.glass-panel {
+  background: var(--glass-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-card {
+  background: var(--glass-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: var(--glass-panel);
+  border-color: rgba(245, 208, 97, 0.4);
+  box-shadow: 0 10px 30px -10px rgba(245, 208, 97, 0.25);
+  transform: translateY(-4px);
+}
+
+/* Glowing text and items */
+.text-glow-cyan {
+  text-shadow: 0 0 12px rgba(245, 208, 97, 0.35);
+}
+
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.glow-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(245, 208, 97, 0.35) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.glow-btn:hover::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--slate-950);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--slate-850);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--slate-800);
+}
+
+/* Hide spin-buttons for input number */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
