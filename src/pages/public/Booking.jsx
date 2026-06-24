@@ -183,11 +183,11 @@ const Booking = () => {
                   <Users className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     max="20"
                     required
                     value={guestsCount}
-                    onChange={(e) => setGuestsCount(Math.max(1, Number(e.target.value)))}
+                    onChange={(e) => setGuestsCount(Math.max(0, Number(e.target.value)))}
                     className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 pl-10 pr-4 text-slate-100 text-sm focus:outline-none"
                   />
                 </div>
@@ -197,7 +197,7 @@ const Booking = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg active:scale-[0.98] transition-all cursor-pointer block disabled:opacity-50"
+                  className="w-full py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg active:scale-[0.98] transition-all cursor-pointer block disabled:opacity-50"
                 >
                   {submitting ? 'Creating booking records...' : 'Proceed to GCash Payment'}
                 </button>

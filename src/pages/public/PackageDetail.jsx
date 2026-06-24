@@ -134,7 +134,7 @@ const PackageDetail = () => {
 
             <button
               onClick={handleBookingRedirect}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg shadow-cyan-500/10 active:scale-[0.98] transition-all cursor-pointer block"
+              className="w-full py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg shadow-cyan-400/10 active:scale-[0.98] transition-all cursor-pointer block"
             >
               Book This Package
             </button>

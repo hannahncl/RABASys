@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { 
-  Compass, LayoutDashboard, BarChart3, Receipt, Package, Users, LogOut, Menu, X, Bell, CalendarDays 
+  Compass, LayoutDashboard, BarChart3, Receipt, Package, Users, LogOut, Menu, X, Bell, CalendarDays, Settings
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -21,7 +21,9 @@ const AdminLayout = () => {
     { name: 'Schedule', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Sales Reports', path: '/admin/sales', icon: BarChart3 },
     { name: 'Expense Reports', path: '/admin/expenses', icon: Receipt },
-    { name: 'Destinations', path: '/admin/destinations', icon: Compass },
+    { name: 'Analytics', path: '/admin/destinations', icon: Compass },
+    { name: 'Packages', path: '/admin/packages', icon: Package },
+    { name: 'Customizations', path: '/admin/customizations', icon: Settings },
   ];
 
   const isActive = (path) => location.pathname === path;

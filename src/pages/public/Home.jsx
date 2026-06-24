@@ -55,7 +55,7 @@ const Home = () => {
           
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight leading-none font-display">
             Your Ultimate Gateway to <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 text-glow-cyan">
+            <span className="text-cyan-400 text-glow-cyan">
               Rabas Adventures
             </span>
           </h1>
@@ -81,7 +81,7 @@ const Home = () => {
             </div>
             <button
               type="submit"
-              className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold font-display rounded-xl shadow-lg shadow-cyan-500/20 hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
+              className="w-full sm:w-auto px-7 py-3.5 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl shadow-lg shadow-cyan-400/20 hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
             >
               Search Tours
             </button>
@@ -189,7 +189,7 @@ const Home = () => {
           </div>
           <Link
             to="/customize"
-            className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold font-display rounded-xl shadow-lg shadow-cyan-500/20 hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap text-sm shrink-0"
+            className="px-8 py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl shadow-lg shadow-cyan-400/20 hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap text-sm shrink-0"
           >
             Start Customizing →
           </Link>

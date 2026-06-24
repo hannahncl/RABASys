@@ -1,5 +1,6 @@
-// Mock Tour Packages Data
-export const TOUR_PACKAGES = [
+const STORAGE_KEY = 'rabas_tour_packages';
+
+const INITIAL_PACKAGES = [
   {
     id: 'el-nido-premium',
     title: 'El Nido Premium Island Hopping',
@@ -48,7 +49,7 @@ export const TOUR_PACKAGES = [
     duration: '5 Days, 4 Nights',
     rating: 4.9,
     reviewsCount: 88,
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800', // Scenic coast replacement
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800', 
     tags: ['Cultural', 'Nature', 'Photography'],
     difficulty: 'Medium',
     spots: ['Marlboro Hills', 'Basco Lighthouse', 'Chawa View Deck', 'Sabtang Island Stone Houses', 'Honesty Coffee Shop'],
@@ -103,27 +104,70 @@ export const TOUR_PACKAGES = [
   }
 ];
 
+const loadPackages = () => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PACKAGES));
+    return INITIAL_PACKAGES;
+  }
+  return JSON.parse(stored);
+};
+
 export const packageService = {
   getAll: async () => {
-    // Simulate API latency
     await new Promise(resolve => setTimeout(resolve, 300));
-    return TOUR_PACKAGES;
+    return loadPackages();
   },
 
   getById: async (id) => {
     await new Promise(resolve => setTimeout(resolve, 200));
-    return TOUR_PACKAGES.find(pkg => pkg.id === id) || null;
+    const packages = loadPackages();
+    return packages.find(pkg => pkg.id === id) || null;
   },
 
   getRecommendations: async (preferences) => {
     await new Promise(resolve => setTimeout(resolve, 400));
+    const packages = loadPackages();
     if (!preferences || preferences.length === 0) {
-      return TOUR_PACKAGES.slice(0, 3); // Default to top 3 rated
+      return packages.slice(0, 3);
     }
     
-    // Filter packages matching preferences (tags)
-    return TOUR_PACKAGES.filter(pkg => 
+    return packages.filter(pkg => 
       pkg.tags.some(tag => preferences.includes(tag))
     );
+  },
+
+  create: async (newPackage) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const packages = loadPackages();
+    const pkg = {
+      ...newPackage,
+      id: newPackage.id || Date.now().toString(),
+      rating: newPackage.rating || 0,
+      reviewsCount: newPackage.reviewsCount || 0
+    };
+    packages.push(pkg);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(packages));
+    return pkg;
+  },
+
+  update: async (id, updatedPackage) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const packages = loadPackages();
+    const index = packages.findIndex(pkg => pkg.id === id);
+    if (index !== -1) {
+      packages[index] = { ...packages[index], ...updatedPackage };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(packages));
+      return packages[index];
+    }
+    throw new Error('Package not found');
+  },
+
+  delete: async (id) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const packages = loadPackages();
+    const filtered = packages.filter(pkg => pkg.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    return true;
   }
 };

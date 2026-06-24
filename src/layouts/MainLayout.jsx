@@ -106,7 +106,7 @@ const MainLayout = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 shadow-lg shadow-cyan-500/20 transition-all font-display hover:scale-105"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-cyan-400 hover:bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-400/20 transition-all font-display hover:scale-105"
                 >
                   Register
                 </Link>
@@ -181,7 +181,7 @@ const MainLayout = () => {
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-semibold text-sm"
+                  className="w-full text-center py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-semibold text-sm"
                 >
                   Register
                 </Link>

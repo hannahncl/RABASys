@@ -3,50 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import GCashModal from '../../components/payment/GCashModal';
 import { bookingService } from '../../services/bookingService';
-import { Compass, Sparkles, MapPin, Hotel, Calendar, Users, Calculator, ShieldCheck } from 'lucide-react';
-
-const DESTINATION_PRICES = {
-  'Palawan (El Nido/Coron)': { base: 4500, activities: [
-    { id: 'act_1', name: 'Island Hopping Tour A & C', price: 2500 },
-    { id: 'act_2', name: 'Scuba Diving Session', price: 3000 },
-    { id: 'act_3', name: 'Canopy Walk & Cliff Climb', price: 1200 }
-  ]},
-  'Boracay Island': { base: 3500, activities: [
-    { id: 'act_4', name: 'Sunset Paraw Sailing', price: 1500 },
-    { id: 'act_5', name: 'Helmet Diving Experience', price: 2000 },
-    { id: 'act_6', name: 'Parasailing Adventure', price: 2500 }
-  ]},
-  'Siargao Island': { base: 4000, activities: [
-    { id: 'act_7', name: 'Cloud 9 Surfing Lesson', price: 1200 },
-    { id: 'act_8', name: 'Sugba Lagoon & Rock Pool Tour', price: 1800 },
-    { id: 'act_9', name: 'Three Islands Island Hopping', price: 1500 }
-  ]},
-  'Batanes Province': { base: 7500, activities: [
-    { id: 'act_10', name: 'Sabtang Island Faluwa Crossing', price: 2000 },
-    { id: 'act_11', name: 'Ivatan Heritage Tour & Vakul Rental', price: 1500 },
-    { id: 'act_12', name: 'Marlboro Hills Sunset Picnic', price: 1200 }
-  ]},
-  'Cebu & Bohol': { base: 5000, activities: [
-    { id: 'act_13', name: 'Oslob Whale Shark Swimming', price: 2500 },
-    { id: 'act_14', name: 'Kawasan Falls Canyoning', price: 2000 },
-    { id: 'act_15', name: 'Chocolate Hills & Tarsier Sanctuary', price: 1800 }
-  ]}
-};
-
-const HOTEL_TIERS = [
-  { id: 'hostel', name: 'Backpacker Hostel / Guesthouse', pricePerNight: 1200 },
-  { id: 'standard', name: 'Standard Comfort Hotel', pricePerNight: 3000 },
-  { id: 'luxury', name: 'Premium 5-Star Beachfront Resort', pricePerNight: 8500 }
-];
+import { customizationService } from '../../services/customizationService';
+import { Compass, Sparkles, MapPin, Hotel, Calendar, Users, Calculator, ShieldCheck, Loader } from 'lucide-react';
 
 const CustomPlanner = () => {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
 
+  // Data states
+  const [destinationsData, setDestinationsData] = useState(null);
+  const [hotelTiersData, setHotelTiersData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   // Form selections
-  const [destination, setDestination] = useState(Object.keys(DESTINATION_PRICES)[0]);
+  const [destination, setDestination] = useState('');
   const [selectedActivities, setSelectedActivities] = useState([]);
-  const [hotelTier, setHotelTier] = useState(HOTEL_TIERS[0]);
+  const [hotelTier, setHotelTier] = useState(null);
   const [durationNights, setDurationNights] = useState(3);
   const [guests, setGuests] = useState(2);
 
@@ -60,21 +32,50 @@ const CustomPlanner = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await customizationService.getAll();
+        setDestinationsData(data.destinations);
+        setHotelTiersData(data.hotelTiers);
+        
+        // Set initial selections if available
+        const firstDest = Object.keys(data.destinations)[0];
+        if (firstDest) setDestination(firstDest);
+        if (data.hotelTiers.length > 0) setHotelTier(data.hotelTiers[0]);
+      } catch (err) {
+        showNotification('Failed to load customization options.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [showNotification]);
+
   // Reset selected activities when destination changes
   useEffect(() => {
     setSelectedActivities([]);
   }, [destination]);
 
-  const currentDestinationData = DESTINATION_PRICES[destination];
+  if (loading || !destinationsData || !hotelTiersData) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-slate-950 text-slate-100">
+        <Loader className="h-8 w-8 text-cyan-400 animate-spin" />
+        <span className="ml-3 font-semibold text-sm">Loading planner...</span>
+      </div>
+    );
+  }
+
+  const currentDestinationData = destinationsData[destination];
   
   // Real-time price calculation logic
-  const baseCostPerPerson = currentDestinationData.base;
+  const baseCostPerPerson = currentDestinationData ? currentDestinationData.base : 0;
   const activitiesCostPerPerson = selectedActivities.reduce((sum, actId) => {
-    const act = currentDestinationData.activities.find(a => a.id === actId);
+    const act = currentDestinationData?.activities.find(a => a.id === actId);
     return sum + (act ? act.price : 0);
   }, 0);
 
-  const accommodationCostTotal = hotelTier.pricePerNight * durationNights;
+  const accommodationCostTotal = (hotelTier?.pricePerNight || 0) * durationNights;
 
   // Real-time updates formula
   const subtotalPerPerson = baseCostPerPerson + activitiesCostPerPerson;
@@ -158,7 +159,7 @@ const CustomPlanner = () => {
                 1. Select Destination
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.keys(DESTINATION_PRICES).map((dest) => (
+                {Object.keys(destinationsData).map((dest) => (
                   <div
                     key={dest}
                     onClick={() => setDestination(dest)}
@@ -169,7 +170,7 @@ const CustomPlanner = () => {
                     }`}
                   >
                     <span className="font-bold text-sm block">{dest}</span>
-                    <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Base Cost: PHP {DESTINATION_PRICES[dest].base.toLocaleString()} / guest</span>
+                    <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Base Cost: PHP {destinationsData[dest].base.toLocaleString()} / guest</span>
                   </div>
                 ))}
               </div>
@@ -182,12 +183,12 @@ const CustomPlanner = () => {
                 2. Select Accommodation Tier
               </h3>
               <div className="grid grid-cols-1 gap-3">
-                {HOTEL_TIERS.map((tier) => (
+                {hotelTiersData.map((tier) => (
                   <div
                     key={tier.id}
                     onClick={() => setHotelTier(tier)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all flex justify-between items-center ${
-                      hotelTier.id === tier.id
+                      hotelTier?.id === tier.id
                         ? 'border-cyan-400 bg-cyan-500/5 text-slate-100 shadow-[0_0_15px_rgba(245,208,97,0.1)]'
                         : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 text-slate-400 hover:text-slate-200'
                     }`}
@@ -211,7 +212,7 @@ const CustomPlanner = () => {
                 3. Choose Custom Activities
               </h3>
               <div className="grid grid-cols-1 gap-3">
-                {currentDestinationData.activities.map((act) => (
+                {currentDestinationData?.activities?.map((act) => (
                   <div
                     key={act.id}
                     onClick={() => handleActivityToggle(act.id)}
@@ -225,6 +226,9 @@ const CustomPlanner = () => {
                     <span className="text-xs font-bold text-cyan-400 font-display">+ PHP {act.price.toLocaleString()}</span>
                   </div>
                 ))}
+                {(!currentDestinationData?.activities || currentDestinationData.activities.length === 0) && (
+                  <p className="text-slate-500 text-sm italic">No extra activities available for this destination.</p>
+                )}
               </div>
             </div>
 
@@ -236,10 +240,10 @@ const CustomPlanner = () => {
                 </label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   max="14"
                   value={durationNights}
-                  onChange={(e) => setDurationNights(Math.max(1, Number(e.target.value)))}
+                  onChange={(e) => setDurationNights(Math.max(0, Number(e.target.value)))}
                   className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 px-4 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
@@ -250,10 +254,10 @@ const CustomPlanner = () => {
                 </label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   max="30"
                   value={guests}
-                  onChange={(e) => setGuests(Math.max(1, Number(e.target.value)))}
+                  onChange={(e) => setGuests(Math.max(0, Number(e.target.value)))}
                   className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 px-4 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
@@ -337,7 +341,7 @@ const CustomPlanner = () => {
             <button
               onClick={handleOpenPayment}
               disabled={submitting}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg active:scale-[0.98] transition-all cursor-pointer block disabled:opacity-50"
+              className="w-full py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg active:scale-[0.98] transition-all cursor-pointer block disabled:opacity-50"
             >
               {submitting ? 'Registering...' : 'Book Custom Trip'}
             </button>

@@ -32,6 +32,8 @@ import SalesReports from './pages/admin/SalesReports';
 import ExpenseReports from './pages/admin/ExpenseReports';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminSchedule from './pages/admin/Schedule';
+import ManagePackages from './pages/admin/ManagePackages';
+import ManageCustomizations from './pages/admin/ManageCustomizations';
 
 // Pages - Staff Dashboard
 import StaffDashboard from './pages/staff/Dashboard';
@@ -85,6 +87,8 @@ function App() {
               <Route path="expenses" element={<ExpenseReports />} />
               <Route path="destinations" element={<AdminAnalytics />} />
               <Route path="schedule" element={<AdminSchedule />} />
+              <Route path="packages" element={<ManagePackages />} />
+              <Route path="customizations" element={<ManageCustomizations />} />
             </Route>
 
             {/* Staff Management Dashboard */}

@@ -19,7 +19,7 @@ const AuthLayout = () => {
             RABAS TRAVEL
           </Link>
           <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-100 leading-tight mb-4 tracking-tight">
-            Discover the Hidden Gems of the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 text-glow-cyan">Philippines</span>
+            Discover the Hidden Gems of the <span className="text-cyan-400 text-glow-cyan">Philippines</span>
           </h1>
           <p className="text-slate-300 text-lg leading-relaxed">
             Register your tourist profile to book curated packages, view real-time trip logs, and check local weather forecasts before you pack.

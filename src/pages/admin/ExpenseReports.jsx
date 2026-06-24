@@ -217,7 +217,7 @@ const ExpenseReports = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-slate-950 font-bold font-display rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-rose-500/10 active:scale-[0.98] transition-all text-xs"
+              className="w-full py-3.5 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-400/10 active:scale-[0.98] transition-all text-xs"
             >
               {submitting ? 'Registering...' : 'Register Budget Expense'}
             </button>
