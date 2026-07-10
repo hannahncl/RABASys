@@ -34,10 +34,8 @@ const AdminLayout = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-900 bg-slate-900/50 shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-slate-900">
-          <Link to="/" className="flex items-center gap-2 text-cyan-400 font-display font-bold text-xl tracking-wide">
-            <Compass className="h-6 w-6" />
-            <span>RABAS</span>
-            <span className="text-slate-200">ADMIN</span>
+          <Link to="/">
+            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
           </Link>
         </div>
 
@@ -83,10 +81,8 @@ const AdminLayout = () => {
               <X className="h-6 w-6" />
             </button>
 
-            <Link to="/" className="flex items-center gap-2 text-cyan-400 font-display font-bold text-xl tracking-wide mb-8">
-              <Compass className="h-6 w-6" />
-              <span>RABAS</span>
-              <span className="text-slate-200">ADMIN</span>
+            <Link to="/" className="mb-8">
+              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
             </Link>
 
             <nav className="flex-grow space-y-1">
