@@ -23,6 +23,7 @@ import CustomPlanner from './pages/public/CustomPlanner';
 import ExploreMap from './pages/public/ExploreMap';
 import CarRentals from './pages/public/CarRentals';
 import CarBooking from './pages/public/CarBooking';
+import AboutUs from './pages/public/AboutUs';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -57,11 +58,12 @@ function App() {
               <Route index element={<Home />} />
               <Route path="packages" element={<Packages />} />
               <Route path="packages/:id" element={<PackageDetail />} />
-              <Route path="gallery" element={<Gallery />} />
+              <Route path="gallery" element={<Navigate to="/explore" replace />} />
               <Route path="customize" element={<CustomPlanner />} />
               <Route path="explore" element={<ExploreMap />} />
               <Route path="car-rentals" element={<CarRentals />} />
               <Route path="car-rentals/:id" element={<CarBooking />} />
+              <Route path="about" element={<AboutUs />} />
               
               {/* Protected Tourist Booking */}
               <Route 

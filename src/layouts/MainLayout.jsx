@@ -21,8 +21,8 @@ const MainLayout = () => {
     { name: 'Tour Packages', path: '/packages' },
     { name: 'Car Rentals', path: '/car-rentals' },
     { name: 'Customize Trip', path: '/customize' },
-    { name: 'Spot Gallery', path: '/gallery' },
     { name: 'Explore Map', path: '/explore' },
+    { name: 'About Us', path: '/about' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -30,21 +30,22 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center group">
-            <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto" />
+          <Link to="/" className="flex items-center shrink-0">
+            <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-10 w-auto" />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-4">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium tracking-wide transition-colors ${
-                  isActive(link.path) ? 'text-cyan-400' : 'text-slate-300 hover:text-cyan-400'
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full ${
+                  isActive(link.path)
+                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
                 }`}
               >
                 {link.name}
@@ -52,24 +53,24 @@ const MainLayout = () => {
             ))}
           </nav>
 
-          {/* Right Actions (Auth / Profile) */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
+          <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800 px-4 py-2 rounded-xl text-sm transition-all cursor-pointer"
+                  className="flex items-center gap-2 text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 transition-all px-3.5 py-2 rounded-full cursor-pointer"
                 >
-                  <User className="h-4 w-4 text-cyan-400" />
-                  <span className="max-w-[120px] truncate font-medium text-slate-200">{user.name}</span>
+                  <User className="h-[18px] w-[18px]" />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.15em] hidden lg:block">{user.name.split(' ')[0]}</span>
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-800 bg-slate-900 p-2 shadow-2xl z-50">
-                    <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                      <p className="text-xs text-slate-500">Logged in as</p>
-                      <p className="text-sm font-bold truncate text-slate-200">{user.name}</p>
-                      <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/40">
+                  <div className="absolute right-0 mt-3 w-52 border border-slate-200 bg-white shadow-xl z-50">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Logged in as</p>
+                      <p className="text-sm font-bold truncate text-slate-800 mt-0.5">{user.name}</p>
+                      <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-yellow-50 text-yellow-600 border border-yellow-200">
                         {user.role}
                       </span>
                     </div>
@@ -78,38 +79,36 @@ const MainLayout = () => {
                       <Link
                         to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
                       >
-                        <LayoutDashboard className="h-4 w-4 text-cyan-400" />
+                        <LayoutDashboard className="h-3.5 w-3.5 text-slate-500" />
                         Dashboard
                       </Link>
                     )}
 
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-3.5 w-3.5" />
                       Logout
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/login"
-                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-cyan-400 hover:bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-400/20 transition-all font-display hover:scale-105"
-                >
-                  Register
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full ${
+                  isActive('/login')
+                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
+                }`}
+                title="Sign In"
+              >
+                <User className="h-[18px] w-[18px]" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Login</span>
+              </Link>
             )}
           </div>
 
@@ -117,9 +116,9 @@ const MainLayout = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-slate-400 hover:text-white focus:outline-none p-1"
+              className="text-slate-500 hover:text-slate-900 focus:outline-none transition-colors"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
@@ -127,15 +126,17 @@ const MainLayout = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 space-y-4">
-          <nav className="flex flex-col gap-3">
+        <div className="md:hidden bg-white border-b border-slate-200 px-6 py-5 space-y-1">
+          <nav className="flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-base font-semibold px-3 py-2 rounded-lg ${
-                  isActive(link.path) ? 'bg-slate-800 text-cyan-400' : 'text-slate-300 hover:bg-slate-800'
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all ${
+                  isActive(link.path)
+                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
                 }`}
               >
                 {link.name}
@@ -143,18 +144,18 @@ const MainLayout = () => {
             ))}
           </nav>
           
-          <div className="border-t border-slate-800 pt-4 flex flex-col gap-3">
+          <div className="border-t border-slate-100 pt-4 flex flex-col gap-3">
             {user ? (
               <>
                 <div className="px-3">
-                  <p className="text-xs text-slate-500">Signed in as</p>
-                  <p className="text-sm font-bold text-slate-300">{user.name}</p>
+                  <p className="text-xs text-slate-400">Signed in as</p>
+                  <p className="text-sm font-bold text-slate-700">{user.name}</p>
                 </div>
                 {user.role !== 'customer' && (
                   <Link
                     to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-cyan-400 hover:bg-slate-800 rounded-lg"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-yellow-600 hover:bg-slate-50 rounded-lg font-semibold"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
@@ -162,7 +163,7 @@ const MainLayout = () => {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-slate-800 rounded-lg text-left w-full cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-slate-50 rounded-lg text-left w-full cursor-pointer font-semibold"
                 >
                   <LogOut className="h-4 w-4" />
                   Logout
@@ -173,16 +174,13 @@ const MainLayout = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-xl border border-slate-800 hover:border-slate-700 text-sm font-medium text-slate-300"
+                  className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all ${
+                    isActive('/login')
+                      ? 'bg-yellow-500 text-slate-950 shadow-sm'
+                      : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50 text-slate-700'
+                  }`}
                 >
                   Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-semibold text-sm"
-                >
-                  Register
                 </Link>
               </div>
             )}
