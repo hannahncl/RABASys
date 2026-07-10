@@ -3,7 +3,7 @@ import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import { CalendarCheck, ShieldCheck, XCircle, Search, RefreshCw, Smartphone } from 'lucide-react';
 
-const BookingManagement = () => {
+const MyTours = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Confirmed');
@@ -161,4 +161,4 @@ const BookingManagement = () => {
   );
 };
 
-export default BookingManagement;
+export default MyTours;

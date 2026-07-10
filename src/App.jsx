@@ -43,8 +43,8 @@ import ManageAccounts from './pages/admin/ManageAccounts';
 
 // Pages - Staff Dashboard
 import StaffDashboard from './pages/staff/Dashboard';
-import BookingManagement from './pages/staff/BookingManagement';
-import TripUploads from './pages/staff/TripUploads';
+import MyTours from './pages/staff/MyTours';
+import Calendar from './pages/staff/Calendar';
 
 function App() {
   return (
@@ -114,8 +114,8 @@ function App() {
             >
               <Route index element={<Navigate to="/staff/dashboard" replace />} />
               <Route path="dashboard" element={<StaffDashboard />} />
-              <Route path="bookings" element={<BookingManagement />} />
-              <Route path="uploads" element={<TripUploads />} />
+              <Route path="my-tours" element={<MyTours />} />
+              <Route path="calendar" element={<Calendar />} />
             </Route>
 
             {/* Fallback Redirect */}
