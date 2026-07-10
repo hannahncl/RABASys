@@ -124,6 +124,36 @@ const Login = () => {
         </button>
       </form>
 
+      {/* Quick Access Demo Credentials */}
+      <div className="mt-8 p-5 bg-slate-50 border border-slate-200 rounded-2xl">
+        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
+          Quick Access Demo Roles (Password: 123)
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => handleQuickFill('admin')}
+            className="py-2.5 px-3 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 hover:border-cyan-300 text-cyan-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Admin
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickFill('staff')}
+            className="py-2.5 px-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 hover:border-purple-300 text-purple-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Staff
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickFill('tourist')}
+            className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-800 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Tourist
+          </button>
+        </div>
+      </div>
+
       <div className="mt-8 flex items-center justify-center gap-4">
         <div className="h-px bg-slate-200 flex-1"></div>
         <span className="text-xs font-semibold text-slate-400">or continue with</span>
