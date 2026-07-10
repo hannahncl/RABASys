@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
-import { Compass, Search, Star, MapPin, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Compass, Search, Star, Heart, Clock, Users, SlidersHorizontal } from 'lucide-react';
 
 const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,7 +12,12 @@ const Packages = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedTag, setSelectedTag] = useState('All');
   const [maxPrice, setMaxPrice] = useState(30000);
-  const [recommendationsMode, setRecommendationsMode] = useState(false);
+  const [minPrice, setMinPrice] = useState(10);
+
+  // Mock data for the bars in the price range chart
+  const priceBars = [
+    3, 5, 4, 7, 5, 8, 12, 10, 15, 20, 16, 25, 22, 18, 14, 10, 16, 12, 8, 6, 4, 3, 5, 4, 2, 3, 2, 1
+  ];
 
   useEffect(() => {
     const loadPackages = async () => {
@@ -43,179 +48,167 @@ const Packages = () => {
     
     const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
     const matchesPrice = pkg.price <= maxPrice;
-    
-    // Recommendations recommendation system simulation
-    const matchesRecommendation = !recommendationsMode || pkg.rating >= 4.8;
 
-    return matchesSearch && matchesTag && matchesPrice && matchesRecommendation;
+    return matchesSearch && matchesTag && matchesPrice;
   });
 
-  const allTags = ['All', 'Beach', 'Adventure', 'Cultural', 'Nature', 'Premium'];
+  const allTags = ['All', 'Beach', 'Adventure', 'Cultural', 'Nature'];
+
+  // Badges to rotate across cards
+  const badges = ['Top Rated', 'Best Sale', '25% Off'];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-extrabold font-display text-slate-100">Explore Our Tour Packages</h1>
-        <p className="text-slate-400 text-sm mt-1">Book your dream vacation. Enjoy custom itineraries, local guides, and secure payments.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        {/* Filters Panel */}
-        <aside className="glass-panel p-6 rounded-2xl border-slate-800 space-y-6">
-          <div className="flex items-center gap-2 border-b border-slate-900 pb-4">
-            <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
-            <h3 className="font-bold text-slate-200">Search Filters</h3>
-          </div>
-
-          {/* Search bar */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Keyword Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+    <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div className="flex flex-col lg:flex-row gap-10">
+          
+          {/* Sidebar Filters */}
+          <div className="w-full lg:w-[240px] flex-shrink-0">
+            <h3 className="font-extrabold text-[15px] text-black mb-8 flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-black" /> Search Filters
+            </h3>
+            
+            {/* Keyword Search */}
+            <div className="mb-8">
+              <h4 className="text-xs font-extrabold text-black mb-4">Keyword Search</h4>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="e.g. Palawan, Surigao..."
-                className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-100 focus:outline-none"
+                placeholder="e.g. Albay, Sorsogon..."
+                className="w-full border border-slate-200 rounded-full py-2.5 px-4 text-xs text-black focus:outline-none focus:border-yellow-400 placeholder:text-slate-400"
               />
             </div>
-          </div>
 
-          {/* Smart Recommendation Toggle */}
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-850 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-400" />
-              <div>
-                <span className="text-xs font-bold text-slate-200 block">Smart Recommender</span>
-                <span className="text-[10px] text-slate-500">Show highly-rated tours</span>
+            {/* Category */}
+            <div className="mb-8">
+              <h4 className="text-xs font-extrabold text-black mb-4">Category</h4>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTag(tag)}
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                      selectedTag === tag
+                        ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]'
+                        : 'border-slate-200 text-black hover:border-slate-300'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
               </div>
             </div>
-            <input 
-              type="checkbox"
-              checked={recommendationsMode}
-              onChange={(e) => setRecommendationsMode(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-800 bg-slate-950 text-cyan-500 focus:ring-cyan-500/20 cursor-pointer"
-            />
-          </div>
-
-          {/* Tags Filter */}
-          <div className="space-y-2.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Category Tags</label>
-            <div className="flex flex-wrap gap-1.5">
-              {allTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                    selectedTag === tag
-                      ? 'bg-cyan-500 text-slate-950 border-cyan-500'
-                      : 'bg-slate-950 border-slate-850 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Range */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-slate-400 font-semibold">
-              <span className="uppercase tracking-wider">Max Price Budget</span>
-              <span className="text-cyan-400 font-bold">PHP {maxPrice.toLocaleString()}</span>
-            </div>
-            <input
-              type="range"
-              min="10000"
-              max="30000"
-              step="1000"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500">
-              <span>PHP 10k</span>
-              <span>PHP 30k</span>
-            </div>
-          </div>
-        </aside>
-
-        {/* Packages List Grid */}
-        <div className="lg:col-span-3 space-y-8">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="glass-card rounded-2xl h-96 animate-pulse bg-slate-900/40 border-slate-850" />
-              ))}
-            </div>
-          ) : filteredPackages.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {filteredPackages.map((pkg) => (
-                <div key={pkg.id} className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full">
-                  <div className="h-52 w-full overflow-hidden relative">
-                    <img 
-                      src={pkg.image} 
-                      alt={pkg.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 right-4 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-cyan-400 text-xs font-semibold">
-                      {pkg.duration}
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex-grow flex flex-col space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 text-slate-400 text-xs font-medium">
-                        <MapPin className="h-3.5 w-3.5 text-cyan-500" />
-                        {pkg.destination}
-                      </span>
-                      <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
-                        <Star className="h-3.5 w-3.5 fill-current" />
-                        <span>{pkg.rating}</span>
-                      </div>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-400 transition-colors font-display line-clamp-1">
-                      {pkg.title}
-                    </h3>
-
-                    <p className="text-slate-400 text-xs leading-relaxed line-clamp-2">
-                      {pkg.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-1.5 pt-2">
-                      {pkg.tags.map((t) => (
-                        <span key={t} className="text-[10px] px-2 py-0.5 bg-slate-900 border border-slate-850 text-slate-400 rounded-md">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-900 mt-auto">
-                      <div>
-                        <span className="text-[10px] text-slate-500 block uppercase font-semibold">Price per person</span>
-                        <span className="text-lg font-extrabold text-slate-100 font-display">PHP {pkg.price.toLocaleString()}</span>
-                      </div>
-                      <Link 
-                        to={`/packages/${pkg.id}`}
-                        className="px-4 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-colors cursor-pointer"
-                      >
-                        View Itinerary
-                      </Link>
-                    </div>
-                  </div>
+            
+            {/* Price Range */}
+            <div className="mb-8">
+              <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
+              
+              {/* Chart Mockup */}
+              <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-black/80 z-10"></div>
+                <div className="absolute top-1/2 left-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
+                <div className="absolute top-1/2 right-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
+                
+                {priceBars.map((h, i) => (
+                  <div key={i} className="bg-slate-800 w-full rounded-t-sm" style={{ height: `${h * 2}px` }}></div>
+                ))}
+              </div>
+              
+              {/* Min / Max */}
+              <div className="flex justify-between text-[10px] text-black font-medium mt-6">
+                <div className="flex flex-col items-center">
+                  <span className="block mb-1.5">Minimum</span>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">{minPrice}</div>
                 </div>
-              ))}
+                <div className="flex flex-col items-center">
+                  <span className="block mb-1.5">Maximum</span>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">{maxPrice.toLocaleString()}</div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="glass-panel p-12 text-center rounded-2xl border-slate-800 space-y-4">
-              <Compass className="h-12 w-12 text-slate-500 mx-auto animate-spin" />
-              <h4 className="text-lg font-bold text-slate-300 font-display">No Packages Found</h4>
-              <p className="text-slate-400 text-sm max-w-sm mx-auto">We couldn't find any tour packages matching your search criteria. Try relaxing your filters.</p>
-            </div>
-          )}
+          </div>
+          
+          {/* Main Content Grid */}
+          <div className="flex-1">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="rounded-3xl h-96 animate-pulse bg-slate-100" />
+                ))}
+              </div>
+            ) : filteredPackages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredPackages.map((pkg, index) => (
+                  <div key={pkg.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
+                    
+                    {/* Image Area */}
+                    <div className="h-[250px] w-full overflow-hidden relative">
+                      <img 
+                        src={pkg.image} 
+                        alt={pkg.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      
+                      {/* Badge */}
+                      <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold text-white ${
+                        index % 3 === 0 ? 'bg-green-500' : index % 3 === 1 ? 'bg-blue-500' : 'bg-yellow-500'
+                      }`}>
+                        {badges[index % 3]}
+                      </div>
+                      
+                      {/* Heart Button */}
+                      <button className="absolute top-4 right-4 bg-white/90 rounded-full p-2 shadow-sm hover:bg-white transition-colors">
+                        <Heart className="w-3.5 h-3.5 text-black" />
+                      </button>
+                      
+                      {/* Rating Badge at bottom of image */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-extrabold flex items-center gap-1 text-black">
+                        <Star className="w-3 h-3 text-[#FFE053] fill-[#FFE053]" /> 
+                        {pkg.rating} <span className="text-black font-medium ml-0.5">({Math.floor(Math.random() * 500 + 200)} reviews)</span>
+                      </div>
+                    </div>
+                    
+                    {/* Card Content */}
+                    <div className="px-5 pb-5 pt-4 flex-1 flex flex-col">
+                      <h3 className="font-extrabold text-black text-lg mb-2 leading-tight">{pkg.title}</h3>
+                      
+                      <div className="flex items-center gap-4 text-[11px] text-black font-medium mb-5">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-black" /> {pkg.duration}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3 text-black" /> 4-6 guest
+                        </span>
+                      </div>
+                      
+                      {/* Price & Action */}
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="text-black">
+                          <span className="text-xl font-black">₱{pkg.price.toLocaleString()}</span>
+                          <span className="text-[11px] font-medium text-black ml-1">/ person</span>
+                        </div>
+                        <Link 
+                          to={`/packages/${pkg.id}`}
+                          className="px-5 py-2 border border-black rounded-full text-[11px] font-bold text-black hover:bg-black hover:text-white transition-colors"
+                        >
+                          Book Now
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-64 flex flex-col items-center justify-center bg-slate-50 border border-slate-100 rounded-3xl">
+                <Compass className="h-12 w-12 text-black mx-auto mb-4 animate-spin" />
+                <h3 className="text-black font-bold mb-2">No Packages Found</h3>
+                <p className="text-black text-sm">Try changing your search or filters.</p>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>

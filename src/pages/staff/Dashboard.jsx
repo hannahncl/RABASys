@@ -12,8 +12,8 @@ const Dashboard = () => {
   useEffect(() => {
     const loadStats = async () => {
       const allBookings = await bookingService.getAll();
-      const pending = allBookings.filter(b => b.status === 'Pending Verification');
-      setPendingCount(pending.length);
+      const upcoming = allBookings.filter(b => b.status === 'Confirmed');
+      setPendingCount(upcoming.length);
       setRecentBookings(allBookings.slice(0, 3));
 
       const updates = await tripUploadService.getAll();
@@ -26,8 +26,8 @@ const Dashboard = () => {
     <div className="space-y-8">
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-extrabold font-display text-slate-100">Staff Overview</h1>
-        <p className="text-slate-400 text-sm">Welcome back. Manage customer requests and publish field reports below.</p>
+        <h1 className="text-3xl font-extrabold font-display text-slate-100">Tour Guide Dashboard</h1>
+        <p className="text-slate-400 text-sm">Welcome back. Track your assigned tours and publish field reports below.</p>
       </div>
 
       {/* KPI Cards */}
@@ -35,9 +35,9 @@ const Dashboard = () => {
         {/* Card 1 */}
         <div className="glass-panel p-6 rounded-2xl border-slate-800 flex items-center justify-between">
           <div className="space-y-2">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Pending Approvals</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Assigned Tours</span>
             <span className="text-3xl font-extrabold font-display text-slate-100">{pendingCount}</span>
-            <p className="text-[10px] text-amber-400 font-bold">Needs manual reference check</p>
+            <p className="text-[10px] text-amber-400 font-bold">Upcoming confirmed tours</p>
           </div>
           <div className="h-12 w-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <CalendarCheck className="h-6 w-6" />
@@ -59,9 +59,9 @@ const Dashboard = () => {
         {/* Card 3 */}
         <div className="glass-panel p-6 rounded-2xl border-slate-800 flex items-center justify-between">
           <div className="space-y-2">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Ground Guides Status</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">My Status</span>
             <span className="text-3xl font-extrabold font-display text-slate-100">Active</span>
-            <p className="text-[10px] text-cyan-400 font-bold">3 coordinators online</p>
+            <p className="text-[10px] text-cyan-400 font-bold">Available for assignments</p>
           </div>
           <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
             <Activity className="h-6 w-6" />
@@ -74,7 +74,7 @@ const Dashboard = () => {
         
         {/* Left Column: Quick actions */}
         <div className="lg:col-span-1 space-y-6">
-          <h3 className="font-bold text-slate-200 font-display text-lg">Staff Operations</h3>
+          <h3 className="font-bold text-slate-200 font-display text-lg">Quick Actions</h3>
           
           <div className="space-y-4">
             <Link 
@@ -86,8 +86,8 @@ const Dashboard = () => {
                   <ClipboardList className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="font-bold text-sm text-slate-200 group-hover:text-emerald-400 transition-colors block">Verify Bookings</span>
-                  <span className="text-[10px] text-slate-500">Crosscheck payments references</span>
+                  <span className="font-bold text-sm text-slate-200 group-hover:text-emerald-400 transition-colors block">View My Tours</span>
+                  <span className="text-[10px] text-slate-500">Check details of assigned tours</span>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
@@ -113,7 +113,7 @@ const Dashboard = () => {
 
         {/* Right Column: Recent Bookings list */}
         <div className="lg:col-span-2 space-y-6">
-          <h3 className="font-bold text-slate-200 font-display text-lg">Recent Booking Submissions</h3>
+          <h3 className="font-bold text-slate-200 font-display text-lg">Recent Tours</h3>
           
           <div className="space-y-4">
             {recentBookings.map((b) => (

@@ -1,14 +1,17 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
-import { AlertCircle, Loader2, User, Mail, UserCheck, KeyRound } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const { register } = useContext(AuthContext);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [address, setAddress] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +19,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !username || !password) {
+    if (!email || !password || !firstName || !lastName || !address || !contactNumber) {
       setError('Please fill in all fields.');
       return;
     }
@@ -25,7 +28,9 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(name, email, username, password);
+      const fullName = `${firstName} ${lastName}`;
+      const username = email.split('@')[0] || firstName.toLowerCase();
+      const result = await register(fullName, email, username, password);
       if (result.success) {
         navigate('/');
       } else {
@@ -39,97 +44,104 @@ const Register = () => {
   };
 
   return (
-    <div className="w-full">
-      <h2 className="text-2xl font-bold font-display text-slate-100 mb-2">Create Tourist Profile</h2>
-      <p className="text-slate-400 text-sm mb-6 font-medium">Join Rabas Travel to book local adventures.</p>
+    <div className="w-full text-slate-700">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold font-sans tracking-widest text-[#3b3a36] mb-1 uppercase">Create Account</h2>
+        <p className="text-slate-500 text-sm font-medium">
+          Already have an account?{' '}
+          <Link to="/login" className="text-yellow-400 font-semibold hover:underline">
+            Back to Log In
+          </Link>
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0 text-rose-400" />
+        <div className="mb-6 flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-sm">
+          <AlertCircle className="h-5 w-5 shrink-0 text-rose-500" />
           <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Full Name</label>
-          <div className="relative">
-            <User className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
+          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            placeholder=""
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            placeholder=""
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">First Name</label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 pl-10 pr-4 text-slate-100 placeholder-slate-600 text-sm transition-all focus:outline-none"
-              placeholder="e.g. Juan Dela Cruz"
-              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              placeholder=""
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email Address</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 pl-10 pr-4 text-slate-100 placeholder-slate-600 text-sm transition-all focus:outline-none"
-              placeholder="e.g. juan@example.com"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
-          <div className="relative">
-            <UserCheck className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
+          <div>
+            <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Last Name</label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 pl-10 pr-4 text-slate-100 placeholder-slate-600 text-sm transition-all focus:outline-none"
-              placeholder="Pick a unique username"
-              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              placeholder=""
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 pl-10 pr-4 text-slate-100 placeholder-slate-600 text-sm transition-all focus:outline-none"
-              placeholder="Create a strong password"
-              required
-            />
-          </div>
+          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Address</label>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            placeholder=""
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Contact Number</label>
+          <input
+            type="text"
+            value={contactNumber}
+            onChange={(e) => setContactNumber(e.target.value)}
+            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            placeholder=""
+          />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl shadow-lg shadow-cyan-400/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="w-full py-3.5 mt-6 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold font-sans rounded-3xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            'Create Account'
+            'Sign Up'
           )}
         </button>
       </form>
-
-      <p className="mt-8 text-center text-sm text-slate-500">
-        Already have an account?{' '}
-        <Link to="/login" className="text-cyan-400 hover:underline">
-          Sign in here
-        </Link>
-      </p>
     </div>
   );
 };

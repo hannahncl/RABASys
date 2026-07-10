@@ -18,7 +18,7 @@ const StaffLayout = () => {
 
   const menuItems = [
     { name: 'Overview', path: '/staff/dashboard', icon: LayoutDashboard },
-    { name: 'Bookings Management', path: '/staff/bookings', icon: CalendarCheck },
+    { name: 'My Tours', path: '/staff/bookings', icon: CalendarCheck },
     { name: 'Trip Uploads', path: '/staff/uploads', icon: FileUp },
   ];
 
@@ -32,7 +32,7 @@ const StaffLayout = () => {
           <Link to="/" className="flex items-center gap-2 text-emerald-400 font-display font-bold text-xl tracking-wide">
             <Compass className="h-6 w-6" />
             <span>RABAS</span>
-            <span className="text-slate-200">STAFF</span>
+            <span className="text-slate-200">GUIDE</span>
           </Link>
         </div>
 
@@ -81,7 +81,7 @@ const StaffLayout = () => {
             <Link to="/" className="flex items-center gap-2 text-emerald-400 font-display font-bold text-xl tracking-wide mb-8">
               <Compass className="h-6 w-6" />
               <span>RABAS</span>
-              <span className="text-slate-200">STAFF</span>
+              <span className="text-slate-200">GUIDE</span>
             </Link>
 
             <nav className="flex-grow space-y-1">
@@ -127,7 +127,7 @@ const StaffLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold text-slate-200">Staff Portal</h2>
+            <h2 className="hidden md:block text-lg font-semibold text-slate-200">Tour Guide Portal</h2>
           </div>
 
           <div className="flex items-center gap-6">
@@ -139,10 +139,10 @@ const StaffLayout = () => {
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-slate-200">{user?.name}</p>
-                <p className="text-xs text-emerald-400 uppercase tracking-wider font-semibold">Tour Coordinator</p>
+                <p className="text-xs text-emerald-400 uppercase tracking-wider font-semibold">Tour Guide</p>
               </div>
               <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold font-display">
-                S
+                G
               </div>
             </div>
           </div>

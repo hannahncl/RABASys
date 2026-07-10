@@ -19,6 +19,7 @@ const MainLayout = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Tour Packages', path: '/packages' },
+    { name: 'Car Rentals', path: '/car-rentals' },
     { name: 'Customize Trip', path: '/customize' },
     { name: 'Spot Gallery', path: '/gallery' },
     { name: 'Explore Map', path: '/explore' },
@@ -32,10 +33,8 @@ const MainLayout = () => {
       <header className="sticky top-0 z-40 w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 text-cyan-400 font-display font-bold text-2xl tracking-wide group">
-            <Compass className="h-7 w-7 transition-transform group-hover:rotate-45 duration-500" />
-            <span className="text-slate-100 group-hover:text-cyan-400 transition-colors">RABAS</span>
-            <span className="text-cyan-400">TRAVEL</span>
+          <Link to="/" className="flex items-center group">
+            <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto" />
           </Link>
 
           {/* Desktop Nav */}

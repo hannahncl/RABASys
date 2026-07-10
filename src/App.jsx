@@ -21,10 +21,15 @@ import PackageDetail from './pages/public/PackageDetail';
 import Gallery from './pages/public/Gallery';
 import CustomPlanner from './pages/public/CustomPlanner';
 import ExploreMap from './pages/public/ExploreMap';
+import CarRentals from './pages/public/CarRentals';
+import CarBooking from './pages/public/CarBooking';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import EmailVerification from './pages/auth/EmailVerification';
+import ChangePassword from './pages/auth/ChangePassword';
 
 // Pages - Admin Dashboard
 import AdminDashboard from './pages/admin/Dashboard';
@@ -55,6 +60,8 @@ function App() {
               <Route path="gallery" element={<Gallery />} />
               <Route path="customize" element={<CustomPlanner />} />
               <Route path="explore" element={<ExploreMap />} />
+              <Route path="car-rentals" element={<CarRentals />} />
+              <Route path="car-rentals/:id" element={<CarBooking />} />
               
               {/* Protected Tourist Booking */}
               <Route 
@@ -71,6 +78,9 @@ function App() {
             <Route element={<AuthLayout />}>
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="verify-email" element={<EmailVerification />} />
+              <Route path="change-password" element={<ChangePassword />} />
             </Route>
 
             {/* Admin Management Dashboard */}

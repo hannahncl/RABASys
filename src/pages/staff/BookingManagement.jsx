@@ -6,7 +6,7 @@ import { CalendarCheck, ShieldCheck, XCircle, Search, RefreshCw, Smartphone } fr
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState('Confirmed');
   const [search, setSearch] = useState('');
   const { showNotification } = useNotification();
 
@@ -14,6 +14,7 @@ const BookingManagement = () => {
     setLoading(true);
     try {
       const data = await bookingService.getAll();
+      // Only get tours assigned/confirmed, ignoring pending for guide view unless requested
       setBookings(data);
     } catch (e) {
       showNotification('Failed to fetch bookings list.', 'error');
@@ -25,26 +26,6 @@ const BookingManagement = () => {
   useEffect(() => {
     loadBookings();
   }, []);
-
-  const handleApprove = async (id) => {
-    try {
-      await bookingService.updateStatus(id, 'Confirmed');
-      showNotification(`Booking ${id} verified and confirmed! Approval email sent to client.`, 'success');
-      loadBookings();
-    } catch (e) {
-      showNotification('Error updating status.', 'error');
-    }
-  };
-
-  const handleCancel = async (id) => {
-    try {
-      await bookingService.updateStatus(id, 'Cancelled');
-      showNotification(`Booking ${id} marked as cancelled.`, 'info');
-      loadBookings();
-    } catch (e) {
-      showNotification('Error updating status.', 'error');
-    }
-  };
 
   const filteredBookings = bookings.filter((b) => {
     const matchesFilter = filter === 'All' || b.status === filter;
@@ -59,8 +40,8 @@ const BookingManagement = () => {
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold font-display text-slate-100">Bookings Management</h1>
-          <p className="text-slate-400 text-sm">Review, verify payments, and approve tour packages booked by clients.</p>
+          <h1 className="text-3xl font-extrabold font-display text-slate-100">My Assigned Tours</h1>
+          <p className="text-slate-400 text-sm">View and manage your upcoming assigned tours and client details.</p>
         </div>
         <button
           onClick={loadBookings}
@@ -74,7 +55,7 @@ const BookingManagement = () => {
       {/* Filters and search */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-900">
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          {['All', 'Pending Verification', 'Confirmed', 'Cancelled'].map((status) => (
+          {['All', 'Confirmed', 'Completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -140,44 +121,29 @@ const BookingManagement = () => {
                 </div>
               </div>
 
-              {/* Payment Details */}
+              {/* Extra Details */}
               <div className="bg-slate-900/60 border border-slate-850 px-4 py-3 rounded-xl text-xs space-y-1 w-full md:w-64">
-                <span className="text-[10px] text-slate-500 block uppercase font-bold">GCash Reference Verification</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Contact Number</span>
                 <div className="flex items-center gap-1.5 font-bold text-slate-300">
                   <Smartphone className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>{b.gcashNumber || b.customerPhone}</span>
+                  <span>{b.customerPhone}</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-400 pt-1">
-                  <span>Ref: <span className="font-mono text-cyan-400 font-semibold">{b.paymentRef}</span></span>
+                  <span>Ref: <span className="font-mono text-cyan-400 font-semibold">{b.id}</span></span>
                   <span className="font-extrabold text-slate-200">PHP {b.totalPrice.toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Status */}
               <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
-                {b.status === 'Pending Verification' && (
-                  <>
-                    <button
-                      onClick={() => handleApprove(b.id)}
-                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-colors cursor-pointer"
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                      Approve Payment
-                    </button>
-                    <button
-                      onClick={() => handleCancel(b.id)}
-                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-850 hover:border-slate-700 rounded-xl transition-colors cursor-pointer"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject
-                    </button>
-                  </>
-                )}
                 {b.status === 'Confirmed' && (
-                  <span className="text-slate-500 text-xs italic font-medium">Payment settled</span>
+                  <span className="text-emerald-500 text-xs italic font-medium">Ready for Tour</span>
                 )}
-                {b.status === 'Cancelled' && (
-                  <span className="text-rose-500 text-xs italic font-medium">Rejected / Cancelled</span>
+                {b.status === 'Completed' && (
+                  <span className="text-slate-500 text-xs italic font-medium">Tour Completed</span>
+                )}
+                {b.status === 'Pending Verification' && (
+                  <span className="text-amber-500 text-xs italic font-medium">Awaiting Payment</span>
                 )}
               </div>
 
