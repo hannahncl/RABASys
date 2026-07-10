@@ -6,8 +6,8 @@ const CarRentals = () => {
   // Filter States
   const [capacity, setCapacity] = useState(4);
   const [selectedColor, setSelectedColor] = useState('White');
-  const [minPrice, setMinPrice] = useState(10);
-  const [maxPrice, setMaxPrice] = useState(290);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(3000);
 
   // Mock data for the bars in the price range chart
   const priceBars = [
@@ -28,7 +28,7 @@ const CarRentals = () => {
       seats: 4,
       color: 'White',
       price: '1,000',
-      priceNum: 100
+      priceNum: 1000
     },
     {
       id: 2,
@@ -43,7 +43,7 @@ const CarRentals = () => {
       seats: 4,
       color: 'White',
       price: '1,500',
-      priceNum: 150
+      priceNum: 1500
     },
     {
       id: 3,
@@ -58,7 +58,7 @@ const CarRentals = () => {
       seats: 2,
       color: 'Gray',
       price: '1,800',
-      priceNum: 180
+      priceNum: 1800
     },
     {
       id: 4,
@@ -73,7 +73,7 @@ const CarRentals = () => {
       seats: 4,
       color: 'White',
       price: '1,200',
-      priceNum: 120
+      priceNum: 1200
     },
     {
       id: 5,
@@ -88,7 +88,7 @@ const CarRentals = () => {
       seats: 4,
       color: 'Gray',
       price: '1,600',
-      priceNum: 160
+      priceNum: 1600
     },
     {
       id: 6,
@@ -103,7 +103,7 @@ const CarRentals = () => {
       seats: 2,
       color: 'Black',
       price: '1,400',
-      priceNum: 140
+      priceNum: 1400
     },
     {
       id: 7,
@@ -118,11 +118,11 @@ const CarRentals = () => {
       seats: 6,
       color: 'Black',
       price: '2,000',
-      priceNum: 200
+      priceNum: 2000
     }
   ];
 
-  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor);
+  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor && car.priceNum <= maxPrice);
 
   return (
     <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">
@@ -141,26 +141,31 @@ const CarRentals = () => {
               
               {/* Chart Mockup */}
               <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-900/90 z-10"></div>
-                {/* Left Handle */}
-                <div className="absolute top-1/2 left-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
-                {/* Right Handle */}
-                <div className="absolute top-1/2 right-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
-                
                 {priceBars.map((h, i) => (
-                  <div key={i} className="bg-slate-800 w-full rounded-t-sm" style={{ height: `${h * 2}px` }}></div>
+                  <div key={i} className={`${i / priceBars.length <= maxPrice / 3000 ? 'bg-[#FFE053]' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
                 ))}
               </div>
+              
+              {/* Range Input */}
+              <input 
+                type="range" 
+                min="0" 
+                max="3000" 
+                step="100"
+                value={maxPrice} 
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                className="w-full accent-[#FFE053] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+              />
               
               {/* Sliders Input Mockup */}
               <div className="flex justify-between text-[10px] text-black font-medium mt-6">
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">${minPrice}</div>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱0</div>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">${maxPrice}+</div>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱{maxPrice.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -254,7 +259,7 @@ const CarRentals = () => {
                       {/* Price & Action */}
                       <div className="flex items-center justify-between pt-1">
                         <div className="text-[10px] text-black font-medium">
-                          from <span className="text-lg font-black text-black ml-0.5">{car.price}</span>
+                          from <span className="text-lg font-black text-black ml-0.5">₱{car.price}</span>
                         </div>
                         <Link 
                           to={`/car-rentals/${car.id}`}

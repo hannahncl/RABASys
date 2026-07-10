@@ -107,24 +107,31 @@ const Packages = () => {
               
               {/* Chart Mockup */}
               <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-black/80 z-10"></div>
-                <div className="absolute top-1/2 left-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
-                <div className="absolute top-1/2 right-0 -mt-2.5 w-5 h-5 bg-white border shadow-sm rounded-full z-20 cursor-pointer"></div>
-                
                 {priceBars.map((h, i) => (
-                  <div key={i} className="bg-slate-800 w-full rounded-t-sm" style={{ height: `${h * 2}px` }}></div>
+                  <div key={i} className={`${i / priceBars.length <= maxPrice / 30000 ? 'bg-[#FFE053]' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
                 ))}
               </div>
+              
+              {/* Range Input */}
+              <input 
+                type="range" 
+                min="0" 
+                max="30000" 
+                step="500"
+                value={maxPrice} 
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                className="w-full accent-[#FFE053] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+              />
               
               {/* Min / Max */}
               <div className="flex justify-between text-[10px] text-black font-medium mt-6">
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">{minPrice}</div>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱0</div>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">{maxPrice.toLocaleString()}</div>
+                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱{maxPrice.toLocaleString()}</div>
                 </div>
               </div>
             </div>
