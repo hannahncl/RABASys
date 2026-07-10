@@ -42,10 +42,10 @@ const MainLayout = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full ${
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${
                   isActive(link.path)
-                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
                 }`}
               >
                 {link.name}
@@ -75,6 +75,15 @@ const MainLayout = () => {
                       </span>
                     </div>
 
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                    >
+                      <User className="h-3.5 w-3.5 text-slate-500" />
+                      My Profile
+                    </Link>
+
                     {user.role !== 'customer' && (
                       <Link
                         to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
@@ -99,10 +108,10 @@ const MainLayout = () => {
             ) : (
               <Link
                 to="/login"
-                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full ${
+                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${
                   isActive('/login')
-                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
                 }`}
                 title="Sign In"
               >
@@ -133,10 +142,10 @@ const MainLayout = () => {
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all ${
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all border ${
                   isActive(link.path)
-                    ? 'bg-yellow-500 text-slate-950 shadow-sm'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50'
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
                 }`}
               >
                 {link.name}
@@ -151,6 +160,14 @@ const MainLayout = () => {
                   <p className="text-xs text-slate-400">Signed in as</p>
                   <p className="text-sm font-bold text-slate-700">{user.name}</p>
                 </div>
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg font-semibold"
+                >
+                  <User className="h-4 w-4" />
+                  My Profile
+                </Link>
                 {user.role !== 'customer' && (
                   <Link
                     to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
@@ -174,10 +191,10 @@ const MainLayout = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all ${
+                  className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all border ${
                     isActive('/login')
-                      ? 'bg-yellow-500 text-slate-950 shadow-sm'
-                      : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50 text-slate-700'
+                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                      : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50/50 text-slate-700'
                   }`}
                 >
                   Sign In

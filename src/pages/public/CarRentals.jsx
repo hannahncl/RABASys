@@ -142,7 +142,7 @@ const CarRentals = () => {
               {/* Chart Mockup */}
               <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
                 {priceBars.map((h, i) => (
-                  <div key={i} className={`${i / priceBars.length <= maxPrice / 3000 ? 'bg-[#FFE053]' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
+                  <div key={i} className={`${i / priceBars.length <= maxPrice / 3000 ? 'bg-yellow-200' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
                 ))}
               </div>
               
@@ -154,18 +154,18 @@ const CarRentals = () => {
                 step="100"
                 value={maxPrice} 
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-[#FFE053] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+                className="w-full accent-yellow-400 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
               />
               
               {/* Sliders Input Mockup */}
               <div className="flex justify-between text-[10px] text-black font-medium mt-6">
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱0</div>
+                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱0</div>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱{maxPrice.toLocaleString()}</div>
+                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱{maxPrice.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -178,10 +178,10 @@ const CarRentals = () => {
                   <button 
                     key={cap}
                     onClick={() => setCapacity(cap)}
-                    className={`flex-1 py-2 rounded-full border text-[11px] font-bold transition-colors ${
+                    className={`flex-1 py-2 rounded-full border text-[11px] font-semibold transition-all ${
                       capacity === cap 
-                      ? 'border-[#FFE053] bg-[#FFE053] text-[#3b3a36] shadow-sm' 
-                      : 'border-slate-200 hover:border-slate-300 text-black'
+                      ? 'border-yellow-250 bg-yellow-50 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]' 
+                      : 'border-slate-150 hover:border-slate-300 text-slate-700'
                     }`}
                   >
                     {cap}
@@ -198,15 +198,15 @@ const CarRentals = () => {
               </div>
               <div className="flex gap-5">
                 <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('White')}>
-                  <div className={`w-4 h-4 rounded-full border-2 ${selectedColor === 'White' ? 'border-[#FFE053] bg-[#FFE053]' : 'border-slate-200 bg-white group-hover:border-slate-300'} transition-colors`}></div>
+                  <div className={`w-4 h-4 rounded-full border ${selectedColor === 'White' ? 'border-yellow-350 bg-yellow-100' : 'border-slate-200 bg-white group-hover:border-slate-300'} transition-colors`}></div>
                   <span className="text-[11px] font-medium text-black">White</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('Gray')}>
-                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Gray' ? 'ring-[#FFE053] bg-slate-400' : 'bg-slate-300 ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
+                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Gray' ? 'ring-yellow-300 bg-slate-400' : 'bg-slate-300 ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
                   <span className="text-[11px] font-medium text-black">Gray</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('Black')}>
-                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Black' ? 'ring-[#FFE053] bg-black' : 'bg-black ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
+                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Black' ? 'ring-yellow-300 bg-black' : 'bg-black ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
                   <span className="text-[11px] font-medium text-black">Black</span>
                 </label>
               </div>
@@ -237,8 +237,8 @@ const CarRentals = () => {
                     <div className="px-6 pb-6 pt-2 flex-1 flex flex-col border-t border-slate-50">
                       {/* Floating Rating Badge */}
                       <div className="flex justify-center -mt-8 relative z-10 mb-5">
-                        <div className="bg-white border border-slate-100 rounded-full px-3 py-1 shadow-sm text-[10px] font-extrabold flex items-center gap-1 text-black">
-                          <Star className="w-3 h-3 text-[#FFE053] fill-[#FFE053]" /> 
+                        <div className="bg-white border border-slate-100 rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
+                          <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
                           {car.rating} <span className="text-black font-medium ml-0.5">({car.reviews} reviews)</span>
                         </div>
                       </div>
@@ -263,7 +263,7 @@ const CarRentals = () => {
                         </div>
                         <Link 
                           to={`/car-rentals/${car.id}`}
-                          className="bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold text-[11px] px-6 py-2.5 rounded-full transition-colors shadow-sm inline-block"
+                          className="bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold text-[11px] px-6 py-2.5 rounded-full transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] inline-block"
                         >
                           Book Now
                         </Link>

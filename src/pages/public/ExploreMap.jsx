@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Camera, MapPin, X, CloudSun, Wind, ArrowLeft,
-  Droplets, Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn
+  Droplets, Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn,
+  Link2, SwitchCamera, RotateCcw, Check, VideoOff
 } from 'lucide-react';
 import mapGalleryService from '../../services/mapGalleryService';
 import { weatherService } from '../../services/weatherService';
@@ -71,6 +72,108 @@ const ExploreMap = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
+  // Upload tab state: 'camera' | 'gallery' | 'url'
+  const [uploadTab, setUploadTab] = useState('camera');
+
+  // Camera state
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [facingMode, setFacingMode] = useState('environment'); // 'user' or 'environment'
+
+  // Start camera stream
+  const startCamera = useCallback(async () => {
+    setCameraError('');
+    setCapturedPhoto(null);
+    try {
+      // Stop any existing stream first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      setCameraActive(true);
+    } catch (err) {
+      console.error('Camera error:', err);
+      if (err.name === 'NotAllowedError') {
+        setCameraError('Camera permission was denied. Please allow camera access in your browser settings.');
+      } else if (err.name === 'NotFoundError') {
+        setCameraError('No camera found on this device.');
+      } else {
+        setCameraError('Could not access camera. Please try the Gallery or URL tab instead.');
+      }
+      setCameraActive(false);
+    }
+  }, [facingMode]);
+
+  // Stop camera stream
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  }, []);
+
+  // Snap photo from video stream
+  const snapPhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    // Mirror if using front camera
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedPhoto(dataUrl);
+    stopCamera();
+  }, [facingMode, stopCamera]);
+
+  // Flip camera between front and rear
+  const flipCamera = useCallback(() => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  }, []);
+
+  // Auto-start camera when camera tab is selected and modal is open
+  useEffect(() => {
+    if (uploadModalOpen && uploadTab === 'camera' && !capturedPhoto) {
+      startCamera();
+    } else if (uploadTab !== 'camera') {
+      stopCamera();
+    }
+    return () => {
+      // Cleanup on unmount or tab switch
+      if (uploadTab !== 'camera') stopCamera();
+    };
+  }, [uploadModalOpen, uploadTab, facingMode]);
+
+  // Cleanup camera when modal closes
+  useEffect(() => {
+    if (!uploadModalOpen) {
+      stopCamera();
+      setCapturedPhoto(null);
+      setCameraError('');
+    }
+  }, [uploadModalOpen, stopCamera]);
+
   useEffect(() => {
     const fetchSpots = async () => {
       const data = await mapGalleryService.getSpots();
@@ -127,14 +230,24 @@ const ExploreMap = () => {
     if (!caption.trim()) { setUploadError('Please add a caption.'); return; }
     setUploading(true);
     setUploadError('');
-    const finalImageUrl = customImageUrl.trim() || selectedPresetImage;
+    // Determine final image: camera capture > custom URL > preset image
+    let finalImageUrl;
+    if (uploadTab === 'camera' && capturedPhoto) {
+      finalImageUrl = capturedPhoto;
+    } else if (uploadTab === 'url' && customImageUrl.trim()) {
+      finalImageUrl = customImageUrl.trim();
+    } else {
+      finalImageUrl = selectedPresetImage;
+    }
     try {
       const newUpload = await mapGalleryService.uploadPhoto(selectedSpot.id, touristName, caption, finalImageUrl);
       setUploads(prev => [newUpload, ...prev]);
       setTouristName('');
       setCaption('');
       setCustomImageUrl('');
+      setCapturedPhoto(null);
       setUploadModalOpen(false);
+      setUploadTab('camera');
     } catch {
       setUploadError('Failed to upload. Please try again.');
     } finally {
@@ -498,14 +611,18 @@ const ExploreMap = () => {
         </div>
       )}
 
-      {/* Upload Photo Modal */}
+      {/* Hidden canvas for camera capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Upload Photo Modal — 3-Tab Design */}
       {uploadModalOpen && selectedSpot && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-3">
               <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
                 <Camera className="h-5 w-5 text-yellow-500" />
-                Upload Photo — {selectedSpot.name.split(',')[0]}
+                Upload Photo
               </h3>
               <button
                 onClick={() => setUploadModalOpen(false)}
@@ -515,76 +632,269 @@ const ExploreMap = () => {
               </button>
             </div>
 
+            {/* Spot name pill */}
+            <div className="px-6 pb-3">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 px-2.5 py-1 rounded-full">
+                <MapPin className="h-3 w-3" />
+                {selectedSpot.name}
+              </span>
+            </div>
+
             {uploadError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
+              <div className="mx-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold mb-2">
                 {uploadError}
               </div>
             )}
 
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Your Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Maria Santos"
-                  value={touristName}
-                  onChange={e => setTouristName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Caption / Story</label>
-                <textarea
-                  placeholder="Share your experience at this spot..."
-                  rows="3"
-                  value={caption}
-                  onChange={e => setCaption(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select a Photo</label>
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {PRESET_UPLOAD_IMAGES.map(img => (
-                    <button
-                      type="button"
-                      key={img.name}
-                      onClick={() => { setSelectedPresetImage(img.url); setCustomImageUrl(''); }}
-                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                        selectedPresetImage === img.url && !customImageUrl
-                          ? 'border-yellow-500 shadow-md'
-                          : 'border-slate-200 opacity-60 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+            <form onSubmit={handleUploadSubmit}>
+              <div className="px-6 space-y-4">
+                {/* Name & Caption */}
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Your Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Maria Santos"
+                      value={touristName}
+                      onChange={e => setTouristName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Caption / Story</label>
+                    <textarea
+                      placeholder="Share your experience at this spot..."
+                      rows="2"
+                      value={caption}
+                      onChange={e => setCaption(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all resize-none"
+                    />
+                  </div>
                 </div>
-                <div className="relative flex items-center my-3">
-                  <div className="flex-1 border-t border-slate-200" />
-                  <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Or paste a URL</span>
-                  <div className="flex-1 border-t border-slate-200" />
+
+                {/* ── 3-Tab Selector ── */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Choose Photo Source</label>
+                  <div className="flex rounded-xl bg-slate-100 p-1 gap-1">
+                    {[
+                      { id: 'camera', label: 'Camera', icon: Camera },
+                      { id: 'gallery', label: 'Gallery', icon: ImageIcon },
+                      { id: 'url', label: 'URL', icon: Link2 },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setUploadTab(tab.id)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                          uploadTab === tab.id
+                            ? 'bg-white text-slate-800 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <tab.icon className="h-3.5 w-3.5" />
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={customImageUrl}
-                  onChange={e => setCustomImageUrl(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
-                />
+
+                {/* ── Tab Content ── */}
+                <div className="min-h-[220px]">
+
+                  {/* CAMERA TAB */}
+                  {uploadTab === 'camera' && (
+                    <div className="space-y-3">
+                      {cameraError ? (
+                        /* Camera error / permission denied fallback */
+                        <div className="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                          <VideoOff className="h-10 w-10 text-slate-300 mb-3" />
+                          <p className="text-sm font-semibold text-slate-600 text-center mb-1">{cameraError}</p>
+                          <p className="text-xs text-slate-400 text-center mb-4">You can use the Gallery or URL tab to upload a photo instead.</p>
+                          <button
+                            type="button"
+                            onClick={() => setUploadTab('gallery')}
+                            className="flex items-center gap-1.5 text-xs font-bold text-yellow-600 hover:text-yellow-700 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <ImageIcon className="h-3.5 w-3.5" />
+                            Switch to Gallery
+                          </button>
+                        </div>
+                      ) : capturedPhoto ? (
+                        /* Captured photo preview */
+                        <div className="space-y-3">
+                          <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+                            <img src={capturedPhoto} alt="Captured" className="w-full h-52 object-cover" />
+                            <div className="absolute top-3 right-3 flex gap-2">
+                              <div className="bg-green-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
+                                <Check className="h-3 w-3" />
+                                Photo Captured
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCapturedPhoto(null);
+                                startCamera();
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Retake
+                            </button>
+                            <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-50 text-green-700 border border-green-200 text-xs font-bold">
+                              <Check className="h-3.5 w-3.5" />
+                              Ready to Submit
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Live camera viewfinder */
+                        <div className="space-y-3">
+                          <div className="relative rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-sm">
+                            <video
+                              ref={videoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              className={`w-full h-52 object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+                            />
+
+                            {/* Camera loading overlay */}
+                            {!cameraActive && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900">
+                                <RefreshCw className="h-6 w-6 text-yellow-400 animate-spin mb-2" />
+                                <span className="text-xs text-slate-400 font-medium">Starting camera...</span>
+                              </div>
+                            )}
+
+                            {/* Viewfinder corners */}
+                            {cameraActive && (
+                              <>
+                                <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-white/60 rounded-tl-md" />
+                                <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-white/60 rounded-tr-md" />
+                                <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-white/60 rounded-bl-md" />
+                                <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-white/60 rounded-br-md" />
+                              </>
+                            )}
+
+                            {/* Flip camera button */}
+                            {cameraActive && (
+                              <button
+                                type="button"
+                                onClick={flipCamera}
+                                className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full transition-colors cursor-pointer"
+                                title="Switch camera"
+                              >
+                                <SwitchCamera className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Snap button — Instagram style */}
+                          <div className="flex justify-center">
+                            <button
+                              type="button"
+                              onClick={snapPhoto}
+                              disabled={!cameraActive}
+                              className="group relative cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Take photo"
+                            >
+                              {/* Outer ring */}
+                              <div className="w-16 h-16 rounded-full border-[3px] border-yellow-500 flex items-center justify-center transition-all group-hover:border-yellow-400 group-hover:scale-105">
+                                {/* Inner circle */}
+                                <div className="w-12 h-12 rounded-full bg-yellow-500 group-hover:bg-yellow-400 transition-all group-active:scale-90 shadow-lg flex items-center justify-center">
+                                  <Camera className="h-5 w-5 text-white" />
+                                </div>
+                              </div>
+                              {/* Pulse animation ring */}
+                              <div className="absolute inset-0 rounded-full border-2 border-yellow-400 animate-ping opacity-20 group-hover:opacity-40" />
+                            </button>
+                          </div>
+                          <p className="text-center text-[10px] text-slate-400 font-medium -mt-1">Tap to capture</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* GALLERY TAB */}
+                  {uploadTab === 'gallery' && (
+                    <div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {PRESET_UPLOAD_IMAGES.map(img => (
+                          <button
+                            type="button"
+                            key={img.name}
+                            onClick={() => { setSelectedPresetImage(img.url); setCustomImageUrl(''); }}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                              selectedPresetImage === img.url
+                                ? 'border-yellow-500 shadow-md scale-105'
+                                : 'border-slate-200 opacity-60 hover:opacity-100 hover:border-slate-300'
+                            }`}
+                          >
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                            {selectedPresetImage === img.url && (
+                              <div className="absolute inset-0 bg-yellow-500/20 flex items-center justify-center">
+                                <div className="bg-yellow-500 rounded-full p-1">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Preview of selected preset */}
+                      <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                        <img src={selectedPresetImage} alt="Selected" className="w-full h-36 object-cover" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* URL TAB */}
+                  {uploadTab === 'url' && (
+                    <div className="space-y-3">
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/..."
+                        value={customImageUrl}
+                        onChange={e => setCustomImageUrl(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                      />
+                      {/* URL preview */}
+                      {customImageUrl.trim() ? (
+                        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                          <img
+                            src={customImageUrl}
+                            alt="Preview"
+                            className="w-full h-36 object-cover"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                          <Link2 className="h-8 w-8 text-slate-300 mb-2" />
+                          <p className="text-xs text-slate-400 font-medium">Paste an image URL above to preview</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-3 pt-1">
+
+              {/* Action buttons */}
+              <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100 mt-4">
                 <button
                   type="button"
                   onClick={() => setUploadModalOpen(false)}
-                  className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-bold py-2.5 rounded-xl transition-colors cursor-pointer"
+                  className="flex-1 bg-white text-slate-600 hover:bg-slate-100 text-sm font-bold py-2.5 rounded-xl transition-colors cursor-pointer border border-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={uploading}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                  disabled={uploading || (uploadTab === 'camera' && !capturedPhoto)}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   {uploading ? (
                     <><RefreshCw className="h-4 w-4 animate-spin" />Uploading...</>

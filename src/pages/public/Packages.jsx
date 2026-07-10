@@ -77,7 +77,7 @@ const Packages = () => {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="e.g. Albay, Sorsogon..."
-                className="w-full border border-slate-200 rounded-full py-2.5 px-4 text-xs text-black focus:outline-none focus:border-yellow-400 placeholder:text-slate-400"
+                className="w-full border border-slate-150 rounded-full py-2.5 px-4 text-xs text-black focus:outline-none focus:border-yellow-300 focus:ring-2 focus:ring-yellow-100/50 placeholder:text-slate-450 transition-all"
               />
             </div>
 
@@ -89,10 +89,10 @@ const Packages = () => {
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
-                    className={`px-4 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
                       selectedTag === tag
-                        ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]'
-                        : 'border-slate-200 text-black hover:border-slate-300'
+                        ? 'bg-yellow-50 border-yellow-250 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                        : 'border-slate-150 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     {tag}
@@ -108,7 +108,7 @@ const Packages = () => {
               {/* Chart Mockup */}
               <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
                 {priceBars.map((h, i) => (
-                  <div key={i} className={`${i / priceBars.length <= maxPrice / 30000 ? 'bg-[#FFE053]' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
+                  <div key={i} className={`${i / priceBars.length <= maxPrice / 30000 ? 'bg-yellow-200' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
                 ))}
               </div>
               
@@ -120,18 +120,18 @@ const Packages = () => {
                 step="500"
                 value={maxPrice} 
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-[#FFE053] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+                className="w-full accent-yellow-400 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
               />
               
               {/* Min / Max */}
               <div className="flex justify-between text-[10px] text-black font-medium mt-6">
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱0</div>
+                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱0</div>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱{maxPrice.toLocaleString()}</div>
+                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱{maxPrice.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -171,8 +171,8 @@ const Packages = () => {
                       </button>
                       
                       {/* Rating Badge at bottom of image */}
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-extrabold flex items-center gap-1 text-black">
-                        <Star className="w-3 h-3 text-[#FFE053] fill-[#FFE053]" /> 
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
+                        <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
                         {pkg.rating} <span className="text-black font-medium ml-0.5">({Math.floor(Math.random() * 500 + 200)} reviews)</span>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ const Packages = () => {
                         </div>
                         <Link 
                           to={`/packages/${pkg.id}`}
-                          className="px-5 py-2 border border-black rounded-full text-[11px] font-bold text-black hover:bg-black hover:text-white transition-colors"
+                          className="px-5 py-2 border border-yellow-250 bg-yellow-50 text-yellow-800 rounded-full text-[11px] font-bold hover:bg-yellow-100 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                         >
                           Book Now
                         </Link>

@@ -125,7 +125,7 @@ const Booking = () => {
       { num: 26, color: 'text-black' }, { num: 27, color: 'text-black' }, { num: 28, color: 'text-black' }, { num: 29, color: 'text-black' }, { num: 30, color: 'text-black' }, { num: 31, color: 'text-black' }, { num: '01', color: 'text-black' },
       { num: 2, color: 'text-black' }, { num: 3, color: 'text-black' }, { num: 4, color: 'text-black' }, { num: 5, color: 'text-black' }, { num: 6, bg: 'bg-slate-400', color: 'text-white' }, { num: 7, color: 'text-black' }, { num: 8, color: 'text-black' },
       { num: 9, color: 'text-black' }, { num: 10, color: 'text-black' }, { num: 11, color: 'text-black' }, { num: 12, color: 'text-black' }, { num: 13, color: 'text-black' }, { num: 14, color: 'text-black' }, { num: 15, color: 'text-black' },
-      { num: 16, color: 'text-black' }, { num: 17, color: 'text-black' }, { num: 18, color: 'text-black' }, { num: 19, bg: 'bg-yellow-400', color: 'text-white' }, { num: 20, color: 'text-yellow-400' }, { num: 21, color: 'text-yellow-400' }, { num: 22, bg: 'bg-yellow-400', color: 'text-white' },
+      { num: 16, color: 'text-black' }, { num: 17, color: 'text-black' }, { num: 18, color: 'text-black' }, { num: 19, bg: 'bg-yellow-50 ring-1 ring-yellow-200', color: 'text-yellow-750' }, { num: 20, color: 'text-yellow-600 hover:bg-yellow-50/50' }, { num: 21, color: 'text-yellow-600 hover:bg-yellow-50/50' }, { num: 22, bg: 'bg-yellow-50 ring-1 ring-yellow-200', color: 'text-yellow-750' },
       { num: 23, color: 'text-black' }, { num: 24, color: 'text-black' }, { num: 25, color: 'text-black' }, { num: 26, color: 'text-black' }, { num: 27, color: 'text-black' }, { num: 28, color: 'text-black' }, { num: 29, color: 'text-black' },
       { num: 31, color: 'text-black' }, { num: 1, color: 'text-black' }, { num: 2, color: 'text-black' }, { num: 3, color: 'text-black' }, { num: 4, color: 'text-black' }, { num: 5, color: 'text-black' }, { num: 6, color: 'text-black' }
     ];
@@ -157,7 +157,7 @@ const Booking = () => {
 
           {/* Step 1: Choose Booking */}
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-yellow-50 border border-yellow-250 flex items-center justify-center text-yellow-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
             <span className="text-sm font-medium text-black">Choose Booking</span>
@@ -170,7 +170,7 @@ const Booking = () => {
                 <span className="leading-none mb-2 font-bold tracking-widest text-lg">...</span>
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-yellow-50 border border-yellow-250 flex items-center justify-center text-yellow-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
             )}
@@ -206,7 +206,7 @@ const Booking = () => {
                       <button
                         type="button"
                         onClick={() => setShowDatePicker(!showDatePicker)}
-                        className={`w-full border rounded-xl py-3 px-4 flex items-center justify-center text-sm font-bold shadow-sm transition-all ${showDatePicker ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 hover:border-slate-300 text-black'}`}
+                        className={`w-full border rounded-xl py-3 px-4 flex items-center justify-center text-sm font-bold shadow-sm transition-all ${showDatePicker ? 'bg-yellow-50 border-yellow-250 text-yellow-800' : 'bg-white border-slate-200 hover:border-slate-300 text-black'}`}
                       >
                         {!showDatePicker && <Calendar className="h-4 w-4 mr-2" />}
                         {tourDate && !showDatePicker ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Check Availability'}
@@ -223,14 +223,14 @@ const Booking = () => {
                               <button 
                                 type="button" 
                                 onClick={() => setSelectedTime('10:30 am')}
-                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '10:30 am' ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
+                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '10:30 am' ? 'bg-yellow-55 bg-yellow-50 border-yellow-250 text-yellow-805 text-yellow-800' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
                               >
                                 <Clock className="w-3 h-3" /> 10 : 30 am
                               </button>
                               <button 
                                 type="button" 
                                 onClick={() => setSelectedTime('05:30 pm')}
-                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '05:30 pm' ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
+                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '05:30 pm' ? 'bg-yellow-55 bg-yellow-50 border-yellow-250 text-yellow-805 text-yellow-800' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
                               >
                                 <Clock className="w-3 h-3" /> 05 : 30 pm
                               </button>
@@ -264,7 +264,7 @@ const Booking = () => {
                             <button 
                               type="button" 
                               onClick={() => setShowDatePicker(false)}
-                              className="px-6 py-1.5 rounded-full bg-[#FFE053] hover:bg-[#F2D340] text-[11px] font-bold text-[#3b3a36] transition-colors"
+                              className="px-6 py-1.5 rounded-full bg-yellow-50 hover:bg-yellow-100 border border-yellow-250 text-[11px] font-bold text-yellow-800 transition-colors cursor-pointer"
                             >
                               Done
                             </button>
@@ -393,8 +393,8 @@ const Booking = () => {
                   
                   {/* GCash Option */}
                   <label className="flex items-center gap-4 cursor-pointer py-2">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-[#E6D41A]' : 'border-slate-300'}`}>
-                      {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-[#E6D41A] rounded-full"></div>}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                      {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                     </div>
                     <span className="text-sm font-semibold text-black">GCash</span>
                     <input type="radio" className="hidden" checked={paymentMethod === 'gcash'} onChange={() => setPaymentMethod('gcash')} />
@@ -405,8 +405,8 @@ const Booking = () => {
                   {/* Credit/Debit Option */}
                   <label className="flex items-center justify-between cursor-pointer py-2">
                     <div className="flex items-center gap-4">
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-[#E6D41A]' : 'border-slate-300'}`}>
-                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-[#E6D41A] rounded-full"></div>}
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                       </div>
                       <span className="text-sm font-semibold text-black">Credit/ Debit Card</span>
                     </div>
@@ -472,7 +472,7 @@ const Booking = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="py-2.5 px-8 bg-[#E6D41A] hover:bg-[#D4C318] text-white font-bold rounded-full text-sm shadow-sm active:scale-[0.98] transition-all disabled:opacity-50"
+                      className="py-2.5 px-8 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-full text-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {submitting ? 'Processing...' : 'Proceed to Pay'}
                     </button>
@@ -522,7 +522,7 @@ const Booking = () => {
                   type="submit"
                   form="booking-form"
                   disabled={submitting}
-                  className="w-full py-3.5 bg-[#E6D41A] hover:bg-[#D4C318] text-white font-bold rounded-xl text-center shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 text-sm mt-8"
+                  className="w-full py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all disabled:opacity-50 text-sm mt-8 cursor-pointer"
                 >
                   Proceed to Pay
                 </button>

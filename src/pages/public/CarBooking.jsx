@@ -41,7 +41,7 @@ const CarBooking = () => {
           
           {/* Left Column - Car Details Card */}
           <div>
-            <div className="border border-slate-300 rounded-xl p-8 flex flex-col items-center">
+            <div className="border border-slate-150 rounded-xl p-8 flex flex-col items-center shadow-[0_1px_3px_rgba(0,0,0,0.03)] bg-white">
               <div className="h-[280px] w-full flex items-center justify-center mb-10">
                 <img 
                   src={car.image} 
@@ -89,26 +89,26 @@ const CarBooking = () => {
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Driver's First Name</label>
-                    <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Driver's Last Name</label>
-                    <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Driver's Age</label>
-                    <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Contact Number</label>
-                    <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-extrabold text-black mb-2">Email Address</label>
-                  <input type="email" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                  <input type="email" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                 </div>
               </div>
 
@@ -117,23 +117,23 @@ const CarBooking = () => {
                 <h3 className="text-[17px] font-extrabold text-black mb-5">Driver's License</h3>
                 <div className="mb-5">
                   <label className="block text-[11px] font-extrabold text-black mb-2">License Number</label>
-                  <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                  <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                 </div>
                 <div className="grid grid-cols-2 gap-5">
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Issuing Country</label>
-                    <input type="text" required className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-extrabold text-black mb-2">Expiration Date</label>
-                    <input type="text" required placeholder="MM/YYYY" className="w-full border border-slate-300 rounded-lg py-2.5 px-3 focus:outline-none focus:border-yellow-400 text-sm" />
+                    <input type="text" required placeholder="MM/YYYY" className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
                   </div>
                 </div>
               </div>
 
               {/* Submit Button */}
               <div className="flex justify-center pt-2">
-                <button type="submit" className="bg-[#E6D41A] hover:bg-[#D4C318] text-white font-bold text-[13px] px-16 py-3.5 rounded-lg shadow-sm transition-colors">
+                <button type="submit" className="bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold text-[13px] px-16 py-3.5 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors cursor-pointer">
                   Book Car
                 </button>
               </div>

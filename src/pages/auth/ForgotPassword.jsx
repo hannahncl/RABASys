@@ -24,23 +24,23 @@ const ForgotPassword = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Email</label>
+          <label className="block text-xs text-slate-400 mb-1.5">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-3 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-sm"
             placeholder=""
             required
           />
-          <p className="text-xs text-slate-500 mt-3 font-medium leading-relaxed">
+          <p className="text-xs text-slate-550 mt-3 font-medium leading-relaxed">
             Please enter the email you registered for the account so we can verify that you are the one who's using it.
           </p>
         </div>
 
         <button
           type="submit"
-          className="w-full py-3.5 mt-8 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold font-sans rounded-3xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           Verify Email
         </button>

@@ -24,6 +24,7 @@ import ExploreMap from './pages/public/ExploreMap';
 import CarRentals from './pages/public/CarRentals';
 import CarBooking from './pages/public/CarBooking';
 import AboutUs from './pages/public/AboutUs';
+import Profile from './pages/public/Profile';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -64,6 +65,15 @@ function App() {
               <Route path="car-rentals" element={<CarRentals />} />
               <Route path="car-rentals/:id" element={<CarBooking />} />
               <Route path="about" element={<AboutUs />} />
+              
+              <Route 
+                path="profile" 
+                element={
+                  <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Protected Tourist Booking */}
               <Route 

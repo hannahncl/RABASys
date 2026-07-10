@@ -58,7 +58,7 @@ const EmailVerification = () => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl text-slate-800 transition-all focus:outline-none"
+                className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl text-slate-800 transition-all focus:outline-none shadow-sm"
               />
             ))}
           </div>
@@ -69,7 +69,7 @@ const EmailVerification = () => {
 
         <button
           type="submit"
-          className="w-full py-3.5 mt-8 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold font-sans rounded-3xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           Verify Code
         </button>

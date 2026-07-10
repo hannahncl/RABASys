@@ -28,27 +28,27 @@ const ChangePassword = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Enter New Password</label>
+          <label className="block text-xs text-slate-400 mb-1.5">Enter New Password</label>
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-3 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-sm"
             placeholder=""
             required
           />
-          <p className="text-xs text-slate-600 mt-2 font-medium leading-relaxed">
+          <p className="text-xs text-slate-550 mt-2 font-medium leading-relaxed">
             Your new password must contain <span className="font-bold">at least 8-12 characters including letters, symbols, and numbers.</span>
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Re- enter New Password</label>
+          <label className="block text-xs text-slate-400 mb-1.5">Re-enter New Password</label>
           <input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-3 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-sm"
             placeholder=""
             required
           />
@@ -59,7 +59,7 @@ const ChangePassword = () => {
 
         <button
           type="submit"
-          className="w-full py-3.5 mt-8 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold font-sans rounded-3xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           Change Password
         </button>
