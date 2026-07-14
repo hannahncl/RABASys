@@ -233,7 +233,10 @@ const CustomPlanner = () => {
 
   const destCost = currentDest?.base || 0;
   const hotelCost = selectedHotel?.pricePerGuest || 0;
-  const activitiesCost = 0; // Activities are checkbox selections without individual pricing
+  const activitiesCost = selectedActivities.reduce((total, actId) => {
+    const activity = currentDest?.activities?.find(act => act.id === actId);
+    return total + (Number(activity?.price) || 0);
+  }, 0);
   const guestCount = Number(numGuests) || 0;
   const totalCost = (destCost + hotelCost + activitiesCost) * (guestCount || 1);
 
@@ -434,7 +437,19 @@ const CustomPlanner = () => {
                             </svg>
                           )}
                         </span>
-                        <span style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>{act.name}</span>
+                      <span style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
+                        {act.name}
+                        {Number(act.price) > 0 && (
+                          <span style={{ display: 'block', color: '#d97706', fontWeight: 700, marginTop: '4px' }}>
+                            PHP {Number(act.price).toLocaleString('en-PH')}
+                          </span>
+                        )}
+                        {act.details && (
+                          <span style={{ display: 'block', color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                            {act.details}
+                          </span>
+                        )}
+                      </span>
                       </label>
                     );
                   })}

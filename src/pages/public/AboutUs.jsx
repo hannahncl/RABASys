@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Star, MoreVertical } from 'lucide-react';
 
 const AboutUs = () => {
-  // Staff / Team members data matching the cards in the mockup
   const teamMembers = [
     {
       id: 1,
@@ -84,7 +83,7 @@ const AboutUs = () => {
       {/* ── TOP SECTION: ABOUT US & MONTAGE ── */}
       <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16 lg:py-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* Left Column: text content */}
           <div className="lg:col-span-5 space-y-6">
             <div className="space-y-1">
@@ -95,11 +94,11 @@ const AboutUs = () => {
                 ABOUT US
               </h1>
             </div>
-            
+
             <p className="text-slate-600 text-sm md:text-base leading-relaxed font-light">
               From they fine john he give of rich he. They age and draw mrs like. Improving end distrusts may instantly was household applauded incommode. Why kept very ever home mrs. Considered sympathize ten uncommonly occasional assistance sufficient not.
             </p>
-            
+
             <div className="pt-2">
               <Link
                 to="/packages"
@@ -109,34 +108,34 @@ const AboutUs = () => {
               </Link>
             </div>
           </div>
-          
+
           {/* Right Column: Montage matching mockup structure */}
           <div className="lg:col-span-7 flex justify-center items-center">
             <div className="relative w-full max-w-[500px] h-[440px]">
-              
+
               {/* Top Photo (hiker looking at mountains) */}
               <div className="absolute top-0 right-0 w-[320px] h-[130px] rounded-3xl overflow-hidden shadow-md">
-                <img 
-                  src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800" 
-                  alt="Mountain Hiker" 
+                <img
+                  src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800"
+                  alt="Mountain Hiker"
                   className="w-full h-full object-cover"
                 />
               </div>
 
               {/* Middle Right Photo (coastal village cliffs) */}
               <div className="absolute top-[150px] right-0 w-[300px] h-[190px] rounded-3xl overflow-hidden shadow-md">
-                <img 
-                  src="https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800" 
-                  alt="Coastal View" 
+                <img
+                  src="https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800"
+                  alt="Coastal View"
                   className="w-full h-full object-cover"
                 />
               </div>
 
               {/* Bottom Left Photo (two hikers hiking up) */}
               <div className="absolute top-[210px] left-[10px] w-[200px] h-[180px] rounded-3xl overflow-hidden border-8 border-white shadow-xl z-10">
-                <img 
-                  src="https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80&w=800" 
-                  alt="Hiking Team" 
+                <img
+                  src="https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80&w=800"
+                  alt="Hiking Team"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -156,7 +155,7 @@ const AboutUs = () => {
       {/* ── BOTTOM SECTION: MEET OUR TEAM ── */}
       <section className="bg-[#FFFCEE] border-t border-slate-100 py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
-          
+
           {/* Header */}
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight font-display">
@@ -170,15 +169,15 @@ const AboutUs = () => {
           {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {teamMembers.map((member) => (
-              <div 
-                key={member.id} 
+              <div
+                key={member.id}
                 className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100/50 hover:shadow-md transition-all flex flex-col items-center text-center relative group hover:scale-[1.02] duration-300"
               >
                 {/* Yellow star top-left */}
                 <div className="absolute top-5 left-5 text-yellow-500">
                   <Star className="h-4 w-4 fill-yellow-500 stroke-yellow-500" />
                 </div>
-                
+
                 {/* Options menu top-right */}
                 <div className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 cursor-pointer">
                   <MoreVertical className="h-4 w-4" />
@@ -186,10 +185,10 @@ const AboutUs = () => {
 
                 {/* Profile Photo */}
                 <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 shadow-inner mt-4 mb-4">
-                  <img 
-                    src={member.image} 
-                    alt={member.name} 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={member.image}
+                    alt={member.name}
+                    className="w-full h-full object-cover"
                   />
                 </div>
 
@@ -214,7 +213,7 @@ const AboutUs = () => {
                   <p className="text-slate-400 text-xs">
                     {member.phone}
                   </p>
-                  <a 
+                  <a
                     href={`mailto:${member.email}`}
                     className="text-[#2aa6d1] hover:underline text-xs font-semibold block truncate"
                   >

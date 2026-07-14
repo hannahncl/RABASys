@@ -1,85 +1,127 @@
-const STORAGE_KEY = 'rabas_customization_data';
+import mapGalleryService from './mapGalleryService';
 
-const bicolActivities = [
-  { id: 'act_1', name: 'ATV and Ziplining adventure at the foot of Mayon Volcano, and the first Skywheel in Bicol.' },
-  { id: 'act_2', name: 'Culinary tour to taste the local delicacies such as Bicol Express, Sili Ice Cream and more.' },
-  { id: 'act_3', name: 'Visit Historical landmarks including Daraga Church, Cagsawa Ruins, and Quituinan Hills.' },
-  { id: 'act_4', name: 'Visit the famous 7 Eleven in Camalig, the smallest Chapel in Bicol at Farmplate, enjoy the scenery at Sumlang Lake, and Costal view of Legazpi Boulevard.' },
-  { id: 'act_5', name: 'Culinary tour to taste local delicacies such as Yema Buko Pie, Bicol Express and more.' },
-  { id: 'act_6', name: 'Explore Calintaan Cave.' },
-  { id: 'act_7', name: 'Kayaking at Bulusan Natural Park.' },
-  { id: 'act_8', name: 'Stroll at Balay Buhay sa Uma Bee Farm.' },
-  { id: 'act_9', name: 'Swim and Snorkel at Juag Lagoon Sanctuary.' },
-  { id: 'act_10', name: 'Swim and watch with Gentle Giants (Whale Sharks) in Donsol.' },
-  { id: 'act_11', name: 'Visit historical landmarks including the Barcelona Ruins, St. Joseph Church, and museo Sorsogon.' },
-  { id: 'act_12', name: 'Visit Pepita Park, Sorosogon Sports Arena, the Rome Coliseum Inspired Sports Complex, Rompeolas Coastal Road, and Casiguran Park the 16k Roses.' },
-  { id: 'act_13', name: 'Caramoan Island Hopping which includes Matukad Island, Lahus Island, Cagbalinad Island (Snorkeling with Fish), Minalahus Island, Busdak Island, Guinahaon Island, Cutivas Sandbar, Bugtong Sandbar, Manlawi Big Sandbar, and Sabitang Laya (Caramoan Proper).' },
-  { id: 'act_14', name: 'Balagbag Trekking (Little Batanes of the South).' },
-  { id: 'act_15', name: 'Hilltop Halabang Baybay.' },
-  { id: 'act_16', name: 'Snorkeling.' },
-  { id: 'act_17', name: 'Visit the Calaguas Group of Islands.' }
-];
+const STORAGE_KEY = 'rabas_customization_data_v2';
 
-const INITIAL_DATA = {
-  destinations: {
-    'Albay': {
-      base: 0, activities: bicolActivities
-    },
-    'Sorsogon': {
-      base: 0, activities: bicolActivities
-    }
-  },
-  hotels: {
-    'Albay': [
-      { id: 'hotel_1', name: 'The Marison Hotel', pricePerGuest: 4201 },
-      { id: 'hotel_2', name: 'Lotus Blu Hotel Legazpi', pricePerGuest: 3101 },
-      { id: 'hotel_3', name: 'Vela Hotel', pricePerGuest: 2450 },
-      { id: 'hotel_4', name: 'PROXY by The Oriental Albay', pricePerGuest: 2906 },
-      { id: 'hotel_5', name: "Antonio's Bed and Breakfast Hotel", pricePerGuest: 3136 },
-      { id: 'hotel_6', name: 'Villa Isabel', pricePerGuest: 2468 }
-    ],
-    'Sorsogon': [
-      { id: 'hotel_7', name: 'Siama Hotel Sorsogon', pricePerGuest: 3500 },
-      { id: 'hotel_8', name: 'Rizal Beach Resort', pricePerGuest: 2800 },
-      { id: 'hotel_9', name: 'Villa Kasanggayahan', pricePerGuest: 2100 },
-      { id: 'hotel_10', name: 'Fernandos Hotel', pricePerGuest: 1950 },
-      { id: 'hotel_11', name: 'Donsol Eco Lodge', pricePerGuest: 2650 },
-      { id: 'hotel_12', name: 'Elysia Beach Resort', pricePerGuest: 3200 }
-    ]
-  },
-  // Legacy support
-  hotelTiers: [
-    { id: 'hostel', name: 'Backpacker Hostel / Guesthouse', pricePerNight: 1200 },
-    { id: 'standard', name: 'Standard Comfort Hotel', pricePerNight: 3000 },
-    { id: 'luxury', name: 'Premium 5-Star Beachfront Resort', pricePerNight: 8500 }
+const DEFAULT_HOTELS = {
+  Albay: [
+    { id: 'hotel_1', name: 'The Marison Hotel', pricePerGuest: 4201, details: 'Comfort hotel near Legazpi City attractions.' },
+    { id: 'hotel_2', name: 'Lotus Blu Hotel Legazpi', pricePerGuest: 3101, details: 'City hotel option for custom Albay tours.' },
+    { id: 'hotel_3', name: 'PROXY by The Oriental Albay', pricePerGuest: 2906, details: 'Modern hotel for short Bicol itineraries.' }
+  ],
+  Sorsogon: [
+    { id: 'hotel_4', name: 'Siama Hotel Sorsogon', pricePerGuest: 3500, details: 'Boutique stay for Sorsogon custom trips.' },
+    { id: 'hotel_5', name: 'Donsol Eco Lodge', pricePerGuest: 2650, details: 'Eco-style stay near Donsol activities.' },
+    { id: 'hotel_6', name: 'Elysia Beach Resort', pricePerGuest: 3200, details: 'Beach resort option for Donsol tours.' }
+  ],
+  'Camarines Sur': [
+    { id: 'hotel_7', name: 'Villa Caceres Hotel', pricePerGuest: 3300, details: 'Naga City hotel for CamSur custom trips.' },
+    { id: 'hotel_8', name: 'Gota Village Resort', pricePerGuest: 4200, details: 'Island resort option for Caramoan trips.' }
+  ],
+  'Camarines Norte': [
+    { id: 'hotel_9', name: 'Calaguas Beach Camp', pricePerGuest: 2200, details: 'Simple island stay for Calaguas tours.' }
   ]
 };
 
-const loadData = () => {
-  // Always reset to ensure new data structure is used
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATA));
-  return INITIAL_DATA;
+const TOUR_TEMPLATES = {
+  'spot-mayon': [
+    { name: 'Cagsawa Ruins and Mayon View Tour', price: 1200, details: 'Photo stops, heritage walk, and local guide assistance.' },
+    { name: 'Mayon ATV Adventure', price: 2500, details: 'ATV route near the Mayon lava trail with safety briefing.' },
+    { name: 'Sumlang Lake Side Trip', price: 900, details: 'Lake visit with optional bamboo raft experience.' }
+  ],
+  'spot-caramoan': [
+    { name: 'Caramoan Island Hopping', price: 2800, details: 'Boat tour covering major islands and beach stops.' },
+    { name: 'Matukad Island Lagoon Visit', price: 1400, details: 'Guided island stop with lagoon viewpoint.' }
+  ],
+  'spot-calaguas': [
+    { name: 'Calaguas Beach Camping', price: 2400, details: 'Mahabang Buhangin beach stay with campsite assistance.' },
+    { name: 'Calaguas Island Hopping', price: 2200, details: 'Nearby island and beach stops depending on weather.' }
+  ],
+  'spot-donsol': [
+    { name: 'Whale Shark Interaction', price: 2600, details: 'Butanding interaction briefing and boat coordination.' },
+    { name: 'Donsol Firefly River Tour', price: 1000, details: 'Evening river tour with local guide.' }
+  ],
+  'spot-matnog': [
+    { name: 'Subic Pink Beach Tour', price: 2200, details: 'Matnog island hopping with Subic Beach stop.' },
+    { name: 'Juag Lagoon Sanctuary Visit', price: 1200, details: 'Marine sanctuary stop with guide assistance.' }
+  ]
+};
+
+const getProvince = (spotName) => {
+  const parts = spotName.split(',').map(part => part.trim()).filter(Boolean);
+  return parts[parts.length - 1] || spotName;
+};
+
+const buildActivity = (template, index, spotId) => ({
+  id: `${spotId}_tour_${index + 1}`,
+  name: template.name,
+  price: template.price,
+  details: template.details
+});
+
+const buildInitialData = async () => {
+  const spots = await mapGalleryService.getSpots();
+  const destinations = {};
+  const hotels = {};
+
+  spots.forEach((spot) => {
+    const province = getProvince(spot.name);
+    destinations[spot.name] = {
+      base: 0,
+      spotId: spot.id,
+      category: spot.category,
+      description: spot.description,
+      image: spot.featuredImage,
+      details: `Custom tour destination based on ${spot.name}.`,
+      activities: (TOUR_TEMPLATES[spot.id] || []).map((tour, index) => buildActivity(tour, index, spot.id))
+    };
+    hotels[spot.name] = DEFAULT_HOTELS[province] || [];
+  });
+
+  return { destinations, hotels, hotelTiers: [] };
+};
+
+const normalizeData = (data) => ({
+  destinations: data?.destinations || {},
+  hotels: data?.hotels || {},
+  hotelTiers: data?.hotelTiers || []
+});
+
+const loadData = async () => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) return normalizeData(JSON.parse(stored));
+
+  const initialData = await buildInitialData();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+  return initialData;
+};
+
+const saveData = (data) => {
+  const normalized = normalizeData(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
 };
 
 export const customizationService = {
   getAll: async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 250));
     return loadData();
   },
 
   updateDestinations: async (destinations) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const data = loadData();
-    data.destinations = destinations;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return data;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const data = await loadData();
+    return saveData({ ...data, destinations });
+  },
+
+  updateHotels: async (hotels) => {
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const data = await loadData();
+    return saveData({ ...data, hotels });
   },
 
   updateHotelTiers: async (hotelTiers) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const data = loadData();
-    data.hotelTiers = hotelTiers;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return data;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const data = await loadData();
+    return saveData({ ...data, hotelTiers });
   }
 };

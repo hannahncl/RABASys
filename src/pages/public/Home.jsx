@@ -27,8 +27,8 @@ const Home = () => {
   };
 
   const filteredPackages = packages.filter((pkg) => {
-    const matchesSearch = pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          pkg.destination.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pkg.destination.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
@@ -40,32 +40,32 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden px-4">
         {/* Background Image Overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1600')" }}
+          style={{ backgroundImage: "url('https://scontent.fmnl13-1.fna.fbcdn.net/v/t39.30808-6/605142635_122106586599161293_6988448289106656481_n.jpg?stp=dst-jpg_tt6&cstp=mx1277x473&ctp=s1277x473&_nc_cat=100&ccb=1-7&_nc_sid=cc71e4&_nc_eui2=AeF_uc_b11_NcM23MgjPh0PlHhAWfN3qtJUeEBZ83eq0lZnLGtXHozxjVVKGRQSpWNbLuCKeebfcJBXW6x1077Y6&_nc_ohc=1svVWawJR_oQ7kNvwEEVMeR&_nc_oc=AdqrE3UQuC4aUqK2srM-GDlt_Fw3lizs8v7IcUlIQIk5QEa3JXRxxytSx8O0bx3e5GI&_nc_zt=23&_nc_ht=scontent.fmnl13-1.fna&_nc_gid=xK7bydNzO4HVPoJBLOGQdg&_nc_ss=7b2a8&oh=00_AQA7DGhGqLr6m1aXaTvGdEpn4YhJDMazxZdsLNVf8H0U1g&oe=6A5C2F01')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950" />
-        
+
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl text-center space-y-8 px-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider animate-bounce">
             <Sparkles className="h-3.5 w-3.5" />
             Explore the Gems of the Philippines
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight leading-none font-display">
             Your Ultimate Gateway to <br />
             <span className="text-cyan-400 text-glow-cyan">
               Rabas Adventures
             </span>
           </h1>
-          
+
           <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
             Experience premium curated island hopping, culture tours, and outdoor wonders. Instant GCash checkout, real-time forecasts, and live tour reports.
           </p>
 
           {/* Search Form */}
-          <form 
+          <form
             onSubmit={handleSearchSubmit}
             className="flex flex-col sm:flex-row items-center gap-3 max-w-2xl mx-auto bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-xl"
           >
@@ -96,18 +96,17 @@ const Home = () => {
             <h2 className="text-3xl font-extrabold font-display text-slate-100">Featured Packages</h2>
             <p className="text-slate-400 text-sm mt-1">Recommended custom tours by our local travel coordinators.</p>
           </div>
-          
+
           {/* Category Pills */}
           <div className="flex flex-wrap gap-2">
             {allTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => setSelectedTag(tag)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                  selectedTag === tag
-                    ? 'bg-cyan-500 text-slate-950 border-cyan-500'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
-                }`}
+                className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${selectedTag === tag
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-500'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                  }`}
               >
                 {tag}
               </button>
@@ -121,8 +120,8 @@ const Home = () => {
             <div key={pkg.id} className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full">
               {/* Image with zoom on hover */}
               <div className="h-56 w-full overflow-hidden relative">
-                <img 
-                  src={pkg.image} 
+                <img
+                  src={pkg.image}
                   alt={pkg.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
@@ -158,7 +157,7 @@ const Home = () => {
                     <span className="text-[10px] text-slate-500 block uppercase font-semibold">Starts from</span>
                     <span className="text-lg font-extrabold text-slate-100 font-display">PHP {pkg.price.toLocaleString()}</span>
                   </div>
-                  <Link 
+                  <Link
                     to={`/packages/${pkg.id}`}
                     className="px-4 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-colors cursor-pointer"
                   >
@@ -213,9 +212,9 @@ const Home = () => {
               liveUpdates.map((update) => (
                 <div key={update.id} className="glass-card rounded-2xl overflow-hidden border-slate-800/60 flex flex-col">
                   <div className="h-48 overflow-hidden relative">
-                    <img 
-                      src={update.imageUrl} 
-                      alt={update.spotName} 
+                    <img
+                      src={update.imageUrl}
+                      alt={update.spotName}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-3 left-3 px-2 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">
@@ -248,7 +247,7 @@ const Home = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900/40 rounded-3xl border border-slate-800 p-8 md:p-12 relative overflow-hidden">
           <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-cyan-500/10 blur-3xl" />
-          
+
           <div className="lg:col-span-7 space-y-5 relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
               <MapPin className="h-3.5 w-3.5" />
@@ -279,9 +278,9 @@ const Home = () => {
           <div className="lg:col-span-5 relative flex justify-center items-center">
             {/* Visual mock of the map */}
             <div className="w-full max-w-[340px] aspect-square rounded-2xl border-4 border-slate-800 bg-slate-950 overflow-hidden shadow-2xl relative group">
-              <img 
-                src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800" 
-                alt="Palawan Map Mock" 
+              <img
+                src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800"
+                alt="Palawan Map Mock"
                 className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-slate-950/20" />
@@ -301,7 +300,7 @@ const Home = () => {
                   <MapPin className="h-3 w-3" />
                 </div>
               </div>
-              
+
               <div className="absolute inset-x-4 bottom-4 p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 backdrop-blur-sm text-center">
                 <div className="text-[10px] uppercase font-extrabold text-cyan-400 tracking-wider">Palawan Live Uploads</div>
                 <div className="text-white font-bold text-xs">"Crystal Lagoon was breathtaking!"</div>
