@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Heart, Star, MapPin, Gauge, Settings2, Fuel, Users, SlidersHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import DualRangeSlider from '../../components/ui/DualRangeSlider';
 
 const CarRentals = () => {
   // Filter States
   const [capacity, setCapacity] = useState(4);
   const [selectedColor, setSelectedColor] = useState('White');
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(3000);
+  const [priceRange, setPriceRange] = useState([0, 3000]);
 
   // Mock data for the bars in the price range chart
   const priceBars = [
@@ -122,7 +122,7 @@ const CarRentals = () => {
     }
   ];
 
-  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor && car.priceNum <= maxPrice);
+  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor && car.priceNum >= priceRange[0] && car.priceNum <= priceRange[1]);
 
   return (
     <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">
@@ -138,36 +138,13 @@ const CarRentals = () => {
             
             <div className="border-t border-slate-100 pt-6 mb-8">
               <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
-              
-              {/* Chart Mockup */}
-              <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
-                {priceBars.map((h, i) => (
-                  <div key={i} className={`${i / priceBars.length <= maxPrice / 3000 ? 'bg-yellow-200' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
-                ))}
-              </div>
-              
-              {/* Range Input */}
-              <input 
-                type="range" 
-                min="0" 
-                max="3000" 
-                step="100"
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-yellow-400 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+              <DualRangeSlider 
+                min={0} 
+                max={3000} 
+                step={100} 
+                value={priceRange} 
+                onChange={setPriceRange} 
               />
-              
-              {/* Sliders Input Mockup */}
-              <div className="flex justify-between text-[10px] text-black font-medium mt-6">
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱0</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱{maxPrice.toLocaleString()}</div>
-                </div>
-              </div>
             </div>
             
             {/* Siting Capacity */}

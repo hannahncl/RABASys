@@ -5,7 +5,7 @@ import { accountService } from '../../services/accountService';
 import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
   AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,
-  Loader2, ArrowRight, History, XCircle, RefreshCw
+  Loader2, ArrowRight, History, XCircle, RefreshCw, Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -258,12 +258,14 @@ const Profile = () => {
                     label="First Name"
                     value={firstName}
                     onChange={setFirstName}
+                    capitalize
                     required
                   />
                   <FormField
                     label="Last Name"
                     value={lastName}
                     onChange={setLastName}
+                    capitalize
                   />
                 </div>
 
@@ -290,6 +292,7 @@ const Profile = () => {
                   placeholder="e.g. Legazpi City, Albay"
                   value={address}
                   onChange={setAddress}
+                  capitalize
                 />
 
                 {/* Save / Cancel */}
@@ -456,13 +459,24 @@ const Profile = () => {
                                 </p>
                               </div>
 
-                              <button
-                                onClick={() => setViewingBooking(booking)}
-                                className="flex items-center gap-1.5 shrink-0 text-slate-400 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-slate-100 hover:border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                Invoice
-                              </button>
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => setViewingBooking(booking)}
+                                  className="flex items-center justify-center gap-1.5 shrink-0 text-slate-400 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-slate-100 hover:border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Invoice
+                                </button>
+                                {booking.status === 'Confirmed' && (
+                                  <Link
+                                    to={`/review/${booking.id}`}
+                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-600 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all cursor-pointer"
+                                  >
+                                    <Star className="h-3.5 w-3.5" />
+                                    Review
+                                  </Link>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -586,9 +600,9 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const FormField = ({ label, value, onChange, type = 'text', placeholder = '', required = false }) => (
+const FormField = ({ label, value, onChange, type = 'text', placeholder = '', required = false, capitalize = false }) => (
   <div>
-    <label className="block text-xs text-slate-400 mb-1.5">
+    <label className="block text-sm font-semibold text-gray-600 mb-2">
       {label}
     </label>
     <input
@@ -597,7 +611,7 @@ const FormField = ({ label, value, onChange, type = 'text', placeholder = '', re
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-yellow-300 focus:ring-2 focus:ring-yellow-100 transition-all"
+      className={`w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all ${capitalize ? 'capitalize' : ''}`}
     />
   </div>
 );

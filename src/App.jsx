@@ -25,6 +25,7 @@ import CarRentals from './pages/public/CarRentals';
 import CarBooking from './pages/public/CarBooking';
 import AboutUs from './pages/public/AboutUs';
 import Profile from './pages/public/Profile';
+import Review from './pages/public/Review';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -71,6 +72,15 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
                     <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="review/:id" 
+                element={
+                  <ProtectedRoute allowedRoles={['customer']}>
+                    <Review />
                   </ProtectedRoute>
                 } 
               />

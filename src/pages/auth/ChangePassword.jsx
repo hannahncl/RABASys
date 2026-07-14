@@ -28,12 +28,12 @@ const ChangePassword = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-xs text-slate-400 mb-1.5">Enter New Password</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Enter New Password</label>
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
             placeholder=""
             required
           />
@@ -43,12 +43,12 @@ const ChangePassword = () => {
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1.5">Re-enter New Password</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Re-enter New Password</label>
           <input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
             placeholder=""
             required
           />

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { Compass, Search, Star, Heart, Clock, Users, SlidersHorizontal } from 'lucide-react';
+import DualRangeSlider from '../../components/ui/DualRangeSlider';
 
 const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,7 +12,7 @@ const Packages = () => {
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedTag, setSelectedTag] = useState('All');
-  const [maxPrice, setMaxPrice] = useState(30000);
+  const [priceRange, setPriceRange] = useState([0, 30000]);
   const [minPrice, setMinPrice] = useState(10);
 
   // Mock data for the bars in the price range chart
@@ -47,7 +48,7 @@ const Packages = () => {
                           pkg.description.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
-    const matchesPrice = pkg.price <= maxPrice;
+    const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
 
     return matchesSearch && matchesTag && matchesPrice;
   });
@@ -71,13 +72,13 @@ const Packages = () => {
             
             {/* Keyword Search */}
             <div className="mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-4">Keyword Search</h4>
+              <h4 className="text-sm font-semibold text-gray-600 mb-2">Keyword Search</h4>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="e.g. Albay, Sorsogon..."
-                className="w-full border border-slate-150 rounded-full py-2.5 px-4 text-xs text-black focus:outline-none focus:border-yellow-300 focus:ring-2 focus:ring-yellow-100/50 placeholder:text-slate-450 transition-all"
+                placeholder="Search..."
+                className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
               />
             </div>
 
@@ -104,36 +105,13 @@ const Packages = () => {
             {/* Price Range */}
             <div className="mb-8">
               <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
-              
-              {/* Chart Mockup */}
-              <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
-                {priceBars.map((h, i) => (
-                  <div key={i} className={`${i / priceBars.length <= maxPrice / 30000 ? 'bg-yellow-200' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
-                ))}
-              </div>
-              
-              {/* Range Input */}
-              <input 
-                type="range" 
-                min="0" 
-                max="30000" 
-                step="500"
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-yellow-400 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+              <DualRangeSlider 
+                min={0} 
+                max={30000} 
+                step={500} 
+                value={priceRange} 
+                onChange={setPriceRange} 
               />
-              
-              {/* Min / Max */}
-              <div className="flex justify-between text-[10px] text-black font-medium mt-6">
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱0</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-150 rounded-full px-5 py-2 text-slate-700 font-bold">₱{maxPrice.toLocaleString()}</div>
-                </div>
-              </div>
             </div>
           </div>
           

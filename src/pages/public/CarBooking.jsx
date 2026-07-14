@@ -21,8 +21,47 @@ const CarBooking = () => {
 
   const handleBookCar = (e) => {
     e.preventDefault();
-    showNotification('Car booking submitted successfully!', 'success');
-    navigate('/car-rentals');
+    const formData = new FormData(e.target);
+    const firstName = formData.get('firstName');
+    const lastName = formData.get('lastName');
+    const email = formData.get('email');
+    const phone = formData.get('phone');
+    const age = formData.get('age');
+    const licenseNumber = formData.get('licenseNumber');
+    const issuingCountry = formData.get('issuingCountry');
+    const expirationDate = formData.get('expirationDate');
+
+    const numericPrice = parseFloat(car.rate.replace(/[^0-9.-]+/g, ""));
+
+    const carPkg = {
+      id: `car-rental-${car.id}`,
+      title: `Car Rental: ${car.name}`,
+      destination: `Plate: ${car.plate}`,
+      duration: '1 Day',
+      price: numericPrice,
+      image: car.image,
+      customizedDetails: { 
+        type: car.type, 
+        color: car.color, 
+        capacity: car.capacity,
+        driverInfo: `${firstName} ${lastName} (Age: ${age})`,
+        license: `${licenseNumber} (${issuingCountry}) Exp: ${expirationDate}`
+      }
+    };
+
+    navigate('/booking/custom', {
+      state: {
+        customPackage: carPkg,
+        firstName,
+        lastName,
+        email,
+        phone,
+        tourDate: new Date().toISOString().split('T')[0],
+        adultsCount: 1,
+        childrenCount: 0,
+        startStep: 2
+      }
+    });
   };
 
   return (
@@ -85,48 +124,48 @@ const CarBooking = () => {
               
               {/* Driver's Information */}
               <div>
-                <h3 className="text-[17px] font-extrabold text-black mb-5">Driver's Information</h3>
-                <div className="grid grid-cols-2 gap-5 mb-5">
+                <h3 className="text-sm font-semibold text-gray-600 mb-4">Driver's Information</h3>
+                <div className="grid grid-cols-2 gap-6 mb-6">
                   <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Driver's First Name</label>
-                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Driver's First Name</label>
+                    <input type="text" name="firstName" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Driver's Last Name</label>
-                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-5 mb-5">
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Driver's Age</label>
-                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Contact Number</label>
-                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Driver's Last Name</label>
+                    <input type="text" name="lastName" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-black mb-2">Email Address</label>
-                  <input type="email" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Driver's Age</label>
+                    <input type="text" name="age" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Contact Number</label>
+                    <input type="text" name="phone" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all" />
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">Email Address</label>
+                  <input type="email" name="email" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all" />
                 </div>
               </div>
 
               {/* Driver's License */}
               <div>
-                <h3 className="text-[17px] font-extrabold text-black mb-5">Driver's License</h3>
-                <div className="mb-5">
-                  <label className="block text-[11px] font-extrabold text-black mb-2">License Number</label>
-                  <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                <h3 className="text-sm font-semibold text-gray-600 mb-4">Driver's License</h3>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">License Number</label>
+                  <input type="text" name="licenseNumber" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all" />
                 </div>
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Issuing Country</label>
-                    <input type="text" required className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Issuing Country</label>
+                    <input type="text" name="issuingCountry" required className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-extrabold text-black mb-2">Expiration Date</label>
-                    <input type="text" required placeholder="MM/YYYY" className="w-full bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-lg py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.01)]" />
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Expiration Date</label>
+                    <input type="text" name="expirationDate" required placeholder="MM/YYYY" className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all" />
                   </div>
                 </div>
               </div>

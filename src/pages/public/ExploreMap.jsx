@@ -503,7 +503,7 @@ const ExploreMap = () => {
                 placeholder="Search spots..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 shadow-sm transition-all"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 bg-white text-[15px] text-gray-900 focus:outline-none transition-all"
               />
             </div>
 
@@ -651,23 +651,21 @@ const ExploreMap = () => {
                 {/* Name & Caption */}
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Your Name</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Your Name</label>
                     <input
                       type="text"
-                      placeholder="e.g. Maria Santos"
                       value={touristName}
                       onChange={e => setTouristName(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Caption / Story</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Caption / Story</label>
                     <textarea
-                      placeholder="Share your experience at this spot..."
                       rows="2"
                       value={caption}
                       onChange={e => setCaption(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all resize-none"
+                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -856,10 +854,10 @@ const ExploreMap = () => {
                     <div className="space-y-3">
                       <input
                         type="url"
-                        placeholder="https://images.unsplash.com/..."
+                        placeholder="https://..."
                         value={customImageUrl}
                         onChange={e => setCustomImageUrl(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                        className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
                       />
                       {/* URL preview */}
                       {customImageUrl.trim() ? (

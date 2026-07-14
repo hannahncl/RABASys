@@ -5,7 +5,6 @@ import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
-import GCashModal from '../../components/payment/GCashModal';
 import { Compass, MapPin, Star, Calendar, Clock, Award, ShieldCheck, ArrowLeft, CheckCircle2, User, Mail, Phone, Users } from 'lucide-react';
 
 const PackageDetail = () => {
@@ -68,7 +67,7 @@ const PackageDetail = () => {
     setPaymentModalOpen(true);
   };
 
-  const handlePaymentSuccess = async (referenceNumber, gcashNumber) => {
+  const handlePaymentSuccess = async (referenceNumber) => {
     setPaymentModalOpen(false);
     setSubmitting(true);
     
@@ -84,7 +83,7 @@ const PackageDetail = () => {
         totalPrice,
         paymentMethod: 'GCash',
         paymentRef: referenceNumber,
-        gcashNumber
+        gcashNumber: 'N/A'
       };
 
       await bookingService.create(bookingData);
@@ -351,13 +350,6 @@ const PackageDetail = () => {
         </div>
       </div>
 
-      {/* GCash Simulator Overlay */}
-      <GCashModal
-        isOpen={paymentModalOpen}
-        amount={pkg ? pkg.price * guestsCount : 0}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };
