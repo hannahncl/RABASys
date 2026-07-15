@@ -24,12 +24,16 @@ const FILTERS = [
 ];
 
 const statusStyle = (status) => {
-  if (status === 'Confirmed') return 'bg-emerald-950/60 border-emerald-800/40 text-emerald-400';
+  if (status === 'Confirmed') return 'bg-emerald-100 border-emerald-200 text-emerald-700';
   if (status === 'Cancelled') return 'bg-rose-950/60 border-rose-800/40 text-rose-400';
-  return 'bg-amber-950/60 border-amber-800/40 text-amber-400';
+  return 'bg-amber-100 border-amber-200 text-amber-700';
 };
 
-const statusLabel = (status) => status === 'Confirmed' ? 'Booked' : status;
+const statusLabel = (status) => {
+  if (status === 'Confirmed') return 'Booked';
+  if (status === 'Pending Verification') return 'Pending';
+  return status;
+};
 
 const formatDate = (value) => {
   if (!value) return 'Not set';
