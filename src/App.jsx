@@ -42,6 +42,13 @@ import AdminAnalytics from './pages/admin/Analytics';
 import AdminSchedule from './pages/admin/Schedule';
 import AdminBookings from './pages/admin/Bookings';
 import ManageServices from './pages/admin/ManageServices';
+import AddTourPackagePage from './pages/admin/AddTourPackagePage';
+import AddTuktripPage from './pages/admin/AddTuktripPage';
+import AddCarRentalPage from './pages/admin/AddCarRentalPage';
+import EditTourPackagePage from './pages/admin/EditTourPackagePage';
+import EditTuktripPage from './pages/admin/EditTuktripPage';
+import EditCarRentalPage from './pages/admin/EditCarRentalPage';
+import AddServicePage from './pages/admin/AddServicePage';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
 
@@ -123,6 +130,13 @@ function App() {
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="services" element={<ManageServices />} />
+              <Route path="services/add-tour-package" element={<AddTourPackagePage />} />
+              <Route path="services/add-tuktrip" element={<AddTuktripPage />} />
+              <Route path="services/add-car-rental" element={<AddCarRentalPage />} />
+              <Route path="services/add-service" element={<AddServicePage />} />
+              <Route path="services/edit-tour-package/:id" element={<EditTourPackagePage />} />
+              <Route path="services/edit-tuktrip/:id" element={<EditTuktripPage />} />
+              <Route path="services/edit-car-rental/:id" element={<EditCarRentalPage />} />
               <Route path="packages" element={<Navigate to="/admin/services" replace />} />
               <Route path="customizations" element={<ManageCustomizations />} />
               <Route path="accounts" element={<ManageAccounts />} />
