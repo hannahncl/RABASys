@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bookingService } from '../../services/bookingService';
+import { bookingService } from '../services/bookingService';
 import { ChevronLeft, ChevronRight, Users, MapPin, CalendarDays } from 'lucide-react';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

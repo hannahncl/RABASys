@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { weatherService } from '../../services/weatherService';
+import { weatherService } from '../../pages/services/weatherService';
 import { CloudSun, Wind, Droplets, Thermometer, AlertCircle, CloudRain, Sun, Cloud, CloudLightning } from 'lucide-react';
 
 const WeatherWidget = ({ destination }) => {

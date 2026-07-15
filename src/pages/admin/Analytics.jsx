@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { reportService } from '../../services/reportService';
+import { reportService } from '../services/reportService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Compass, Star, MapPin, DollarSign } from 'lucide-react';
 

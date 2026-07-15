@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { customizationService } from '../../services/customizationService';
-import { bookingService } from '../../services/bookingService';
+import { customizationService } from '../services/customizationService';
+import { bookingService } from '../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import {
   Building2,

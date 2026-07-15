@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { reportService } from '../../services/reportService';
+import { reportService } from '../services/reportService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { BarChart3, TrendingUp, Landmark, CalendarRange } from 'lucide-react';
 

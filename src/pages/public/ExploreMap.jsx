@@ -7,8 +7,8 @@ import {
   Droplets, Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn,
   Link2, SwitchCamera, RotateCcw, Check, VideoOff
 } from 'lucide-react';
-import mapGalleryService from '../../services/mapGalleryService';
-import { weatherService } from '../../services/weatherService';
+import mapGalleryService from '../services/mapGalleryService';
+import { weatherService } from '../services/weatherService';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';

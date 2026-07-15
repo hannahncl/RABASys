@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
-import { bookingService } from '../../services/bookingService';
+import { bookingService } from '../services/bookingService';
 import { Star, ArrowLeft, Send } from 'lucide-react';
 
 const Review = () => {

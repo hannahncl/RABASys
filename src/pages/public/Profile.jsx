@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import { bookingService } from '../../services/bookingService';
-import { accountService } from '../../services/accountService';
+import { bookingService } from '../services/bookingService';
+import { accountService } from '../services/accountService';
 import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
   AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,

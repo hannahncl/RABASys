@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { accountService } from '../../services/accountService';
+import { accountService } from '../services/accountService';
 import { Plus, Edit, Trash2, Save, X, Loader, UserCheck, UserX, Search, Users, ShieldCheck, Briefcase } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 

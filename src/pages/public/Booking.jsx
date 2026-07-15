@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { packageService } from '../../services/packageService';
-import { bookingService } from '../../services/bookingService';
+import { packageService } from '../services/packageService';
+import { bookingService } from '../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Clock, Globe } from 'lucide-react';

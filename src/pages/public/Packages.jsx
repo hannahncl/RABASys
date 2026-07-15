@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { packageService } from '../../services/packageService';
+import { packageService } from '../services/packageService';
 import { Compass, Search, Star, Heart, Clock, Users, SlidersHorizontal } from 'lucide-react';
 import DualRangeSlider from '../../components/ui/DualRangeSlider';
 

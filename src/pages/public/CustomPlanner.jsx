@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
-import { bookingService } from '../../services/bookingService';
-import { customizationService } from '../../services/customizationService';
+import { bookingService } from '../services/bookingService';
+import { customizationService } from '../services/customizationService';
 import { ChevronLeft, ChevronRight, Loader, Calendar } from 'lucide-react';
 
 

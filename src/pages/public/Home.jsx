@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { packageService } from '../../services/packageService';
-import { tripUploadService } from '../../services/tripUploadService';
+import { packageService } from '../services/packageService';
+import { tripUploadService } from '../services/tripUploadService';
 import { Compass, Search, Star, MapPin, Sparkles, Activity, Clock, Users } from 'lucide-react';
 
 const Home = () => {

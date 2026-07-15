@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Save } from 'lucide-react';
-import { serviceService } from '../../services/serviceService';
+import { serviceService } from '../services/serviceService';
 import { useNotification } from '../../hooks/useNotification';
 
 const AddServicePage = () => {

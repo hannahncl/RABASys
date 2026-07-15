@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { reportService } from '../../services/reportService';
-import { emailService } from '../../services/emailService';
+import { reportService } from '../services/reportService';
+import { emailService } from '../services/emailService';
 import { useNotification } from '../../hooks/useNotification';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Receipt, Plus, ShieldAlert, FileText } from 'lucide-react';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { reportService } from '../../services/reportService';
-import { bookingService } from '../../services/bookingService';
+import { reportService } from '../services/reportService';
+import { bookingService } from '../services/bookingService';
 import { DollarSign, Receipt, Users, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react';
 
 const Dashboard = () => {

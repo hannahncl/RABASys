@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bookingService } from '../../services/bookingService';
+import { bookingService } from '../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import { CalendarCheck, ShieldCheck, XCircle, Search, RefreshCw, Smartphone } from 'lucide-react';
 

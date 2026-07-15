@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { serviceService } from '../../services/serviceService';
+import { serviceService } from '../services/serviceService';
 import { Save, ArrowLeft } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 

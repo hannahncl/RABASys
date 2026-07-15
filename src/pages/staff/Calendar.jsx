@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { bookingService } from '../../services/bookingService';
+import { bookingService } from '../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Users } from 'lucide-react';
 

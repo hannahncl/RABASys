@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { serviceService } from '../../services/serviceService';
+import { serviceService } from '../services/serviceService';
 import { Plus, Edit, Trash2, Save, X, Loader, MapPin, Clock, Users, CalendarDays, Navigation, PackageCheck } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 

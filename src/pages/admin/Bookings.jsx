@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { bookingService } from '../../services/bookingService';
+import { bookingService } from '../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import {
   CalendarDays,

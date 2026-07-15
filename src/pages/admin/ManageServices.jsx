@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { serviceService } from '../../services/serviceService';
+import { serviceService } from '../services/serviceService';
 import {
   Plus, Edit, Trash2, Save, X, Loader,
   MapPin, Clock, Users, Car, Navigation, Package
