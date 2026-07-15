@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
   Plus, Edit, Trash2, Save, X, Loader,
@@ -20,15 +21,15 @@ const CATEGORIES = [
     activeBg: 'bg-cyan-500',
     description: 'Guided tour itineraries and multi-day travel packages',
     fields: [
-      { name: 'title',       label: 'Package Title',          type: 'text',     placeholder: 'e.g. El Nido Premium Island Hopping' },
-      { name: 'destination', label: 'Destination',             type: 'text',     placeholder: 'e.g. El Nido, Palawan' },
-      { name: 'price',       label: 'Base Price (PHP)',        type: 'number',   placeholder: 'e.g. 18500' },
-      { name: 'duration',    label: 'Duration',                type: 'text',     placeholder: 'e.g. 3 Days, 2 Nights' },
-      { name: 'difficulty',  label: 'Difficulty Level',        type: 'select',   options: ['Easy', 'Medium', 'Hard'] },
-      { name: 'tags',        label: 'Tags (comma-separated)',  type: 'text',     placeholder: 'e.g. Beach, Adventure, Premium' },
-      { name: 'image',       label: 'Cover Image URL',         type: 'text',     placeholder: 'https://...' },
-      { name: 'description', label: 'Description',             type: 'textarea', placeholder: 'Describe the tour experience...' },
-      { name: 'details',     label: 'Additional Details',      type: 'textarea', placeholder: 'Add inclusions, notes, meeting point, or policy details...' },
+      { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. Bicol Adventure Escape' },
+      { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tour experience...' },
+      { name: 'destination',      label: 'Destination',          type: 'text',     placeholder: 'e.g. Legazpi, Albay' },
+      { name: 'price',            label: 'Price (PHP)',          type: 'number',   placeholder: 'e.g. 18500' },
+      { name: 'duration',         label: 'Duration',             type: 'text',     placeholder: 'e.g. 3 Days, 2 Nights' },
+      { name: 'inclusions',       label: 'Inclusions',           type: 'textarea', placeholder: 'Transport, meals, guide, entrance fees' },
+      { name: 'maximumCapacity',  label: 'Maximum Capacity',     type: 'number',   placeholder: 'e.g. 12' },
+      { name: 'meetingLocation',  label: 'Meeting Location',     type: 'text',     placeholder: 'e.g. Legazpi Airport' },
+      { name: 'itinerary',        label: 'Itinerary',            type: 'textarea', placeholder: 'Day 1: Arrival and welcome dinner\nDay 2: Adventure activity' },
     ]
   },
   {
@@ -43,16 +44,15 @@ const CATEGORIES = [
     activeBg: 'bg-amber-500',
     description: 'Tuk-tuk city rides, local tours, and guided sightseeing routes',
     fields: [
-      { name: 'title',       label: 'Trip Name',              type: 'text',   placeholder: 'e.g. Legazpi City Highlights Tuktrip' },
-      { name: 'destination', label: 'Destination / City',     type: 'text',   placeholder: 'e.g. Legazpi City, Albay' },
-      { name: 'price',       label: 'Rate (PHP)',              type: 'number', placeholder: 'e.g. 1800' },
-      { name: 'duration',    label: 'Duration',                type: 'text',   placeholder: 'e.g. 4 Hours' },
-      { name: 'vehicleType', label: 'Vehicle Type',            type: 'text',   placeholder: 'e.g. Standard Tuk-Tuk' },
-      { name: 'capacity',    label: 'Passenger Capacity',      type: 'text',   placeholder: 'e.g. 2-3 Passengers' },
-      { name: 'tags',        label: 'Tags (comma-separated)',  type: 'text',   placeholder: 'e.g. City Tour, Cultural' },
-      { name: 'image',       label: 'Cover Image URL',         type: 'text',   placeholder: 'https://...' },
-      { name: 'description', label: 'Description',             type: 'textarea', placeholder: 'Describe the tuktrip route...' },
-      { name: 'details',     label: 'Additional Details',      type: 'textarea', placeholder: 'Add stops, pickup points, inclusions, or route notes...' },
+      { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. City Heritage Tuktrip' },
+      { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tuktrip experience...' },
+      { name: 'destination',      label: 'Destination',          type: 'text',     placeholder: 'e.g. Legazpi City, Albay' },
+      { name: 'price',            label: 'Price (PHP)',          type: 'number',   placeholder: 'e.g. 1800' },
+      { name: 'duration',         label: 'Duration',             type: 'text',     placeholder: 'e.g. 4 Hours' },
+      { name: 'inclusions',       label: 'Inclusions',           type: 'textarea', placeholder: 'Driver, fuel, route stops' },
+      { name: 'maximumCapacity',  label: 'Maximum Capacity',     type: 'number',   placeholder: 'e.g. 4' },
+      { name: 'meetingLocation',  label: 'Meeting Location',     type: 'text',     placeholder: 'e.g. Legazpi City Hall' },
+      { name: 'itinerary',        label: 'Itinerary',            type: 'textarea', placeholder: 'Day 1: Start at city hall\nDay 2: Visit local landmarks' },
     ]
   },
   {
@@ -88,20 +88,57 @@ const CATEGORIES = [
 const emptyForm = (fields) =>
   fields.reduce((acc, f) => ({ ...acc, [f.name]: '' }), {});
 
-const serializeForm = (formData) => ({
-  ...formData,
-  price: Number(formData.price),
-  tags: typeof formData.tags === 'string'
-    ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
-    : formData.tags
-});
+const serializeForm = (formData) => {
+  const payload = { ...formData, price: Number(formData.price) };
+
+  if (formData.packageName) {
+    payload.title = formData.packageName.trim();
+    payload.packageName = formData.packageName.trim();
+  }
+
+  if (typeof formData.tags === 'string') {
+    payload.tags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+  }
+
+  if (typeof formData.inclusions === 'string') {
+    payload.inclusions = formData.inclusions.split(',').map(item => item.trim()).filter(Boolean);
+  }
+
+  if (formData.maximumCapacity !== '' && formData.maximumCapacity !== undefined && formData.maximumCapacity !== null) {
+    payload.maximumCapacity = Number(formData.maximumCapacity);
+  }
+
+  if (typeof formData.itinerary === 'string') {
+    payload.itinerary = formData.itinerary
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map((line, index) => ({ day: index + 1, title: line, desc: line }));
+  }
+
+  return payload;
+};
 
 const deserializeForm = (item, fields) => {
   const base = emptyForm(fields);
   fields.forEach(f => {
-    base[f.name] = item[f.name] !== undefined
-      ? (f.name === 'tags' && Array.isArray(item[f.name]) ? item[f.name].join(', ') : item[f.name])
-      : '';
+    let value = '';
+
+    if (f.name === 'packageName') {
+      value = item.packageName || item.title || '';
+    } else if (f.name === 'inclusions') {
+      value = Array.isArray(item.inclusions) ? item.inclusions.join(', ') : (item.inclusions || '');
+    } else if (f.name === 'itinerary') {
+      value = Array.isArray(item.itinerary)
+        ? item.itinerary.map(entry => entry.title || entry.desc || '').join('\n')
+        : (item.itinerary || '');
+    } else if (f.name === 'tags') {
+      value = Array.isArray(item[f.name]) ? item[f.name].join(', ') : (item[f.name] || '');
+    } else {
+      value = item[f.name] !== undefined ? item[f.name] : '';
+    }
+
+    base[f.name] = value;
   });
   return base;
 };
@@ -131,12 +168,13 @@ const ServiceCard = ({ item, catConfig, onEdit, onDelete }) => {
           {catConfig.label}
         </div>
         {/* Actions */}
-        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit(item)}
-            className="p-1.5 bg-slate-900/90 hover:bg-cyan-500 text-white rounded-lg cursor-pointer backdrop-blur-sm transition-colors"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90`}
           >
-            <Edit className="h-3.5 w-3.5" />
+            <Edit className="h-4 w-4" />
+            Edit
           </button>
           <button
             onClick={() => onDelete(item.id)}
@@ -153,7 +191,7 @@ const ServiceCard = ({ item, catConfig, onEdit, onDelete }) => {
           <MapPin className="h-3 w-3" />
           {item.destination}
         </div>
-        <h3 className="text-sm font-bold text-slate-100 line-clamp-2 leading-snug">{item.title}</h3>
+        <h3 className="text-sm font-bold text-slate-100 line-clamp-2 leading-snug">{item.packageName || item.title}</h3>
         <div className="flex items-center justify-between">
           <span className="text-base font-extrabold text-slate-100">PHP {Number(item.price).toLocaleString()}</span>
           {item.duration && (
@@ -207,14 +245,14 @@ const ServiceForm = ({ catConfig, formData, onChange, onSave, onCancel, isNew })
               onChange={onChange}
               placeholder={field.placeholder}
               rows={3}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white resize-none focus:border-cyan-500 focus:outline-none transition-colors"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 resize-none focus:border-cyan-500 focus:outline-none transition-colors"
             />
           ) : field.type === 'select' ? (
             <select
               name={field.name}
               value={formData[field.name] || ''}
               onChange={onChange}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 focus:border-cyan-500 focus:outline-none transition-colors"
             >
               <option value="">Select...</option>
               {field.options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -226,7 +264,7 @@ const ServiceForm = ({ catConfig, formData, onChange, onSave, onCancel, isNew })
               value={formData[field.name] || ''}
               onChange={onChange}
               placeholder={field.placeholder}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 focus:border-cyan-500 focus:outline-none transition-colors"
             />
           )}
         </div>
@@ -258,6 +296,7 @@ const ManageServices = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(null);
+  const navigate = useNavigate();
   const { showNotification } = useNotification();
 
   const catConfig = CATEGORIES.find(c => c.key === activeTab);
@@ -279,11 +318,41 @@ const ManageServices = () => {
   };
 
   const handleEdit = (item) => {
+    if (activeTab === 'tour') {
+      navigate(`/admin/services/edit-tour-package/${item.id}`);
+      return;
+    }
+
+    if (activeTab === 'tuktrip') {
+      navigate(`/admin/services/edit-tuktrip/${item.id}`);
+      return;
+    }
+
+    if (activeTab === 'car') {
+      navigate(`/admin/services/edit-car-rental/${item.id}`);
+      return;
+    }
+
     setEditingId(item.id);
     setFormData(deserializeForm(item, catConfig.fields));
   };
 
   const handleAddNew = () => {
+    if (activeTab === 'tour') {
+      navigate('/admin/services/add-tour-package');
+      return;
+    }
+
+    if (activeTab === 'tuktrip') {
+      navigate('/admin/services/add-tuktrip');
+      return;
+    }
+
+    if (activeTab === 'car') {
+      navigate('/admin/services/add-car-rental');
+      return;
+    }
+
     setEditingId('new');
     setFormData(emptyForm(catConfig.fields));
   };
@@ -352,6 +421,26 @@ const ManageServices = () => {
         {CATEGORIES.map(cat => {
           const CatIcon = cat.icon;
           const isActive = cat.key === activeTab;
+          // Render normal tab; for Car Rentals add a small plus button beside it
+          if (cat.key === 'car') {
+            return (
+              <div key={cat.key} className="flex items-center gap-2">
+                <button
+                  onClick={() => { setActiveTab(cat.key); setEditingId(null); setFormData(null); }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
+                    isActive
+                      ? `${cat.bg} ${cat.accent} ${cat.border}`
+                      : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <CatIcon className="h-4 w-4" />
+                  {cat.label}
+                </button>
+
+              </div>
+            );
+          }
+
           return (
             <button
               key={cat.key}
@@ -364,9 +453,6 @@ const ManageServices = () => {
             >
               <CatIcon className="h-4 w-4" />
               {cat.label}
-              <span className={`ml-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isActive ? cat.bg : 'bg-slate-800'}`}>
-                {isActive ? services.length : ''}
-              </span>
             </button>
           );
         })}

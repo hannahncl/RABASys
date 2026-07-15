@@ -4,6 +4,18 @@ import { reportService } from '../../services/reportService';
 import { bookingService } from '../../services/bookingService';
 import { DollarSign, Receipt, Users, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react';
 
+const statusPillClass = (status) => (
+  status === 'Confirmed'
+    ? 'bg-emerald-100 border-emerald-200 text-emerald-700'
+    : 'bg-amber-100 border-amber-200 text-amber-700'
+);
+
+const statusLabel = (status) => {
+  if (status === 'Confirmed') return 'Booked';
+  if (status === 'Pending Verification') return 'Pending';
+  return status;
+};
+
 const Dashboard = () => {
   const [kpis, setKpis] = useState(null);
   const [bookings, setBookings] = useState([]);
@@ -122,10 +134,8 @@ const Dashboard = () => {
                       <td className="p-4">{b.packageName}</td>
                       <td className="p-4 text-right font-bold text-slate-200">PHP {b.totalPrice.toLocaleString()}</td>
                       <td className="p-4 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
-                          b.status === 'Confirmed' ? 'bg-emerald-950/40 border-emerald-900/40 text-emerald-400' : 'bg-amber-950/40 border-amber-900/40 text-amber-400'
-                        }`}>
-                          {b.status}
+                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold uppercase border ${statusPillClass(b.status)}`}>
+                          {statusLabel(b.status)}
                         </span>
                       </td>
                     </tr>

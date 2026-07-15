@@ -4,6 +4,18 @@ import { bookingService } from '../../services/bookingService';
 import { tripUploadService } from '../../services/tripUploadService';
 import { CalendarCheck, FileUp, ClipboardList, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
 
+const statusPillClass = (status) => (
+  status === 'Confirmed'
+    ? 'bg-emerald-100 border-emerald-200 text-emerald-700'
+    : 'bg-amber-100 border-amber-200 text-amber-700'
+);
+
+const statusLabel = (status) => {
+  if (status === 'Confirmed') return 'Booked';
+  if (status === 'Pending Verification') return 'Pending';
+  return status;
+};
+
 const Dashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [totalUpdates, setTotalUpdates] = useState(0);
@@ -127,10 +139,8 @@ const Dashboard = () => {
                 </div>
                 <div className="text-right space-y-1">
                   <span className="font-bold text-slate-200 block">PHP {b.totalPrice.toLocaleString()}</span>
-                  <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded border inline-block ${
-                    b.status === 'Confirmed' ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-400' : 'bg-amber-950/40 border-amber-900/60 text-amber-400'
-                  }`}>
-                    {b.status}
+                  <span className={`text-[10px] uppercase font-extrabold px-3 py-1 rounded-full border inline-block ${statusPillClass(b.status)}`}>
+                    {statusLabel(b.status)}
                   </span>
                 </div>
               </div>
