@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { Compass, Search, Star, Heart, Clock, Users, SlidersHorizontal } from 'lucide-react';
+import DualRangeSlider from '../../components/ui/DualRangeSlider';
 
 const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,7 +12,7 @@ const Packages = () => {
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedTag, setSelectedTag] = useState('All');
-  const [maxPrice, setMaxPrice] = useState(30000);
+  const [priceRange, setPriceRange] = useState([0, 30000]);
   const [minPrice, setMinPrice] = useState(10);
 
   // Mock data for the bars in the price range chart
@@ -47,7 +48,7 @@ const Packages = () => {
                           pkg.description.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
-    const matchesPrice = pkg.price <= maxPrice;
+    const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
 
     return matchesSearch && matchesTag && matchesPrice;
   });
@@ -71,13 +72,13 @@ const Packages = () => {
             
             {/* Keyword Search */}
             <div className="mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-4">Keyword Search</h4>
+              <h4 className="text-sm font-semibold text-gray-600 mb-2">Keyword Search</h4>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="e.g. Albay, Sorsogon..."
-                className="w-full border border-slate-200 rounded-full py-2.5 px-4 text-xs text-black focus:outline-none focus:border-yellow-400 placeholder:text-slate-400"
+                placeholder="Search..."
+                className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
               />
             </div>
 
@@ -89,10 +90,10 @@ const Packages = () => {
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
-                    className={`px-4 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
                       selectedTag === tag
-                        ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]'
-                        : 'border-slate-200 text-black hover:border-slate-300'
+                        ? 'bg-yellow-50 border-yellow-250 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                        : 'border-slate-150 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     {tag}
@@ -104,36 +105,13 @@ const Packages = () => {
             {/* Price Range */}
             <div className="mb-8">
               <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
-              
-              {/* Chart Mockup */}
-              <div className="relative h-16 flex items-end justify-between gap-[2px] mb-2 px-3">
-                {priceBars.map((h, i) => (
-                  <div key={i} className={`${i / priceBars.length <= maxPrice / 30000 ? 'bg-[#FFE053]' : 'bg-slate-200'} w-full rounded-t-sm transition-colors`} style={{ height: `${h * 2}px` }}></div>
-                ))}
-              </div>
-              
-              {/* Range Input */}
-              <input 
-                type="range" 
-                min="0" 
-                max="30000" 
-                step="500"
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-[#FFE053] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2"
+              <DualRangeSlider 
+                min={0} 
+                max={30000} 
+                step={500} 
+                value={priceRange} 
+                onChange={setPriceRange} 
               />
-              
-              {/* Min / Max */}
-              <div className="flex justify-between text-[10px] text-black font-medium mt-6">
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Minimum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱0</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="block mb-1.5">Maximum</span>
-                  <div className="border border-slate-200 rounded-full px-5 py-2 text-black font-bold">₱{maxPrice.toLocaleString()}</div>
-                </div>
-              </div>
             </div>
           </div>
           
@@ -171,8 +149,8 @@ const Packages = () => {
                       </button>
                       
                       {/* Rating Badge at bottom of image */}
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-extrabold flex items-center gap-1 text-black">
-                        <Star className="w-3 h-3 text-[#FFE053] fill-[#FFE053]" /> 
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
+                        <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
                         {pkg.rating} <span className="text-black font-medium ml-0.5">({Math.floor(Math.random() * 500 + 200)} reviews)</span>
                       </div>
                     </div>
@@ -198,7 +176,7 @@ const Packages = () => {
                         </div>
                         <Link 
                           to={`/packages/${pkg.id}`}
-                          className="px-5 py-2 border border-black rounded-full text-[11px] font-bold text-black hover:bg-black hover:text-white transition-colors"
+                          className="px-5 py-2 border border-yellow-250 bg-yellow-50 text-yellow-800 rounded-full text-[11px] font-bold hover:bg-yellow-100 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                         >
                           Book Now
                         </Link>

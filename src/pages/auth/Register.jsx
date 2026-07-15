@@ -30,7 +30,7 @@ const Register = () => {
     try {
       const fullName = `${firstName} ${lastName}`;
       const username = email.split('@')[0] || firstName.toLowerCase();
-      const result = await register(fullName, email, username, password);
+      const result = await register(fullName, email, username, password, address, contactNumber);
       if (result.success) {
         navigate('/');
       } else {
@@ -49,7 +49,7 @@ const Register = () => {
         <h2 className="text-2xl font-bold font-sans tracking-widest text-[#3b3a36] mb-1 uppercase">Create Account</h2>
         <p className="text-slate-500 text-sm font-medium">
           Already have an account?{' '}
-          <Link to="/login" className="text-yellow-400 font-semibold hover:underline">
+          <Link to="/login" className="text-yellow-600 font-semibold hover:text-yellow-750 hover:underline transition-colors">
             Back to Log In
           </Link>
         </p>
@@ -64,68 +64,68 @@ const Register = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Email</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
             placeholder=""
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Password</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
             placeholder=""
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">First Name</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">First Name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
               placeholder=""
             />
           </div>
           <div>
-            <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Last Name</label>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Last Name</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
               placeholder=""
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Address</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Address</label>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
             placeholder=""
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Contact Number</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Contact Number</label>
           <input
             type="text"
             value={contactNumber}
             onChange={(e) => setContactNumber(e.target.value)}
-            className="w-full bg-white border-2 border-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-2.5 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
             placeholder=""
           />
         </div>
@@ -133,7 +133,7 @@ const Register = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 mt-6 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold font-sans rounded-3xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />

@@ -5,7 +5,6 @@ import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
-import GCashModal from '../../components/payment/GCashModal';
 import { Compass, MapPin, Star, Calendar, Clock, Award, ShieldCheck, ArrowLeft, CheckCircle2, User, Mail, Phone, Users } from 'lucide-react';
 
 const PackageDetail = () => {
@@ -68,7 +67,7 @@ const PackageDetail = () => {
     setPaymentModalOpen(true);
   };
 
-  const handlePaymentSuccess = async (referenceNumber, gcashNumber) => {
+  const handlePaymentSuccess = async (referenceNumber) => {
     setPaymentModalOpen(false);
     setSubmitting(true);
     
@@ -84,7 +83,7 @@ const PackageDetail = () => {
         totalPrice,
         paymentMethod: 'GCash',
         paymentRef: referenceNumber,
-        gcashNumber
+        gcashNumber: 'N/A'
       };
 
       await bookingService.create(bookingData);
@@ -113,7 +112,7 @@ const PackageDetail = () => {
       <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4 bg-white min-h-screen">
         <h2 className="text-2xl font-bold text-black font-display">Package Not Found</h2>
         <p className="text-black text-sm">We couldn't retrieve details for this specific package.</p>
-        <Link to="/packages" className="inline-block px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-black rounded-xl text-sm font-semibold">
+        <Link to="/packages" className="inline-block px-5 py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 rounded-xl text-sm font-semibold transition-all cursor-pointer">
           Back to Tour Packages
         </Link>
       </div>
@@ -132,7 +131,7 @@ const PackageDetail = () => {
             
             {/* Tabs */}
             <div className="flex gap-8 text-sm font-semibold text-black pb-[11px]">
-              <button onClick={() => scrollToSection('overview')} className="text-black border-b-2 border-yellow-400 pb-[9px] -mb-[12px]">Overview</button>
+              <button onClick={() => scrollToSection('overview')} className="text-black border-b-2 border-yellow-350 pb-[9px] -mb-[12px]">Overview</button>
               <button onClick={() => scrollToSection('package-details')} className="hover:text-black transition-colors pb-[9px]">Package Details</button>
               <button onClick={() => scrollToSection('reviews')} className="hover:text-black transition-colors pb-[9px]">Reviews</button>
             </div>
@@ -148,7 +147,7 @@ const PackageDetail = () => {
 
             {/* Package Details Heading */}
             <div id="package-details" className="flex items-center gap-3 scroll-mt-6">
-              <div className="w-6 h-1.5 bg-yellow-400"></div>
+              <div className="w-6 h-1.5 bg-yellow-350"></div>
               <h2 className="text-xl font-extrabold text-black">Package Details</h2>
             </div>
 
@@ -214,7 +213,7 @@ const PackageDetail = () => {
 
             {/* Reviews Heading */}
             <div id="reviews" className="flex items-center gap-3 pt-8 scroll-mt-6">
-              <div className="w-6 h-1.5 bg-yellow-400"></div>
+              <div className="w-6 h-1.5 bg-yellow-350"></div>
               <h2 className="text-xl font-extrabold text-black">Reviews</h2>
             </div>
             
@@ -297,7 +296,7 @@ const PackageDetail = () => {
               {/* Booking Button */}
               <button 
                 onClick={() => navigate(`/booking/${pkg.id}`)} 
-                className="w-full py-3.5 bg-[#FFE053] hover:bg-[#F2D340] text-[#3b3a36] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+                className="w-full py-3.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] cursor-pointer"
               >
                 Book This Package
               </button>
@@ -351,13 +350,6 @@ const PackageDetail = () => {
         </div>
       </div>
 
-      {/* GCash Simulator Overlay */}
-      <GCashModal
-        isOpen={paymentModalOpen}
-        amount={pkg ? pkg.price * guestsCount : 0}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };

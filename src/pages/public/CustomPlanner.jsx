@@ -1,369 +1,507 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
-import GCashModal from '../../components/payment/GCashModal';
 import { bookingService } from '../../services/bookingService';
 import { customizationService } from '../../services/customizationService';
-import { Compass, Sparkles, MapPin, Hotel, Calendar, Users, Calculator, ShieldCheck, Loader } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader, Calendar } from 'lucide-react';
 
+
+
+/* ─── Inline Calendar Component ─── */
+const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel }) => {
+  const [viewDate, setViewDate] = useState(new Date());
+  const [startTime, setStartTime] = useState({ h: '10', m: '30', period: 'am' });
+  const [endTime, setEndTime] = useState({ h: '05', m: '30', period: 'pm' });
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthName = viewDate.toLocaleString('default', { month: 'long' });
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+
+  const prevMonth = () => setViewDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
+
+  const handleDayClick = (day) => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    onDateSelect(dateStr);
+  };
+
+  const isSelected = (day) => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return selectedDates.includes(dateStr);
+  };
+
+  const isInRange = (day) => {
+    if (selectedDates.length < 2) return false;
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const sorted = [...selectedDates].sort();
+    return dateStr > sorted[0] && dateStr < sorted[sorted.length - 1];
+  };
+
+  const today = new Date();
+  const isToday = (day) => day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const trailingDays = [];
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    trailingDays.push(prevMonthDays - i);
+  }
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb', padding: '20px', width: '100%', maxWidth: '320px' }}>
+      {/* Time Row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#1e293b', color: '#fff', borderRadius: '999px', padding: '6px 12px', fontSize: '12px', fontWeight: 600 }}>
+          <span style={{ color: '#94a3b8', fontSize: '10px' }}>☽</span>
+          <input type="text" value={startTime.h} onChange={e => setStartTime({...startTime, h: e.target.value})}
+            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '12px', border: 'none', outline: 'none', color: '#fff' }} />
+          <span>:</span>
+          <input type="text" value={startTime.m} onChange={e => setStartTime({...startTime, m: e.target.value})}
+            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '12px', border: 'none', outline: 'none', color: '#fff' }} />
+          <select value={startTime.period} onChange={e => setStartTime({...startTime, period: e.target.value})}
+            style={{ background: 'transparent', fontSize: '12px', border: 'none', outline: 'none', cursor: 'pointer', color: '#fff', marginLeft: '2px' }}>
+            <option value="am">am</option><option value="pm">pm</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '999px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#374151' }}>
+          <span style={{ color: '#94a3b8', fontSize: '10px' }}>☀</span>
+          <input type="text" value={endTime.h} onChange={e => setEndTime({...endTime, h: e.target.value})}
+            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '12px', border: 'none', outline: 'none', color: '#374151' }} />
+          <span>:</span>
+          <input type="text" value={endTime.m} onChange={e => setEndTime({...endTime, m: e.target.value})}
+            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '12px', border: 'none', outline: 'none', color: '#374151' }} />
+          <select value={endTime.period} onChange={e => setEndTime({...endTime, period: e.target.value})}
+            style={{ background: 'transparent', fontSize: '12px', border: 'none', outline: 'none', cursor: 'pointer', color: '#374151', marginLeft: '2px' }}>
+            <option value="am">am</option><option value="pm">pm</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Month Navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <button onClick={prevMonth} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
+          <ChevronLeft style={{ width: 16, height: 16, color: '#6b7280' }} />
+        </button>
+        <span style={{ fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>{monthName} {year}</span>
+        <button onClick={nextMonth} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
+          <ChevronRight style={{ width: 16, height: 16, color: '#6b7280' }} />
+        </button>
+      </div>
+
+      {/* Day Headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+        {dayNames.map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: '#9ca3af', padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Day Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        {trailingDays.map((d, i) => (
+          <div key={`prev-${i}`} style={{ textAlign: 'center', fontSize: '11px', color: '#d1d5db', padding: '6px 0' }}>{d}</div>
+        ))}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+          const sel = isSelected(day);
+          const range = isInRange(day);
+          const td = isToday(day);
+          return (
+            <button
+              key={day}
+              onClick={() => handleDayClick(day)}
+              style={{
+                textAlign: 'center', fontSize: '11px', padding: '6px 0', borderRadius: '50%',
+                border: 'none', cursor: 'pointer', fontWeight: sel || td ? 700 : 500,
+                background: sel ? '#facc15' : range ? '#fef9c3' : td ? '#06b6d4' : 'transparent',
+                color: sel ? '#1f2937' : td ? '#fff' : '#374151',
+                transition: 'all 0.15s'
+              }}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
+        <button onClick={onCancel} style={{ padding: '6px 16px', fontSize: '12px', fontWeight: 600, color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', cursor: 'pointer' }}>
+          Cancel
+        </button>
+        <button onClick={() => onDone(startTime, endTime)} style={{ padding: '6px 20px', fontSize: '12px', fontWeight: 600, color: '#fff', background: '#1f2937', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+          Done
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Styles (inline to bypass theme CSS variable overrides) ─── */
+const S = {
+  page: { background: '#ffffff', minHeight: '100vh', color: '#1f2937', fontFamily: "'Inter', system-ui, sans-serif" },
+  container: { maxWidth: '1100px', margin: '0 auto', padding: '40px 16px' },
+  h1: { fontSize: '2rem', fontWeight: 800, color: '#111827', lineHeight: 1.2, fontFamily: "'Outfit', system-ui, sans-serif", letterSpacing: '-0.02em' },
+  subtitle: { fontSize: '16px', color: '#6b7280', marginTop: '8px' },
+  label: { display: 'block', fontSize: '14px', fontWeight: 600, color: '#4b5563', marginBottom: '8px' },
+  input: { width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 16px', fontSize: '15px', outline: 'none', background: '#fff', color: '#111827', boxSizing: 'border-box', transition: 'border-color 0.2s', },
+  sectionTitle: { fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '16px' },
+  card: (active) => ({
+    textAlign: 'left', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+    border: active ? '1px solid #f59e0b' : '1px solid #e5e7eb',
+    background: active ? '#fffbeb' : '#fff',
+  }),
+  cardName: { display: 'block', fontSize: '13px', fontWeight: 600, color: '#1f2937' },
+  cardSub: { display: 'block', fontSize: '12px', color: '#6b7280', marginTop: '2px' },
+  destBtn: (active) => ({
+    padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+    border: active ? '1px solid #f59e0b' : '1px solid #e5e7eb',
+    background: active ? '#fffbeb' : '#fff',
+    fontSize: '14px', fontWeight: 600, color: '#1f2937',
+  }),
+  sectionBox: { background: 'transparent', border: 'none', padding: '0' },
+  estimatePanel: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', position: 'sticky', top: '96px' },
+  bookBtn: { width: '100%', padding: '12px', background: '#111827', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', transition: 'all 0.2s' },
+};
+
+/* ─── Main Component ─── */
 const CustomPlanner = () => {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
 
-  // Data states
-  const [destinationsData, setDestinationsData] = useState(null);
-  const [hotelTiersData, setHotelTiersData] = useState([]);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Form selections
+  const [numDays, setNumDays] = useState('');
+  const [numNights, setNumNights] = useState('');
+  const [numGuests, setNumGuests] = useState('');
+  const [selectedDates, setSelectedDates] = useState([]);
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+
   const [destination, setDestination] = useState('');
+  const [selectedHotel, setSelectedHotel] = useState(null);
   const [selectedActivities, setSelectedActivities] = useState([]);
-  const [hotelTier, setHotelTier] = useState(null);
-  const [durationNights, setDurationNights] = useState(3);
-  const [guests, setGuests] = useState(2);
 
-  // Customer credentials for booking
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [tourDate, setTourDate] = useState('');
-
-  // Payment states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
-        const data = await customizationService.getAll();
-        setDestinationsData(data.destinations);
-        setHotelTiersData(data.hotelTiers);
-        
-        // Set initial selections if available
-        const firstDest = Object.keys(data.destinations)[0];
-        if (firstDest) setDestination(firstDest);
-        if (data.hotelTiers.length > 0) setHotelTier(data.hotelTiers[0]);
-      } catch (err) {
-        showNotification('Failed to load customization options.', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+        const result = await customizationService.getAll();
+        setData(result);
+        const first = Object.keys(result.destinations)[0];
+        if (first) setDestination(first);
+      } catch { showNotification('Failed to load customization options.', 'error'); }
+      finally { setLoading(false); }
+    })();
   }, [showNotification]);
 
-  // Reset selected activities when destination changes
-  useEffect(() => {
-    setSelectedActivities([]);
-  }, [destination]);
+  useEffect(() => { setSelectedHotel(null); setSelectedActivities([]); }, [destination]);
 
-  if (loading || !destinationsData || !hotelTiersData) {
+  const handleDateSelect = useCallback((dateStr) => {
+    setSelectedDates(prev => {
+      if (prev.includes(dateStr)) return prev.filter(d => d !== dateStr);
+      if (prev.length >= 2) return [dateStr];
+      return [...prev, dateStr].sort();
+    });
+  }, []);
+
+  const handleActivityToggle = (actId) => {
+    setSelectedActivities(prev => prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]);
+  };
+
+  if (loading || !data) {
     return (
-      <div className="flex justify-center items-center h-screen bg-slate-950 text-slate-100">
-        <Loader className="h-8 w-8 text-cyan-400 animate-spin" />
-        <span className="ml-3 font-semibold text-sm">Loading planner...</span>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff' }}>
+        <Loader style={{ width: 32, height: 32, color: '#facc15', animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: 12, fontWeight: 600, fontSize: 14, color: '#374151' }}>Loading planner...</span>
       </div>
     );
   }
 
-  const currentDestinationData = destinationsData[destination];
-  
-  // Real-time price calculation logic
-  const baseCostPerPerson = currentDestinationData ? currentDestinationData.base : 0;
-  const activitiesCostPerPerson = selectedActivities.reduce((sum, actId) => {
-    const act = currentDestinationData?.activities.find(a => a.id === actId);
-    return sum + (act ? act.price : 0);
+
+
+  const currentDest = data.destinations[destination];
+  const currentHotels = data.hotels?.[destination] || [];
+
+  const destCost = currentDest?.base || 0;
+  const hotelCost = selectedHotel?.pricePerGuest || 0;
+  const activitiesCost = selectedActivities.reduce((total, actId) => {
+    const activity = currentDest?.activities?.find(act => act.id === actId);
+    return total + (Number(activity?.price) || 0);
   }, 0);
+  const guestCount = Number(numGuests) || 0;
+  const totalCost = (destCost + hotelCost + activitiesCost) * (guestCount || 1);
 
-  const accommodationCostTotal = (hotelTier?.pricePerNight || 0) * durationNights;
-
-  // Real-time updates formula
-  const subtotalPerPerson = baseCostPerPerson + activitiesCostPerPerson;
-  const totalCost = (subtotalPerPerson * guests) + accommodationCostTotal;
-
-  const handleActivityToggle = (actId) => {
-    setSelectedActivities((prev) => 
-      prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]
-    );
-  };
-
-  const handleOpenPayment = (e) => {
+  const handleBook = (e) => {
     e.preventDefault();
-    if (!customerName || !customerPhone || !customerEmail || !tourDate) {
-      showNotification('Please fill in all contact & date fields.', 'warning');
-      return;
-    }
-    setPaymentModalOpen(true);
-  };
+    if (!firstName || !lastName || !email || !phone) { showNotification('Please fill in all contact fields.', 'warning'); return; }
+    if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
+    
+    const selectedActNames = selectedActivities.map(actId => currentDest.activities.find(a => a.id === actId)?.name).filter(Boolean);
+    
+    const customPkg = {
+      id: 'custom-package',
+      title: `Customized TukTrip: ${destination}`,
+      destination: destination,
+      duration: `${numDays || 0} Days, ${numNights || 0} Nights`,
+      price: (destCost + hotelCost + activitiesCost),
+      image: currentDest?.image || '',
+      customizedDetails: { 
+        destination, 
+        hotel: selectedHotel?.name || 'None', 
+        duration: `${numDays || 0} Days / ${numNights || 0} Nights`, 
+        activities: selectedActNames 
+      }
+    };
 
-  const handlePaymentSuccess = async (referenceNumber, gcashNumber) => {
-    setPaymentModalOpen(false);
-    setSubmitting(true);
-    try {
-      const selectedActNames = selectedActivities.map(actId => 
-        currentDestinationData.activities.find(a => a.id === actId)?.name
-      ).filter(Boolean);
-
-      const customBooking = {
-        packageId: 'custom-package',
-        packageName: `Customized Tour: ${destination} (${durationNights} Nights)`,
-        customerName,
-        customerEmail,
-        customerPhone,
-        tourDate,
-        guestsCount: Number(guests),
-        totalPrice: totalCost,
-        paymentMethod: 'GCash',
-        paymentRef: referenceNumber,
-        gcashNumber,
-        customizedDetails: {
-          destination,
-          hotel: hotelTier.name,
-          duration: `${durationNights} Nights`,
-          activities: selectedActNames
-        }
-      };
-
-      await bookingService.create(customBooking);
-      showNotification('Custom trip successfully booked! Confirmation email dispatched.', 'success');
-      navigate('/');
-    } catch (e) {
-      showNotification('Error registering custom trip booking.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    navigate('/booking/custom', {
+      state: {
+        customPackage: customPkg,
+        firstName,
+        lastName,
+        email,
+        phone,
+        tourDate: selectedDates[0] || new Date().toISOString().split('T')[0],
+        adultsCount: guestCount,
+        childrenCount: 0,
+        startStep: 2
+      }
+    });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
-      {/* Title */}
-      <div>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-2">
-          <Sparkles className="h-3.5 w-3.5" />
-          Interactive Trip Planner
+    <div style={S.page}>
+      <div style={S.container}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }} id="customize-header">
+          <h1 style={S.h1}>Try the First Ever TukTrip in Bicol Region with Rabas!</h1>
+          <p style={S.subtitle}>Choose your destination, hotels, and activities with real-time price updates.</p>
         </div>
-        <h1 className="text-4xl font-extrabold font-display text-slate-100">Customize Your Dream Trip</h1>
-        <p className="text-slate-400 text-sm mt-1">Design a personalized vacation. Choose your destination, hotels, and activities with real-time price updates.</p>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
-        {/* Form Controls - Left 2 Columns */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="glass-panel p-6 md:p-8 rounded-2xl border-slate-800 space-y-6">
+        {/* Main Layout Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '32px' }} className="main-layout-grid">
+          
+          {/* LEFT SIDE: Form Fields & Steps */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
-            {/* Step 1: Destination */}
-            <div className="space-y-3">
-              <h3 className="text-base font-bold text-slate-200 font-display flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-cyan-400" />
-                1. Select Destination
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.keys(destinationsData).map((dest) => (
-                  <div
-                    key={dest}
-                    onClick={() => setDestination(dest)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      destination === dest
-                        ? 'border-cyan-400 bg-cyan-500/5 text-slate-100 shadow-[0_0_15px_rgba(245,208,97,0.1)]'
-                        : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="font-bold text-sm block">{dest}</span>
-                    <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Base Cost: PHP {destinationsData[dest].base.toLocaleString()} / guest</span>
-                  </div>
-                ))}
+            {/* Form Fields */}
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                <div>
+                  <label style={S.label}>Number of Days</label>
+                  <input id="input-days" type="number" min="0" max="30" value={numDays} onChange={e => setNumDays(e.target.value)} style={S.input} />
+                </div>
+                <div>
+                  <label style={S.label}>Number of Nights</label>
+                  <input id="input-nights" type="number" min="0" max="30" value={numNights} onChange={e => setNumNights(e.target.value)} style={S.input} />
+                </div>
               </div>
-            </div>
-
-            {/* Step 2: Hotel accommodations */}
-            <div className="space-y-3 pt-4 border-t border-slate-900">
-              <h3 className="text-base font-bold text-slate-200 font-display flex items-center gap-2">
-                <Hotel className="h-5 w-5 text-cyan-400" />
-                2. Select Accommodation Tier
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {hotelTiersData.map((tier) => (
-                  <div
-                    key={tier.id}
-                    onClick={() => setHotelTier(tier)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex justify-between items-center ${
-                      hotelTier?.id === tier.id
-                        ? 'border-cyan-400 bg-cyan-500/5 text-slate-100 shadow-[0_0_15px_rgba(245,208,97,0.1)]'
-                        : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 text-slate-400 hover:text-slate-200'
-                    }`}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                <div>
+                  <label style={S.label}>Number of Guests / PAX</label>
+                  <input 
+                    id="input-guests" 
+                    type="number" 
+                    min="1" 
+                    max="3" 
+                    value={numGuests} 
+                    onChange={e => {
+                      let val = e.target.value;
+                      if (val !== '') {
+                        const num = Number(val);
+                        if (num > 3) {
+                          val = '3';
+                          showNotification('Maximum of 3 guests allowed per trip.', 'warning');
+                        } else if (num < 1) {
+                          val = '1';
+                        }
+                      }
+                      setNumGuests(val);
+                    }} 
+                    style={S.input} 
+                  />
+                  <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px', fontStyle: 'italic' }}>Note: Maximum of 3 guests/pax only</p>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <label style={S.label}>Preferred Date</label>
+                  <div 
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    style={{ ...S.input, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer' }}
                   >
-                    <div>
-                      <span className="font-bold text-sm block">{tier.name}</span>
-                      <span className="text-[10px] text-slate-500">Premium lodging partner selection</span>
-                    </div>
-                    <span className="font-bold text-sm text-cyan-400 font-display">
-                      PHP {tier.pricePerNight.toLocaleString()} / night
+                    <span style={{ fontSize: '15px', color: selectedDates.length ? '#111827' : '#9ca3af' }}>
+                      {selectedDates.length >= 2 ? `${selectedDates[0]} to ${selectedDates[1]}` : selectedDates[0] || 'Select dates'}
                     </span>
+                    <Calendar size={18} color="#6b7280" />
                   </div>
-                ))}
+                  {showCalendar && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 50 }}>
+                      <CalendarPicker 
+                        selectedDates={selectedDates} 
+                        onDateSelect={handleDateSelect}
+                        onDone={() => setShowCalendar(false)} 
+                        onCancel={() => { setSelectedDates([]); setShowCalendar(false); }} 
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Step 3: Local activities */}
-            <div className="space-y-3 pt-4 border-t border-slate-900">
-              <h3 className="text-base font-bold text-slate-200 font-display flex items-center gap-2">
-                <Compass className="h-5 w-5 text-cyan-400" />
-                3. Choose Custom Activities
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {currentDestinationData?.activities?.map((act) => (
-                  <div
-                    key={act.id}
-                    onClick={() => handleActivityToggle(act.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex justify-between items-center ${
-                      selectedActivities.includes(act.id)
-                        ? 'border-cyan-400 bg-cyan-500/5 text-slate-100 shadow-[0_0_15px_rgba(245,208,97,0.1)]'
-                        : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{act.name}</span>
-                    <span className="text-xs font-bold text-cyan-400 font-display">+ PHP {act.price.toLocaleString()}</span>
+              {/* Contact Details */}
+              <div style={{ paddingTop: '32px', borderTop: '1px solid #f3f4f6', marginTop: '16px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '24px' }}>Tourist Contact Details</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                  <div>
+                    <label style={S.label}>First Name</label>
+                    <input id="input-firstname" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} style={{ ...S.input, textTransform: 'capitalize' }} />
                   </div>
-                ))}
-                {(!currentDestinationData?.activities || currentDestinationData.activities.length === 0) && (
-                  <p className="text-slate-500 text-sm italic">No extra activities available for this destination.</p>
-                )}
+                  <div>
+                    <label style={S.label}>Last Name</label>
+                    <input id="input-lastname" type="text" value={lastName} onChange={e => setLastName(e.target.value)} style={{ ...S.input, textTransform: 'capitalize' }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={S.label}>Email Address</label>
+                  <input id="input-email" type="email" value={email} onChange={e => setEmail(e.target.value)} style={S.input} />
+                </div>
+                <div>
+                  <label style={S.label}>Contact Number</label>
+                  <input id="input-phone" type="text" value={phone} onChange={e => setPhone(e.target.value)} style={S.input} />
+                </div>
               </div>
             </div>
 
-            {/* Step 4: Duration and headcount */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-900">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
-                  <Calendar className="h-4 w-4 text-cyan-500" /> Number of Nights
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="14"
-                  value={durationNights}
-                  onChange={(e) => setDurationNights(Math.max(0, Number(e.target.value)))}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 px-4 text-slate-100 text-sm focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
-                  <Users className="h-4 w-4 text-cyan-500" /> Number of Guests
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={guests}
-                  onChange={(e) => setGuests(Math.max(0, Number(e.target.value)))}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-3 px-4 text-slate-100 text-sm focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Contact Details required for submitting custom booking */}
-            <div className="space-y-4 pt-6 border-t border-slate-900">
-              <h4 className="text-sm font-bold text-slate-200 font-display">Tourist Contact Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  required
-                  placeholder="Full Name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-2.5 px-4 text-slate-100 text-xs focus:outline-none"
-                />
-                <input
-                  type="email"
-                  required
-                  placeholder="Email Address"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-2.5 px-4 text-slate-100 text-xs focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  required
-                  placeholder="Contact Mobile Number"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-2.5 px-4 text-slate-100 text-xs focus:outline-none"
-                />
-                <input
-                  type="date"
-                  required
-                  value={tourDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setTourDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 rounded-xl py-2.5 px-4 text-slate-100 text-xs focus:outline-none [color-scheme:dark]"
-                />
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Real-time Tally Calculator Card - Right 1 Column */}
-        <div className="space-y-6 lg:sticky lg:top-24">
-          <div className="glass-panel p-6 rounded-2xl border-slate-800 space-y-6 shadow-2xl">
-            <h3 className="font-bold text-slate-200 font-display flex items-center gap-2 border-b border-slate-900 pb-3">
-              <Calculator className="h-5 w-5 text-cyan-400" />
-              Real-Time Estimate
-            </h3>
-
-            {/* Calculations items */}
-            <div className="space-y-3.5 text-xs text-slate-400">
-              <div className="flex justify-between">
-                <span>Destination Base:</span>
-                <span className="font-semibold text-slate-200">PHP {baseCostPerPerson.toLocaleString()} x{guests}</span>
-              </div>
+            {/* Steps Container */}
+            <div style={{ ...S.sectionBox, display: 'flex', flexDirection: 'column', gap: '32px' }} id="steps-container">
               
-              <div className="flex justify-between">
-                <span>Selected Activities:</span>
-                <span className="font-semibold text-slate-200">PHP {activitiesCostPerPerson.toLocaleString()} x{guests}</span>
+              {/* 1. Destination */}
+              <div id="section-destination">
+                <h3 style={S.sectionTitle}>1. Select Destination</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {Object.keys(data.destinations).map(dest => (
+                    <button key={dest} onClick={() => setDestination(dest)} style={S.destBtn(destination === dest)}>
+                      {dest}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span>Accommodation ({durationNights} nights):</span>
-                <span className="font-semibold text-slate-200">PHP {accommodationCostTotal.toLocaleString()}</span>
+              {/* 2. Accommodation */}
+              <div id="section-accommodation">
+                <h3 style={S.sectionTitle}>2. Select Accommodation</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {currentHotels.map(hotel => (
+                    <button key={hotel.id} onClick={() => setSelectedHotel(hotel)} style={S.card(selectedHotel?.id === hotel.id)}>
+                      <span style={S.cardName}>{hotel.name}</span>
+                      <span style={S.cardSub}>Base Cost: PHP {hotel.pricePerGuest.toLocaleString('en-PH', { minimumFractionDigits: 2 })} / Guest</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex justify-between border-t border-slate-900 pt-3 text-base">
-                <span className="font-bold text-slate-200 font-display">Estimated Total</span>
-                <span className="font-extrabold text-cyan-400 font-display">PHP {totalCost.toLocaleString()}</span>
+              {/* 3. Choose Custom Activities */}
+              <div id="section-activities">
+                <h3 style={S.sectionTitle}>3. Choose Custom Activities</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {currentDest?.activities?.map(act => {
+                    const isChecked = selectedActivities.includes(act.id);
+                    return (
+                      <label
+                        key={act.id}
+                        onClick={() => handleActivityToggle(act.id)}
+                        style={{
+                          display: 'flex', alignItems: 'flex-start', gap: '12px',
+                          padding: '12px 16px', borderRadius: '8px', cursor: 'pointer',
+                          border: isChecked ? '1px solid #f59e0b' : '1px solid #e5e7eb',
+                          background: isChecked ? '#fffbeb' : '#fff',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: '16px', height: '16px', minWidth: '16px', marginTop: '2px',
+                          border: isChecked ? '1px solid #f59e0b' : '1px solid #d1d5db',
+                          borderRadius: '4px', background: isChecked ? '#f59e0b' : '#fff',
+                          transition: 'all 0.15s',
+                        }}>
+                          {isChecked && (
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ display: 'block' }}>
+                              <path d="M2 5L4.5 7.5L8 3" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                      <span style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
+                        {act.name}
+                        {Number(act.price) > 0 && (
+                          <span style={{ display: 'block', color: '#d97706', fontWeight: 700, marginTop: '4px' }}>
+                            PHP {Number(act.price).toLocaleString('en-PH')}
+                          </span>
+                        )}
+                        {act.details && (
+                          <span style={{ display: 'block', color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                            {act.details}
+                          </span>
+                        )}
+                      </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-
-            <button
-              onClick={handleOpenPayment}
-              disabled={submitting}
-              className="w-full py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-bold font-display rounded-xl text-center shadow-lg active:scale-[0.98] transition-all cursor-pointer block disabled:opacity-50"
-            >
-              {submitting ? 'Registering...' : 'Book Custom Trip'}
-            </button>
-
-            <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-xl flex gap-2.5 text-[10px] text-slate-400">
-              <ShieldCheck className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
-              <p>Customize itinerary options. Changes register instantly in our pricing engine for transparency.</p>
             </div>
           </div>
-        </div>
 
+          {/* RIGHT SIDE: Estimate Panel */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ ...S.estimatePanel, position: 'sticky', top: '96px' }} id="section-estimate">
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', marginBottom: '20px', textAlign: 'center' }}>Real-Time Estimate</h3>
+              <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '20px', marginBottom: '20px' }}>
+                {[
+                  ['Destination:', `PHP ${destCost.toFixed(2)}`, guestCount],
+                  ['Accommodation:', `PHP ${hotelCost.toFixed(2)}`, guestCount],
+                  ['Selected Activities:', `PHP ${activitiesCost.toFixed(2)}`, guestCount]
+                ].map(([label, val, g], i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>{label}</span>
+                    <span style={{ fontWeight: 600, color: '#374151' }}>{val} <span style={{ color: '#9ca3af', fontSize: '11px' }}>x{g}</span></span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#111827' }}>Estimated Total</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: '#f59e0b', fontFamily: "'Outfit', system-ui, sans-serif" }}>PHP {totalCost.toFixed(2)}</span>
+              </div>
+              <button id="btn-book-customized" onClick={handleBook} disabled={submitting}
+                style={{ ...S.bookBtn, opacity: submitting ? 0.5 : 1 }}>
+                {submitting ? 'Registering...' : 'Book Customized Trip'}
+              </button>
+              <p style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center', marginTop: '16px', lineHeight: '1.6' }}>
+                Note: Your customized booking will undergo verification and approval first.<br />
+                Once approved, the approved booking will be sent to your email.
+              </p>
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      {/* GCash Simulator Overlay */}
-      <GCashModal
-        isOpen={paymentModalOpen}
-        amount={totalCost}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
+      {/* Responsive media query via style tag */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .main-layout-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+
     </div>
   );
 };
 
 export default CustomPlanner;
+

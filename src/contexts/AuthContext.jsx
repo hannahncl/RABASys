@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, username, password) => {
+  const register = async (name, email, username, password, address = '', contactNumber = '') => {
     setLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -58,16 +58,37 @@ export const AuthProvider = ({ children }) => {
       password,
       role: 'customer',
       name,
-      email
+      email,
+      address,
+      contactNumber,
     };
 
     MOCK_USERS.push(newUser);
-    
+
+    // Persist to accountService db so profile page can load full details
+    const accKey = 'rabas_accounts_db';
+    const accounts = JSON.parse(localStorage.getItem(accKey)) || [];
+    const newAccount = {
+      id: `ACC-${String(accounts.length + 1).padStart(3, '0')}`,
+      name,
+      email,
+      username: newUser.username,
+      role: 'customer',
+      status: 'Active',
+      phone: contactNumber,
+      address,
+      createdAt: new Date().toISOString(),
+    };
+    accounts.push(newAccount);
+    localStorage.setItem(accKey, JSON.stringify(accounts));
+
     const sessionUser = {
       username: newUser.username,
       role: newUser.role,
       name: newUser.name,
       email: newUser.email,
+      address,
+      contactNumber,
       token: `mock_jwt_${Math.random().toString(36).substring(2)}`
     };
 
@@ -82,8 +103,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('rabas_current_user');
   };
 
+  const updateUserSession = (updatedFields) => {
+    const updatedUser = { ...user, ...updatedFields };
+    setUser(updatedUser);
+    localStorage.setItem('rabas_current_user', JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUserSession }}>
       {children}
     </AuthContext.Provider>
   );

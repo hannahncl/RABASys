@@ -57,7 +57,7 @@ const Login = () => {
       <h2 className="text-3xl font-bold font-sans tracking-wide text-black mb-2 uppercase">Welcome Back!</h2>
       <p className="text-slate-500 text-sm mb-8">
         Don't have a account,{' '}
-        <Link to="/register" className="text-yellow-400 font-semibold hover:underline">
+        <Link to="/register" className="text-yellow-600 font-semibold hover:text-yellow-750 hover:underline transition-colors">
           Sign up
         </Link>
       </p>
@@ -71,29 +71,29 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Email</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Email</label>
           <div className="relative">
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white border-2 border-slate-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-3 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
               placeholder=""
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-bold tracking-wide text-slate-600 mb-2">Password</label>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">Password</label>
           <div className="relative">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white border-2 border-slate-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 rounded-xl py-3 px-4 text-slate-800 placeholder-slate-400 text-sm transition-all focus:outline-none"
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
               placeholder=""
             />
-            <button type="button" className="absolute right-4 top-3.5 text-yellow-400 hover:text-yellow-500 focus:outline-none">
+            <button type="button" className="absolute right-4 top-3 text-slate-400 hover:text-slate-600 focus:outline-none">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
             </button>
           </div>
@@ -101,12 +101,12 @@ const Login = () => {
 
         <div className="flex items-center justify-between mt-4">
           <label className="flex items-center cursor-pointer group">
-            <div className="relative flex items-center justify-center w-5 h-5 mr-3 border-2 border-yellow-400 rounded-full group-hover:bg-yellow-50 transition-colors">
-              <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>
+            <div className="relative flex items-center justify-center w-4 h-4 mr-3 border border-slate-350 rounded-full group-hover:bg-yellow-50/50 transition-colors">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
             </div>
             <span className="text-xs font-semibold text-slate-500">Remember me</span>
           </label>
-          <Link to="/forgot-password" className="text-xs font-bold text-slate-700 hover:text-yellow-500 transition-colors">
+          <Link to="/forgot-password" className="text-xs font-medium text-slate-550 hover:text-yellow-600 transition-colors">
             Forgot password?
           </Link>
         </div>
@@ -114,7 +114,7 @@ const Login = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 mt-4 bg-[#3b3a36] hover:bg-[#2c2b28] text-white font-bold font-sans rounded-3xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="w-full py-3 mt-4 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -123,6 +123,36 @@ const Login = () => {
           )}
         </button>
       </form>
+
+      {/* Quick Access Demo Credentials */}
+      <div className="mt-8 p-5 bg-slate-50 border border-slate-200 rounded-2xl">
+        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
+          Quick Access Demo Roles (Password: 123)
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => handleQuickFill('admin')}
+            className="py-2.5 px-3 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 hover:border-cyan-300 text-cyan-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Admin
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickFill('staff')}
+            className="py-2.5 px-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 hover:border-purple-300 text-purple-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Staff
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickFill('tourist')}
+            className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-800 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+          >
+            Tourist
+          </button>
+        </div>
+      </div>
 
       <div className="mt-8 flex items-center justify-center gap-4">
         <div className="h-px bg-slate-200 flex-1"></div>

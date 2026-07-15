@@ -23,6 +23,9 @@ import CustomPlanner from './pages/public/CustomPlanner';
 import ExploreMap from './pages/public/ExploreMap';
 import CarRentals from './pages/public/CarRentals';
 import CarBooking from './pages/public/CarBooking';
+import AboutUs from './pages/public/AboutUs';
+import Profile from './pages/public/Profile';
+import Review from './pages/public/Review';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -37,7 +40,8 @@ import SalesReports from './pages/admin/SalesReports';
 import ExpenseReports from './pages/admin/ExpenseReports';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminSchedule from './pages/admin/Schedule';
-import ManagePackages from './pages/admin/ManagePackages';
+import AdminBookings from './pages/admin/Bookings';
+import ManageServices from './pages/admin/ManageServices';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
 
@@ -57,11 +61,30 @@ function App() {
               <Route index element={<Home />} />
               <Route path="packages" element={<Packages />} />
               <Route path="packages/:id" element={<PackageDetail />} />
-              <Route path="gallery" element={<Gallery />} />
+              <Route path="gallery" element={<Navigate to="/explore" replace />} />
               <Route path="customize" element={<CustomPlanner />} />
               <Route path="explore" element={<ExploreMap />} />
               <Route path="car-rentals" element={<CarRentals />} />
               <Route path="car-rentals/:id" element={<CarBooking />} />
+              <Route path="about" element={<AboutUs />} />
+              
+              <Route 
+                path="profile" 
+                element={
+                  <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="review/:id" 
+                element={
+                  <ProtectedRoute allowedRoles={['customer']}>
+                    <Review />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Protected Tourist Booking */}
               <Route 
@@ -98,7 +121,9 @@ function App() {
               <Route path="expenses" element={<ExpenseReports />} />
               <Route path="destinations" element={<AdminAnalytics />} />
               <Route path="schedule" element={<AdminSchedule />} />
-              <Route path="packages" element={<ManagePackages />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="services" element={<ManageServices />} />
+              <Route path="packages" element={<Navigate to="/admin/services" replace />} />
               <Route path="customizations" element={<ManageCustomizations />} />
               <Route path="accounts" element={<ManageAccounts />} />
             </Route>

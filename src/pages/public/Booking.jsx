@@ -1,29 +1,50 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
-import GCashModal from '../../components/payment/GCashModal';
-import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Clock, Globe } from 'lucide-react';
+
+const TOUR_GUIDES = [
+  {
+    id: 1,
+    name: 'Ms. Anne',
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+    description: 'Expert in Bicol history and cultural heritage with 5+ years of guiding experience.',
+    languages: ['English', 'Tagalog', 'Bicolano']
+  },
+  {
+    id: 2,
+    name: 'Mr. Mark',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    description: 'Adventure specialist, perfect for eco-tours and extreme activities.',
+    languages: ['English', 'Tagalog']
+  }
+];
 
 const Booking = () => {
   const { packageId } = useParams();
   const { user } = useContext(AuthContext);
   const { showNotification } = useNotification();
   const navigate = useNavigate();
+  const location = useLocation();
+  const stateData = location.state || {};
 
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Form fields
-  const [firstName, setFirstName] = useState(user?.name ? user.name.split(' ')[0] : '');
-  const [lastName, setLastName] = useState(user?.name ? user.name.split(' ').slice(1).join(' ') : '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('');
-  const [tourDate, setTourDate] = useState('');
-  const [adultsCount, setAdultsCount] = useState(1);
-  const [childrenCount, setChildrenCount] = useState(0);
+  const [firstName, setFirstName] = useState(stateData.firstName || (user?.name ? user.name.split(' ')[0] : ''));
+  const [lastName, setLastName] = useState(stateData.lastName || (user?.name ? user.name.split(' ').slice(1).join(' ') : ''));
+  const [email, setEmail] = useState(stateData.email || user?.email || '');
+  const [phone, setPhone] = useState(stateData.phone || '');
+  const [tourDate, setTourDate] = useState(stateData.tourDate || '');
+  const [adultsCount, setAdultsCount] = useState(stateData.adultsCount || 1);
+  const [childrenCount, setChildrenCount] = useState(stateData.childrenCount || 0);
+  
+  // Tour Guide Selection
+  const [selectedGuide, setSelectedGuide] = useState(null);
   
   // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -31,7 +52,7 @@ const Booking = () => {
   const [calendarDate, setCalendarDate] = useState(new Date(2022, 0, 1)); // January 2022 to match mockup
   
   // Step & Payment State
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(stateData.startStep || 1);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -40,10 +61,21 @@ const Booking = () => {
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
+  const [gcashRef, setGcashRef] = useState('');
 
   useEffect(() => {
     const loadPkg = async () => {
       setLoading(true);
+      if (packageId === 'custom') {
+        if (stateData.customPackage) {
+          setPkg(stateData.customPackage);
+        } else {
+          navigate('/customize');
+        }
+        setLoading(false);
+        return;
+      }
+
       const data = await packageService.getById(packageId);
       if (!data) {
         showNotification('Invalid package selected.', 'error');
@@ -79,19 +111,22 @@ const Booking = () => {
   const handleFinalSubmit = (e) => {
     e.preventDefault();
     if (paymentMethod === 'gcash') {
-      setPaymentModalOpen(true);
+      if (!gcashRef.trim()) {
+        showNotification('Please enter your GCash reference number.', 'warning');
+        return;
+      }
+      handlePaymentSuccess(gcashRef.trim());
     } else {
       if (!cardNumber || !expiryDate || !cvv) {
         showNotification('Please fill in card details.', 'warning');
         return;
       }
       // Mock card success
-      handlePaymentSuccess('CARD-' + Math.random().toString(36).substr(2, 9).toUpperCase(), 'CARD');
+      handlePaymentSuccess('CARD-' + Math.random().toString(36).substr(2, 9).toUpperCase());
     }
   }
 
-  const handlePaymentSuccess = async (referenceNumber, gcashNumber) => {
-    setPaymentModalOpen(false);
+  const handlePaymentSuccess = async (referenceNumber) => {
     setSubmitting(true);
     
     try {
@@ -106,7 +141,8 @@ const Booking = () => {
         totalPrice,
         paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
         paymentRef: referenceNumber,
-        gcashNumber: paymentMethod === 'gcash' ? gcashNumber : 'N/A'
+        gcashNumber: 'N/A',
+        ...(pkg.customizedDetails && { customizedDetails: pkg.customizedDetails })
       };
 
       await bookingService.create(bookingData);
@@ -119,30 +155,66 @@ const Booking = () => {
     }
   };
 
-  // Helper for rendering mockup calendar days
+  // Helper for rendering calendar days
   const renderCalendarDays = () => {
-    const days = [
-      { num: 26, color: 'text-black' }, { num: 27, color: 'text-black' }, { num: 28, color: 'text-black' }, { num: 29, color: 'text-black' }, { num: 30, color: 'text-black' }, { num: 31, color: 'text-black' }, { num: '01', color: 'text-black' },
-      { num: 2, color: 'text-black' }, { num: 3, color: 'text-black' }, { num: 4, color: 'text-black' }, { num: 5, color: 'text-black' }, { num: 6, bg: 'bg-slate-400', color: 'text-white' }, { num: 7, color: 'text-black' }, { num: 8, color: 'text-black' },
-      { num: 9, color: 'text-black' }, { num: 10, color: 'text-black' }, { num: 11, color: 'text-black' }, { num: 12, color: 'text-black' }, { num: 13, color: 'text-black' }, { num: 14, color: 'text-black' }, { num: 15, color: 'text-black' },
-      { num: 16, color: 'text-black' }, { num: 17, color: 'text-black' }, { num: 18, color: 'text-black' }, { num: 19, bg: 'bg-yellow-400', color: 'text-white' }, { num: 20, color: 'text-yellow-400' }, { num: 21, color: 'text-yellow-400' }, { num: 22, bg: 'bg-yellow-400', color: 'text-white' },
-      { num: 23, color: 'text-black' }, { num: 24, color: 'text-black' }, { num: 25, color: 'text-black' }, { num: 26, color: 'text-black' }, { num: 27, color: 'text-black' }, { num: 28, color: 'text-black' }, { num: 29, color: 'text-black' },
-      { num: 31, color: 'text-black' }, { num: 1, color: 'text-black' }, { num: 2, color: 'text-black' }, { num: 3, color: 'text-black' }, { num: 4, color: 'text-black' }, { num: 5, color: 'text-black' }, { num: 6, color: 'text-black' }
-    ];
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
 
-    return days.map((day, i) => (
-      <div 
-        key={i} 
-        onClick={() => {
-          if (typeof day.num === 'number' && day.color !== 'text-black') {
-            setTourDate(`2022-01-${day.num.toString().padStart(2, '0')}`);
-          }
-        }}
-        className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold cursor-pointer ${day.bg || 'bg-transparent'} ${day.color || 'text-black'} ${day.color === 'text-black' ? 'cursor-default' : 'hover:bg-slate-100'}`}
-      >
-        {day.num}
-      </div>
-    ));
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push({ empty: true });
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ num: i, date: new Date(year, month, i) });
+    }
+
+    let numDays = 1;
+    if (pkg?.duration) {
+      const match = pkg.duration.match(/(\d+)\s*Day/i);
+      if (match) {
+        numDays = parseInt(match[1]);
+      }
+    }
+
+    const selectedDate = tourDate ? new Date(tourDate) : null;
+    let endDate = null;
+    if (selectedDate && numDays > 1) {
+      endDate = new Date(selectedDate);
+      endDate.setDate(endDate.getDate() + (numDays - 1));
+    }
+
+    return days.map((day, i) => {
+      if (day.empty) return <div key={`empty-${i}`}></div>;
+
+      // Reset time for accurate date comparison
+      const currentDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+      const isSelected = selectedDate && currentDate.getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+      const isEnd = endDate && currentDate.getTime() === new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
+      const isInRange = selectedDate && endDate && currentDate > new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) && currentDate < new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+      let bgClass = 'bg-transparent text-black hover:bg-slate-100 cursor-pointer';
+      if (isSelected || isEnd) {
+        bgClass = 'bg-yellow-400 text-yellow-900 cursor-pointer';
+      } else if (isInRange) {
+        bgClass = 'bg-yellow-50 ring-1 ring-yellow-200 text-yellow-750 cursor-pointer';
+      }
+
+      return (
+        <div 
+          key={i} 
+          onClick={() => {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(day.date - tzoffset)).toISOString().slice(0, -1);
+            setTourDate(localISOTime.split('T')[0]);
+          }}
+          className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all ${bgClass}`}
+        >
+          {day.num}
+        </div>
+      );
+    });
   };
 
   return (
@@ -157,7 +229,7 @@ const Booking = () => {
 
           {/* Step 1: Choose Booking */}
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-yellow-50 border border-yellow-250 flex items-center justify-center text-yellow-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
             <span className="text-sm font-medium text-black">Choose Booking</span>
@@ -170,7 +242,7 @@ const Booking = () => {
                 <span className="leading-none mb-2 font-bold tracking-widest text-lg">...</span>
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-yellow-50 border border-yellow-250 flex items-center justify-center text-yellow-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
             )}
@@ -201,15 +273,17 @@ const Booking = () => {
                 <form id="booking-form" onSubmit={handleProceedToPayment} className="space-y-10">
                   {/* Date Selection */}
                   <div>
-                    <label className="block text-sm text-black mb-3">Please select a travel date</label>
-                    <div className="relative max-w-[280px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">Please select a travel date</label>
+                    <div className="relative max-w-[320px]">
                       <button
                         type="button"
                         onClick={() => setShowDatePicker(!showDatePicker)}
-                        className={`w-full border rounded-xl py-3 px-4 flex items-center justify-center text-sm font-bold shadow-sm transition-all ${showDatePicker ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 hover:border-slate-300 text-black'}`}
+                        className={`w-full border rounded-lg py-3 px-4 flex items-center justify-between text-[15px] transition-all bg-white border-gray-200 text-gray-900 focus:outline-none ${showDatePicker ? 'border-gray-300 shadow-sm' : ''}`}
                       >
-                        {!showDatePicker && <Calendar className="h-4 w-4 mr-2" />}
-                        {tourDate && !showDatePicker ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Check Availability'}
+                        <span className="flex items-center">
+                           {tourDate && !showDatePicker ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Check Availability'}
+                        </span>
+                        <Calendar className="h-5 w-5 text-gray-400" />
                       </button>
                       
                       {/* Custom Date Picker Popover */}
@@ -223,14 +297,14 @@ const Booking = () => {
                               <button 
                                 type="button" 
                                 onClick={() => setSelectedTime('10:30 am')}
-                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '10:30 am' ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
+                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '10:30 am' ? 'bg-yellow-55 bg-yellow-50 border-yellow-250 text-yellow-805 text-yellow-800' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
                               >
                                 <Clock className="w-3 h-3" /> 10 : 30 am
                               </button>
                               <button 
                                 type="button" 
                                 onClick={() => setSelectedTime('05:30 pm')}
-                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '05:30 pm' ? 'bg-[#FFE053] border-[#FFE053] text-[#3b3a36]' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
+                                className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-2 text-[10px] font-bold transition-all border ${selectedTime === '05:30 pm' ? 'bg-yellow-55 bg-yellow-50 border-yellow-250 text-yellow-805 text-yellow-800' : 'bg-white border-slate-200 text-black hover:bg-slate-50'}`}
                               >
                                 <Clock className="w-3 h-3" /> 05 : 30 pm
                               </button>
@@ -239,9 +313,31 @@ const Booking = () => {
 
                           {/* Calendar Header */}
                           <div className="flex items-center justify-between mb-4 px-2">
-                            <button type="button" className="text-black hover:text-yellow-500 font-bold px-2 py-1">&lt;</button>
-                            <span className="text-[13px] font-bold text-black">January 2022</span>
-                            <button type="button" className="text-black hover:text-yellow-500 font-bold px-2 py-1">&gt;</button>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const prevMonth = new Date(calendarDate);
+                                prevMonth.setMonth(prevMonth.getMonth() - 1);
+                                setCalendarDate(prevMonth);
+                              }}
+                              className="text-black hover:text-yellow-500 font-bold px-2 py-1"
+                            >
+                              &lt;
+                            </button>
+                            <span className="text-[13px] font-bold text-black">
+                              {calendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </span>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const nextMonth = new Date(calendarDate);
+                                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                                setCalendarDate(nextMonth);
+                              }}
+                              className="text-black hover:text-yellow-500 font-bold px-2 py-1"
+                            >
+                              &gt;
+                            </button>
                           </div>
 
                           {/* Calendar Grid */}
@@ -264,7 +360,7 @@ const Booking = () => {
                             <button 
                               type="button" 
                               onClick={() => setShowDatePicker(false)}
-                              className="px-6 py-1.5 rounded-full bg-[#FFE053] hover:bg-[#F2D340] text-[11px] font-bold text-[#3b3a36] transition-colors"
+                              className="px-6 py-1.5 rounded-full bg-yellow-50 hover:bg-yellow-100 border border-yellow-250 text-[11px] font-bold text-yellow-800 transition-colors cursor-pointer"
                             >
                               Done
                             </button>
@@ -276,24 +372,24 @@ const Booking = () => {
 
                   {/* Number of Pax */}
                   <div>
-                    <h3 className="text-sm font-semibold text-black mb-3">Number of pax</h3>
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Number of pax</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Adult */}
-                      <div className="flex items-center justify-between border border-slate-200 rounded-xl p-3">
-                        <span className="text-sm font-bold text-black">Adult</span>
+                      <div className="flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 bg-white">
+                        <span className="text-[15px] font-medium text-gray-900">Adult</span>
                         <div className="flex items-center gap-4">
                           <button 
                             type="button" 
                             onClick={() => setAdultsCount(Math.max(1, adultsCount - 1))}
-                            className="w-6 h-6 flex items-center justify-center text-black hover:text-black font-bold"
+                            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             -
                           </button>
-                          <span className="text-sm font-bold w-4 text-center">{adultsCount}</span>
+                          <span className="text-[15px] font-bold w-4 text-center">{adultsCount}</span>
                           <button 
                             type="button" 
                             onClick={() => setAdultsCount(adultsCount + 1)}
-                            className="w-6 h-6 flex items-center justify-center text-black hover:text-black font-bold"
+                            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             +
                           </button>
@@ -301,21 +397,21 @@ const Booking = () => {
                       </div>
 
                       {/* Child */}
-                      <div className="flex items-center justify-between border border-slate-200 rounded-xl p-3">
-                        <span className="text-sm font-bold text-black">Child (6-10)</span>
+                      <div className="flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 bg-white">
+                        <span className="text-[15px] font-medium text-gray-900">Child (6-10)</span>
                         <div className="flex items-center gap-4">
                           <button 
                             type="button" 
                             onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
-                            className="w-6 h-6 flex items-center justify-center text-black hover:text-black font-bold"
+                            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             -
                           </button>
-                          <span className="text-sm font-bold w-4 text-center">{childrenCount}</span>
+                          <span className="text-[15px] font-bold w-4 text-center">{childrenCount}</span>
                           <button 
                             type="button" 
                             onClick={() => setChildrenCount(childrenCount + 1)}
-                            className="w-6 h-6 flex items-center justify-center text-black hover:text-black font-bold"
+                            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             +
                           </button>
@@ -326,56 +422,84 @@ const Booking = () => {
 
                   {/* Contact Information */}
                   <div>
-                    <h3 className="text-sm font-semibold text-black mb-4">Contact Information</h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-4">Contact Information</h3>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-[11px] font-bold text-black mb-1.5">First Name</label>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">First Name</label>
                           <input
                             type="text"
                             required
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="e.g. John"
-                            className="w-full bg-white border border-slate-300 focus:border-yellow-400 rounded-lg py-2.5 px-3 text-black text-sm focus:outline-none transition-all"
+                            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-black mb-1.5">Last Name</label>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">Last Name</label>
                           <input
                             type="text"
                             required
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            placeholder="e.g. John"
-                            className="w-full bg-white border border-slate-300 focus:border-yellow-400 rounded-lg py-2.5 px-3 text-black text-sm focus:outline-none transition-all"
+                            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-black mb-1.5">Email Address</label>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Email Address</label>
                         <input
                           type="email"
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="e.g. abc@gmail.com"
-                          className="w-full bg-white border border-slate-300 focus:border-yellow-400 rounded-lg py-2.5 px-3 text-black text-sm focus:outline-none transition-all"
+                          className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-black mb-1.5">Contact Number</label>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Contact Number</label>
                         <input
                           type="text"
                           required
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          placeholder="e.g. 09123456789"
-                          className="w-full bg-white border border-slate-300 focus:border-yellow-400 rounded-lg py-2.5 px-3 text-black text-sm focus:outline-none transition-all"
+                          className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
                         />
                       </div>
                     </div>
                   </div>
+
+                  {/* Tour Guide Selection (Only for Tour Packages) */}
+                  {packageId !== 'custom' && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-4">Select a Tour Guide (Optional)</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {TOUR_GUIDES.map(guide => (
+                          <div 
+                            key={guide.id}
+                            onClick={() => setSelectedGuide(selectedGuide === guide.id ? null : guide.id)}
+                            className={`border rounded-xl p-4 cursor-pointer transition-all ${
+                              selectedGuide === guide.id 
+                                ? 'border-yellow-500 bg-yellow-50 shadow-sm ring-1 ring-yellow-500' 
+                                : 'border-gray-200 bg-white hover:border-yellow-300'
+                            }`}
+                          >
+                            <div className="flex gap-4">
+                              <img src={guide.image} alt={guide.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-[15px]">{guide.name}</h4>
+                                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{guide.description}</p>
+                                <div className="flex items-center gap-1.5 mt-2">
+                                  <Globe className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-[10px] text-gray-500 font-medium">{guide.languages.join(', ')}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Disclaimer */}
                   <div className="flex items-start gap-2 text-[10px] text-black font-medium">
@@ -393,20 +517,39 @@ const Booking = () => {
                   
                   {/* GCash Option */}
                   <label className="flex items-center gap-4 cursor-pointer py-2">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-[#E6D41A]' : 'border-slate-300'}`}>
-                      {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-[#E6D41A] rounded-full"></div>}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                      {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                     </div>
                     <span className="text-sm font-semibold text-black">GCash</span>
                     <input type="radio" className="hidden" checked={paymentMethod === 'gcash'} onChange={() => setPaymentMethod('gcash')} />
                   </label>
+
+                  {/* GCash Reference Number Input */}
+                  {paymentMethod === 'gcash' && (
+                    <div className="bg-[#F8F9FA] rounded-xl p-6 space-y-3">
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.
+                      </p>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">GCash Reference Number</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 1234 5678 9012"
+                          value={gcashRef}
+                          onChange={(e) => setGcashRef(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="h-px bg-slate-100 my-4 w-full"></div>
                   
                   {/* Credit/Debit Option */}
                   <label className="flex items-center justify-between cursor-pointer py-2">
                     <div className="flex items-center gap-4">
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-[#E6D41A]' : 'border-slate-300'}`}>
-                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-[#E6D41A] rounded-full"></div>}
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                       </div>
                       <span className="text-sm font-semibold text-black">Credit/ Debit Card</span>
                     </div>
@@ -424,32 +567,32 @@ const Booking = () => {
                   {paymentMethod === 'card' && (
                     <div className="bg-[#F8F9FA] rounded-xl p-6 mt-6 space-y-5">
                       <div>
-                        <label className="block text-xs font-medium text-black mb-1.5">Card number</label>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Card number</label>
                         <input
                           type="text"
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value)}
-                          className="w-[260px] bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-black text-sm focus:border-yellow-400 focus:outline-none transition-all"
+                          className="w-[260px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
                         />
                       </div>
                       <div className="flex gap-6">
                         <div>
-                          <label className="block text-xs font-medium text-black mb-1.5">Expiration date</label>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">Expiration date</label>
                           <input
                             type="text"
                             placeholder="MM/YYYY"
                             value={expiryDate}
                             onChange={(e) => setExpiryDate(e.target.value)}
-                            className="w-[180px] bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-black text-sm focus:border-yellow-400 focus:outline-none transition-all"
+                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-black mb-1.5">Security Code</label>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">Security Code</label>
                           <input
                             type="text"
                             value={cvv}
                             onChange={(e) => setCvv(e.target.value)}
-                            className="w-[180px] bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-black text-sm focus:border-yellow-400 focus:outline-none transition-all"
+                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -472,7 +615,7 @@ const Booking = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="py-2.5 px-8 bg-[#E6D41A] hover:bg-[#D4C318] text-white font-bold rounded-full text-sm shadow-sm active:scale-[0.98] transition-all disabled:opacity-50"
+                      className="py-2.5 px-8 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-full text-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {submitting ? 'Processing...' : 'Proceed to Pay'}
                     </button>
@@ -522,7 +665,7 @@ const Booking = () => {
                   type="submit"
                   form="booking-form"
                   disabled={submitting}
-                  className="w-full py-3.5 bg-[#E6D41A] hover:bg-[#D4C318] text-white font-bold rounded-xl text-center shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 text-sm mt-8"
+                  className="w-full py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all disabled:opacity-50 text-sm mt-8 cursor-pointer"
                 >
                   Proceed to Pay
                 </button>
@@ -533,12 +676,6 @@ const Booking = () => {
         </div>
       </div>
 
-      <GCashModal
-        isOpen={paymentModalOpen}
-        amount={totalPrice}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };
