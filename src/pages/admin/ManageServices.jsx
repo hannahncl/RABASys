@@ -437,13 +437,6 @@ const ManageServices = () => {
                   {cat.label}
                 </button>
 
-                <button
-                  onClick={() => navigate('/admin/services/add-service')}
-                  title="Add custom service"
-                  className="p-2 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
               </div>
             );
           }

@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { 
-  LayoutDashboard, BarChart3, Package, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Navigation, Car
+  LayoutDashboard, BarChart3, Package, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -21,9 +21,7 @@ const AdminLayout = () => {
     { name: 'Schedule', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
     { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
-    { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
-    { name: 'Tuktrip', path: '/admin/tuktrip', icon: Navigation },
-    { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
+    { name: 'Services', path: '/admin/services', icon: Package },
     { name: 'Customizations', path: '/admin/customizations', icon: Settings },
     { name: 'Accounts', path: '/admin/accounts', icon: Users },
   ];

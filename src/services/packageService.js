@@ -1,3 +1,1 @@
-import { packageService } from './serviceService';
-
-export { packageService };
+export { packageService } from '../pages/services/packageService';

@@ -54,9 +54,9 @@ const Home = () => {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight leading-none font-display">
-            Your Ultimate Gateway to <br />
+            EXPLORE BICOL, THE <br />
             <span className="text-cyan-400 text-glow-cyan">
-              Rabas Adventures
+              RABAS WAY
             </span>
           </h1>
 
