@@ -110,6 +110,8 @@ export const accountService = {
       id: `ACC-${String(list.length + 1).padStart(3, '0')}`,
       createdAt: new Date().toISOString(),
       status: 'Active',
+      availability: 'Available',
+      employmentStatus: 'Active',
       ...accountData
     };
 
@@ -146,6 +148,30 @@ export const accountService = {
     if (index === -1) throw new Error('Account not found');
 
     list[index].status = list[index].status === 'Active' ? 'Inactive' : 'Active';
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    return list[index];
+  },
+
+  toggleAvailability: async (id) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const index = list.findIndex(a => a.id === id);
+
+    if (index === -1) throw new Error('Account not found');
+
+    list[index].availability = list[index].availability === 'Available' ? 'Unavailable' : 'Available';
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    return list[index];
+  },
+
+  toggleEmployment: async (id) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const index = list.findIndex(a => a.id === id);
+
+    if (index === -1) throw new Error('Account not found');
+
+    list[index].employmentStatus = list[index].employmentStatus === 'Active' ? 'Inactive' : 'Active';
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     return list[index];
   }
