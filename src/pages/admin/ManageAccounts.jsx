@@ -179,7 +179,7 @@ const ManageAccounts = () => {
               <button
                 key={role}
                 onClick={() => setFilterRole(role)}
-                className={`w-24 flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border ${
+                className={`whitespace-nowrap min-w-[6.5rem] flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border ${
                   isActive
                     ? isTourGuide
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
