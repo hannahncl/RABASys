@@ -118,11 +118,7 @@ const Packages = () => {
                       />
                       
 
-                      {/* Rating Badge at bottom of image */}
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
-                        <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
-                        {pkg.rating} <span className="text-black font-medium ml-0.5">({Math.floor(Math.random() * 500 + 200)} reviews)</span>
-                      </div>
+                      {/* Rating badge removed per request */}
                     </div>
                     
                     {/* Card Content */}
