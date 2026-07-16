@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
-  Plus, Edit, Trash2, Save, X, Loader,
+  Plus, Edit, Trash2, Save, X, Loader, Search,
   MapPin, Clock, Users, Car, Navigation, Package
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
@@ -296,6 +296,7 @@ const ManageServices = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
@@ -397,60 +398,61 @@ const ManageServices = () => {
     }
   };
 
+  const filteredServices = services.filter(item => {
+    if (!searchQuery) return true;
+    const term = searchQuery.toLowerCase();
+    return (
+      (item.packageName && item.packageName.toLowerCase().includes(term)) ||
+      (item.title && item.title.toLowerCase().includes(term)) ||
+      (item.destination && item.destination.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header & Category Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full" />
-        <button
-          onClick={handleAddNew}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90 shrink-0`}
-        >
-          <Plus className="h-4 w-4" />
-          Add {catConfig.singular}
-        </button>
-      </div>
-
-      {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map(cat => {
-          const CatIcon = cat.icon;
-          const isActive = cat.key === activeTab;
-          // Render normal tab; for Car Rentals add a small plus button beside it
-          if (cat.key === 'car') {
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map(cat => {
+            const CatIcon = cat.icon;
+            const isActive = cat.key === activeTab;
+            
             return (
-              <div key={cat.key} className="flex items-center gap-2">
-                <button
-                  onClick={() => { setActiveTab(cat.key); setEditingId(null); setFormData(null); }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
-                    isActive
-                      ? `${cat.bg} ${cat.accent} ${cat.border}`
-                      : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <CatIcon className="h-4 w-4" />
-                  {cat.label}
-                </button>
-
-              </div>
+              <button
+                key={cat.key}
+                onClick={() => { setActiveTab(cat.key); setEditingId(null); setFormData(null); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
+                  isActive
+                    ? `${cat.bg} ${cat.accent} ${cat.border}`
+                    : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <CatIcon className="h-4 w-4" />
+                {cat.label}
+              </button>
             );
-          }
+          })}
+        </div>
 
-          return (
-            <button
-              key={cat.key}
-              onClick={() => { setActiveTab(cat.key); setEditingId(null); setFormData(null); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
-                isActive
-                  ? `${cat.bg} ${cat.accent} ${cat.border}`
-                  : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <CatIcon className="h-4 w-4" />
-              {cat.label}
-            </button>
-          );
-        })}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-grow sm:flex-grow-0">
+            <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder={`Search ${catConfig.label}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors"
+            />
+          </div>
+          <button
+            onClick={handleAddNew}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90 shrink-0`}
+          >
+            <Plus className="h-4 w-4" />
+            Add {catConfig.singular}
+          </button>
+        </div>
       </div>
 
       {/* Tab description */}
@@ -467,7 +469,7 @@ const ManageServices = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Existing services */}
-          {services.map(item =>
+          {filteredServices.map(item =>
             editingId === item.id ? (
               <ServiceForm
                 key={item.id}
@@ -502,7 +504,7 @@ const ManageServices = () => {
           )}
 
           {/* Empty state */}
-          {services.length === 0 && editingId !== 'new' && (
+          {filteredServices.length === 0 && editingId !== 'new' && (
             <div className="col-span-3 flex flex-col items-center justify-center h-40 text-center space-y-2">
               {React.createElement(catConfig.icon, { className: `h-10 w-10 ${catConfig.accent} opacity-30` })}
               <p className="text-slate-500 text-sm">No {catConfig.label.toLowerCase()} yet.</p>

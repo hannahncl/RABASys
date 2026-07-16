@@ -153,10 +153,10 @@ const Schedule = () => {
                             key={b.id}
                             className={`text-[8px] leading-tight font-bold px-1.5 py-0.5 rounded-md truncate ${
                               b.status === 'Confirmed'
-                                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/40'
+                                ? 'bg-white text-emerald-400 border border-emerald-100'
                                 : b.status === 'Cancelled'
-                                ? 'bg-rose-950/60 text-rose-400 border border-rose-900/40'
-                                : 'bg-amber-950/60 text-amber-400 border border-amber-900/40'
+                                ? 'bg-white text-rose-400 border border-rose-100'
+                                : 'bg-white text-amber-400 border border-amber-100'
                             }`}
                           >
                             {b.customerName.split(' ')[0]}

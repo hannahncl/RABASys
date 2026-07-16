@@ -371,7 +371,7 @@ const ManageCustomizations = () => {
         {activeSection === 'manage' && (
           <button
             onClick={handleAddDestination}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-sm font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-sm font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <Plus className="h-4 w-4" />
             Add Destination
