@@ -18,10 +18,10 @@ const AdminLayout = () => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Schedule', path: '/admin/schedule', icon: CalendarDays },
+    { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
     { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
-    { name: 'Services', path: '/admin/services', icon: Package },
+    { name: 'Service Management', path: '/admin/services', icon: Package },
     { name: 'Customizations', path: '/admin/customizations', icon: Settings },
     { name: 'Accounts', path: '/admin/accounts', icon: Users },
   ];
@@ -30,7 +30,7 @@ const AdminLayout = () => {
   const currentPageTitle = menuItems.find((item) => item.path === location.pathname)?.name || 'Dashboard';
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
+    <div className="h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-900 bg-slate-900/50 shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-slate-900">
