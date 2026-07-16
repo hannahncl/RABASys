@@ -297,24 +297,7 @@ const ExploreMap = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
 
-        {/* ── When in GRID mode: show category pills ── */}
-        {leftPanelMode === 'grid' && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-yellow-400 hover:text-yellow-600'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+
 
         {/* ── When in PHOTOS mode: show back button header ── */}
         {leftPanelMode === 'photos' && selectedSpot && (

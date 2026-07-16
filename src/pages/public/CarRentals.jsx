@@ -195,12 +195,8 @@ const CarRentals = () => {
             {cars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {cars.map((car) => (
-                  <div key={car.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
-                    {/* Favorite Button */}
-                    <button className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-sm border border-slate-100 z-10 hover:bg-slate-50 transition-colors">
-                      <Heart className="w-3.5 h-3.5 text-black" />
-                    </button>
-                    
+                  <div key={car.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
+
                     {/* Image Area - Clean White Background */}
                     <div className="h-[220px] bg-white relative flex items-center justify-center p-4">
                       <img 
@@ -212,14 +208,7 @@ const CarRentals = () => {
                     
                     {/* Card Content */}
                     <div className="px-6 pb-6 pt-2 flex-1 flex flex-col border-t border-slate-50">
-                      {/* Floating Rating Badge */}
-                      <div className="flex justify-center -mt-8 relative z-10 mb-5">
-                        <div className="bg-white border border-slate-100 rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
-                          <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
-                          {car.rating} <span className="text-black font-medium ml-0.5">({car.reviews} reviews)</span>
-                        </div>
-                      </div>
-                      
+
                       <h3 className="font-extrabold text-black text-base mb-1.5 leading-tight">{car.name}</h3>
                       <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
                         <MapPin className="w-3 h-3" /> {car.location}

@@ -374,8 +374,8 @@ const ManageAccounts = () => {
                         <td className="p-4 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
                             acc.role === 'staff'
-                              ? 'bg-cyan-950/40 border-cyan-900/40 text-cyan-400'
-                              : 'bg-purple-950/40 border-purple-900/40 text-purple-400'
+                              ? 'bg-white border-cyan-900/40 text-cyan-400'
+                              : 'bg-white border-purple-900/40 text-purple-400'
                           }`}>
                             {acc.role === 'customer' ? 'Tourist' : 'Staff'}
                           </span>
@@ -383,8 +383,8 @@ const ManageAccounts = () => {
                         <td className="p-4 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
                             acc.status === 'Active'
-                              ? 'bg-emerald-950/40 border-emerald-900/40 text-emerald-400'
-                              : 'bg-rose-950/40 border-rose-900/40 text-rose-400'
+                              ? 'bg-white border-emerald-900/40 text-emerald-400'
+                              : 'bg-white border-rose-900/40 text-rose-400'
                           }`}>
                             {acc.status}
                           </span>
