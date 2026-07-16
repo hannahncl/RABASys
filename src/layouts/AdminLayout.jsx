@@ -128,7 +128,7 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold text-slate-200">{currentPageTitle}</h2>
+            <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
           </div>
 
           <div className="flex items-center gap-6">
