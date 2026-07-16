@@ -367,12 +367,7 @@ const ManageCustomizations = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Customization Management</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Manage custom-trip destinations, tour offerings, and accommodations using the tourist spot information.
-          </p>
-        </div>
+        <div className="w-full" />
         {activeSection === 'manage' && (
           <button
             onClick={handleAddDestination}

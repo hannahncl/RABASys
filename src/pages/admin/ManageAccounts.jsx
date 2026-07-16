@@ -129,10 +129,7 @@ const ManageAccounts = () => {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Account Management</h1>
-          <p className="text-slate-400 text-sm">Manage staff and tourist accounts.</p>
-        </div>
+        <div className="w-full" />
         <button
           onClick={handleAddNew}
           className="flex items-center gap-2 bg-cyan-400 hover:bg-cyan-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer"

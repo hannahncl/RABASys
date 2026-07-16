@@ -401,12 +401,7 @@ const ManageServices = () => {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Services Management</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Manage all RABAS services - tour packages, tuktrips, and car rentals.
-          </p>
-        </div>
+        <div className="w-full" />
         <button
           onClick={handleAddNew}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90 shrink-0`}

@@ -32,12 +32,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-extrabold font-display text-slate-100">Admin Dashboard</h1>
-        <p className="text-slate-400 text-sm">Overall financial summary, sales charts, and logistics statuses.</p>
-      </div>
-
       {/* KPIs Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* KPI 1 */}

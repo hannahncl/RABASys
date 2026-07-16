@@ -114,12 +114,7 @@ const Bookings = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Bookings</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Review booking information, confirm pending payments, and monitor booked trips.
-          </p>
-        </div>
+        <div className="w-full lg:w-auto" />
         <div className="relative w-full lg:w-80">
           <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input

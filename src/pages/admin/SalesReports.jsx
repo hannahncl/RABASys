@@ -31,12 +31,6 @@ const SalesReports = () => {
 
   return (
     <div className="space-y-8">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-extrabold font-display text-slate-100">Sales Reports</h1>
-        <p className="text-slate-400 text-sm">Monthly overview of gross tour package sales and transaction growth indicators.</p>
-      </div>
-
       {/* Overview stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass-panel p-6 rounded-2xl border-slate-800 flex items-center justify-between">

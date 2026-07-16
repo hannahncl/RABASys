@@ -27,6 +27,7 @@ const AdminLayout = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+  const currentPageTitle = menuItems.find((item) => item.path === location.pathname)?.name || 'Dashboard';
 
   return (
     <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
@@ -127,7 +128,7 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold text-slate-200">Admin Control Panel</h2>
+            <h2 className="hidden md:block text-lg font-semibold text-slate-200">{currentPageTitle}</h2>
           </div>
 
           <div className="flex items-center gap-6">

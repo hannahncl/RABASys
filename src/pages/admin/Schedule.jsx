@@ -71,12 +71,6 @@ const Schedule = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold font-display text-slate-100">Tour Schedule Calendar</h1>
-        <p className="text-slate-400 text-sm">View all booked tour dates at a glance. Click on a date to see booking details.</p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* Calendar — Left 2 Cols */}
