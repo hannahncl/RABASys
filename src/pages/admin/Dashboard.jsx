@@ -96,14 +96,14 @@ const Dashboard = () => {
       </div>
 
       {/* Details layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-6">
         
-        {/* Left 2 columns: Recent Bookings */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Recent Bookings */}
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-200 font-display text-lg">Transaction Audits</h3>
-            <Link to="/admin/sales" className="text-xs font-semibold text-cyan-400 hover:underline inline-flex items-center gap-1">
-              View sales details
+            <h3 className="font-bold text-slate-200 font-display text-lg">Recent Bookings</h3>
+            <Link to="/admin/bookings" className="text-xs font-semibold text-cyan-400 hover:underline inline-flex items-center gap-1">
+              View all bookings
               <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
@@ -137,37 +137,6 @@ const Dashboard = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-
-        {/* Right column: Quick Navigation links */}
-        <div className="space-y-6">
-          <h3 className="font-bold text-slate-200 font-display text-lg">Financial Operations</h3>
-          
-          <div className="glass-panel p-6 rounded-2xl border-slate-800 space-y-4">
-            <Link 
-              to="/admin/sales" 
-              className="block p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-850 hover:border-cyan-500/20 text-slate-300 hover:text-white transition-all"
-            >
-              <h4 className="font-bold text-sm font-display text-cyan-400">Sales Reports</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">Visualize monthly bookings turnover and overall gross income.</p>
-            </Link>
-            
-            <Link 
-              to="/admin/expenses" 
-              className="block p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-850 hover:border-rose-500/20 text-slate-300 hover:text-white transition-all"
-            >
-              <h4 className="font-bold text-sm font-display text-rose-400">Expense Reports</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">Log vendor accommodations costs, flights and track payouts margins.</p>
-            </Link>
-
-            <Link 
-              to="/admin/destinations" 
-              className="block p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-850 hover:border-purple-500/20 text-slate-300 hover:text-white transition-all"
-            >
-              <h4 className="font-bold text-sm font-display text-purple-400">Destination Analytics</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">Compare most-visited tour routes and custom recommendations KPIs.</p>
-            </Link>
           </div>
         </div>
 
