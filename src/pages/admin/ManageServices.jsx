@@ -427,7 +427,6 @@ const ManageServices = () => {
                     : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
-                <CatIcon className="h-4 w-4" />
                 {cat.label}
               </button>
             );
@@ -455,11 +454,6 @@ const ManageServices = () => {
         </div>
       </div>
 
-      {/* Tab description */}
-      <div className={`flex items-center gap-2 text-sm ${catConfig.accent} ${catConfig.bg} ${catConfig.border} border rounded-xl px-4 py-2.5`}>
-        {React.createElement(catConfig.icon, { className: 'h-4 w-4 shrink-0' })}
-        <span className="text-slate-300 text-xs">{catConfig.description}</span>
-      </div>
 
       {/* Content Grid */}
       {loading ? (

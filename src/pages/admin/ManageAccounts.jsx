@@ -8,7 +8,7 @@ const ManageAccounts = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(null);
-  const [filterRole, setFilterRole] = useState('all');
+  const [filterRole, setFilterRole] = useState('tour-guide');
   const [searchQuery, setSearchQuery] = useState('');
   const { showNotification } = useNotification();
 
@@ -193,7 +193,7 @@ const ManageAccounts = () => {
 
   const filteredAccounts = accounts
     .filter(acc => acc.role === 'tour-guide' || acc.role === 'customer')
-    .filter(acc => filterRole === 'all' || acc.role === filterRole)
+    .filter(acc => acc.role === filterRole)
     .filter(acc => {
       const query = searchQuery.toLowerCase();
       const fullName = `${acc.name || ''} ${acc.firstName || ''} ${acc.lastName || ''}`.toLowerCase();
@@ -226,7 +226,7 @@ const ManageAccounts = () => {
           />
         </div>
         <div className="flex gap-2 flex-wrap items-center">
-          {['all', 'tour-guide', 'customer'].map((role) => {
+          {['customer', 'tour-guide'].map((role) => {
             const isTourGuide = role === 'tour-guide';
             const isCustomer = role === 'customer';
             const isActive = filterRole === role;
@@ -239,17 +239,13 @@ const ManageAccounts = () => {
                   isActive
                     ? isTourGuide
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                      : isCustomer
-                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
-                        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+                      : 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                     : isTourGuide
                       ? 'bg-slate-900/60 text-amber-400 border-slate-800 hover:text-amber-300 hover:border-amber-500/20'
-                      : isCustomer
-                        ? 'bg-slate-900/60 text-purple-400 border-slate-800 hover:text-purple-300 hover:border-purple-500/20'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                      : 'bg-slate-900/60 text-purple-400 border-slate-800 hover:text-purple-300 hover:border-purple-500/20'
                 }`}
               >
-                {role === 'all' ? 'All' : role === 'tour-guide' ? 'Tour Guide' : 'Customer'}
+                {role === 'tour-guide' ? 'Tour Guide' : 'Customer'}
               </button>
             );
           })}
@@ -438,11 +434,7 @@ const ManageAccounts = () => {
                             <button
                               onClick={() => handleToggleStatus(acc.id)}
                               title={acc.status === 'Active' ? 'Deactivate' : 'Activate'}
-                              className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                                acc.status === 'Active'
-                                  ? 'text-emerald-400 hover:bg-emerald-950/30'
-                                  : 'text-rose-400 hover:bg-rose-950/30'
-                              }`}
+                              className="p-2 rounded-full cursor-pointer border border-slate-800/30 text-slate-400 hover:bg-slate-800 focus:outline-none transition-colors"
                             >
                               {acc.status === 'Active' ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                             </button>
@@ -509,10 +501,10 @@ const ManageAccounts = () => {
                         <td className="p-4 text-center">
                           <button
                             onClick={() => handleToggleAvailability(acc.id)}
-                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus:outline-none ${
                               acc.availability === 'Available'
-                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                                : 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
                             }`}
                           >
                             {acc.availability || 'Unavailable'}
@@ -521,10 +513,10 @@ const ManageAccounts = () => {
                         <td className="p-4 text-center">
                           <button
                             onClick={() => handleToggleEmployment(acc.id)}
-                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus:outline-none ${
                               acc.employmentStatus === 'Active'
-                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-                                : 'bg-slate-700/70 text-slate-300 border border-slate-600'
+                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20'
+                                : 'bg-slate-700/70 text-slate-300 border border-slate-600 hover:bg-slate-800/50'
                             }`}
                           >
                             {acc.employmentStatus || 'Inactive'}
@@ -535,11 +527,7 @@ const ManageAccounts = () => {
                             <button
                               onClick={() => handleToggleStatus(acc.id)}
                               title={acc.status === 'Active' ? 'Deactivate' : 'Activate'}
-                              className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                                acc.status === 'Active'
-                                  ? 'text-emerald-400 hover:bg-emerald-950/30'
-                                  : 'text-rose-400 hover:bg-rose-950/30'
-                              }`}
+                              className="p-2 rounded-full cursor-pointer border border-slate-800/30 text-slate-400 hover:bg-slate-800 focus:outline-none transition-colors"
                             >
                               {acc.status === 'Active' ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                             </button>

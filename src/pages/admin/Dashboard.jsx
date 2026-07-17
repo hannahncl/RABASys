@@ -51,22 +51,6 @@ const Dashboard = () => {
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Sales</span>
             <span className="text-2xl font-extrabold text-slate-100 font-display">PHP {kpis.totalSales.toLocaleString()}</span>
-            <span className="text-[10px] font-bold text-emerald-400 block">{kpis.salesGrowth} from last month</span>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <DollarSign className="h-5 w-5" />
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Expenses</span>
-            <span className="text-2xl font-extrabold text-slate-100 font-display">PHP {kpis.totalExpenses.toLocaleString()}</span>
-            <span className="text-[10px] font-bold text-slate-500 block">Includes logistics and payroll</span>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-            <Receipt className="h-5 w-5" />
           </div>
         </div>
 
@@ -75,29 +59,21 @@ const Dashboard = () => {
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Net Revenue</span>
             <span className="text-2xl font-extrabold text-slate-100 font-display">PHP {kpis.netProfit.toLocaleString()}</span>
-            <span className="text-[10px] font-bold text-emerald-400 block">+21.2% margins</span>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <TrendingUp className="h-5 w-5" />
           </div>
         </div>
 
         {/* KPI 4 */}
         <div className="glass-panel p-5 rounded-2xl border-slate-800 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Active Bookings</span>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Bookings</span>
             <span className="text-2xl font-extrabold text-slate-100 font-display">{kpis.activeBookings}</span>
-            <span className="text-[10px] font-bold text-cyan-400 block">{kpis.conversionRate} Conversion Rate</span>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Users className="h-5 w-5" />
           </div>
         </div>
       </div>
 
       {/* Details layout */}
       <div className="space-y-6">
-        
+
         {/* Recent Bookings */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
