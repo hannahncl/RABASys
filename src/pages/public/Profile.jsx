@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { bookingService } from '../../services/bookingService';
-import { accountService } from '../../services/accountService';
+import { api } from '../../services/api';
 import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
   AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,
@@ -73,17 +73,18 @@ const Profile = () => {
 
     const loadProfile = async () => {
       try {
-        const accounts = await accountService.getAll();
-        const match = accounts.find(a =>
-          a.email.toLowerCase() === user.email.toLowerCase()
-        );
+        const { user: match } = await api('/auth/me');
         if (match) {
-          setAccountRecord(match);
+          const account = {
+            id: String(match.id), name: match.name, email: match.email,
+            phone: match.contactNumber, contactNumber: match.contactNumber,
+          };
+          setAccountRecord(account);
           const parts = (match.name || user.name || '').split(' ');
           setFirstName(parts[0] || '');
           setLastName(parts.slice(1).join(' ') || '');
           setEmail(match.email || user.email || '');
-          setContactNumber(match.phone || user.contactNumber || '');
+          setContactNumber(match.contactNumber || user.contactNumber || '');
           setAddress(match.address || user.address || '');
           setSelectedAvatar(match.avatar || AVATARS[0]);
         } else {
@@ -135,14 +136,11 @@ const Profile = () => {
 
     try {
       if (accountRecord) {
-        const updated = await accountService.update(accountRecord.id, {
-          name: fullName,
-          phone: contactNumber.trim(),
-          address: address.trim(),
-          email: email.trim(),
-          avatar: selectedAvatar,
+        const { user: updated } = await api('/auth/me', {
+          method: 'PATCH',
+          body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), contactNumber: contactNumber.trim() }),
         });
-        setAccountRecord(updated);
+        setAccountRecord({ id: String(updated.id), name: updated.name, email: updated.email, phone: updated.contactNumber, contactNumber: updated.contactNumber });
       }
       updateUserSession({
         name: fullName,

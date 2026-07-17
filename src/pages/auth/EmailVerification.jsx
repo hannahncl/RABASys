@@ -1,81 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { api } from '../../services/api';
 
-const EmailVerification = () => {
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef([]);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleChange = (index, value) => {
-    // Allow only numbers
-    if (!/^\d*$/.test(value)) return;
-
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-
-    // Auto focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1].focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1].focus();
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const fullCode = code.join('');
-    if (fullCode.length === 6) {
-      // Logic for actual verification goes here
-      // For now we'll just redirect to change password on success
-      navigate('/change-password');
-    }
-  };
-
-  return (
-    <div className="w-full text-slate-700">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold font-sans tracking-widest text-[#3b3a36] mb-2 uppercase">Email Verification</h2>
-        <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
-          Follow the following instructions to successfully change your account password.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <div className="flex justify-center gap-2 sm:gap-3 mb-3">
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-white border border-slate-200 focus:border-yellow-350 focus:ring-2 focus:ring-yellow-100/50 rounded-xl text-slate-800 transition-all focus:outline-none shadow-sm"
-              />
-            ))}
-          </div>
-          <p className="text-xs text-slate-500 mt-4 font-medium leading-relaxed">
-            Please enter the 6-digit code that we've sent to your email address for verification and to continue changing your password.
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          Verify Code
-        </button>
-      </form>
-    </div>
-  );
-};
-
-export default EmailVerification;
+export default function EmailVerification() {
+  const { state } = useLocation(); const navigate = useNavigate(); const email = state?.email; const [code, setCode] = useState(['', '', '', '', '', '']); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const refs = useRef([]);
+  if (!email) return <div className="text-center text-slate-600">Start with <Link to="/forgot-password" className="text-yellow-700 underline">Forgot password</Link>.</div>;
+  const change = (index, value) => { const digit = value.replace(/\D/g, '').slice(-1); const next = [...code]; next[index] = digit; setCode(next); if (digit && index < 5) refs.current[index + 1]?.focus(); };
+  const submit = async (event) => { event.preventDefault(); const otp = code.join(''); if (otp.length !== 6) return setError('Enter the six-digit code from your email.'); setError(''); setBusy(true); try { const { resetToken } = await api('/auth/verify-reset-otp', { method: 'POST', body: JSON.stringify({ email, otp }) }); navigate('/change-password', { state: { resetToken } }); } catch (err) { setError(err.message); } finally { setBusy(false); } };
+  return <div className="w-full text-slate-700"><div className="text-center mb-8"><h2 className="text-2xl font-bold tracking-widest text-[#3b3a36] mb-2 uppercase">Check your email</h2><p className="text-slate-500 text-sm">Enter the code sent to <strong>{email}</strong>.</p></div>{error && <div className="mb-5 flex gap-2 p-3 rounded-xl bg-rose-50 text-rose-600 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{error}</div>}<form onSubmit={submit} className="space-y-6"><div className="flex justify-center gap-2">{code.map((digit, index) => <input key={index} ref={el => refs.current[index] = el} inputMode="numeric" autoComplete={index === 0 ? 'one-time-code' : 'off'} maxLength="1" value={digit} onChange={e => change(index, e.target.value)} onKeyDown={e => e.key === 'Backspace' && !digit && index > 0 && refs.current[index - 1]?.focus()} className="w-11 h-14 text-center text-xl font-bold border border-slate-200 rounded-xl focus:outline-none focus:border-yellow-500" />)}</div><button disabled={busy} className="w-full py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl flex justify-center">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Verify code'}</button></form></div>;
+}
