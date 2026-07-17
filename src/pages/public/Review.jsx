@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { bookingService } from '../../services/bookingService';
+import { api } from '../../services/api';
 import { Star, ArrowLeft, Send } from 'lucide-react';
 
 const Review = () => {
@@ -46,9 +47,10 @@ const Review = () => {
     
     setSubmitting(true);
     try {
-      // In a real application, you would save this review to the backend here.
-      // For now, we will just simulate a successful submission.
-      await new Promise(res => setTimeout(res, 1000));
+      await api('/reviews', {
+        method: 'POST',
+        body: JSON.stringify({ booking_id: Number(booking.id), rating, comment }),
+      });
       showNotification('Thank you for your review!', 'success');
       navigate('/profile');
     } catch (err) {
