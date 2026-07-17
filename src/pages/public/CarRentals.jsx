@@ -207,7 +207,7 @@ const CarRentals = () => {
           <div className="flex-1">
             {cars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {cars.map((car) => (
+                {cars.map((car, idx) => (
                   <div key={car.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
 
                     {/* Image Area - Clean White Background */}
@@ -223,14 +223,14 @@ const CarRentals = () => {
                     <div className="px-6 pb-6 pt-2 flex-1 flex flex-col border-t border-slate-50">
 
                       <h3 className="font-extrabold text-black text-base mb-1.5 leading-tight">{car.name}</h3>
-                      {![1, 2, 3].includes(car.id) && (
+                      {idx > 2 && (
                         <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
                           <MapPin className="w-3 h-3" /> {car.location}
                         </p>
                       )}
                       
                       {/* Specs Grid */}
-                      <div className={`grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 ${![1,2,3].includes(car.id) ? 'border-t border-slate-100' : ''}`}>
+                      <div className={`grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 ${idx > 2 ? 'border-t border-slate-100' : ''}`}>
                         <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /> <span className="font-medium">{car.vehicleType || car.fuel}</span></div>
                         <div className="flex items-center gap-2"><Tag className="w-3.5 h-3.5" /> <span className="font-medium">{car.plateNumber || 'N/A'}</span></div>
                         <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-black" /> {car.seats} seats</div>
