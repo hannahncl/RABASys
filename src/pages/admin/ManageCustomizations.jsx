@@ -365,9 +365,30 @@ const ManageCustomizations = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full" />
+        <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveSection('manage')}
+                  className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
+                    activeSection === 'manage'
+                      ? 'bg-cyan-500 text-slate-950'
+                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Manage Customizations
+                </button>
+                <button
+                  onClick={() => setActiveSection('review')}
+                  className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
+                    activeSection === 'review'
+                      ? 'bg-cyan-500 text-slate-950'
+                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Review & Approval
+                </button>
+              </div>
         {activeSection === 'manage' && (
           <button
             onClick={handleAddDestination}
@@ -379,30 +400,6 @@ const ManageCustomizations = () => {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 mt-4">
-        <button
-          type="button"
-          onClick={() => setActiveSection('manage')}
-          className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
-            activeSection === 'manage'
-              ? 'bg-cyan-500 text-slate-950'
-              : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          Manage Customizations
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveSection('review')}
-          className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
-            activeSection === 'review'
-              ? 'bg-cyan-500 text-slate-950'
-              : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          Review & Approval
-        </button>
-      </div>
 
       {activeSection === 'review' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
@@ -495,7 +492,7 @@ const ManageCustomizations = () => {
             ))}
           </aside>
 
-          <section className="space-y-6">
+          <section className="space-y-2">
             {editingDestination && (
               <div className="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -526,16 +523,7 @@ const ManageCustomizations = () => {
                   </label>
                 </div>
 
-                <label className="space-y-1 block">
-                  <span className="block text-[10px] uppercase text-slate-500 font-bold">Tourist Spot Info</span>
-                  <textarea rows={3} value={destinationForm.description} onChange={e => setDestinationForm(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white outline-none focus:border-cyan-500 resize-none" />
-                </label>
-                <label className="space-y-1 block">
-                  <span className="block text-[10px] uppercase text-slate-500 font-bold">Customization Details</span>
-                  <textarea rows={3} value={destinationForm.details} onChange={e => setDestinationForm(prev => ({ ...prev, details: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white outline-none focus:border-cyan-500 resize-none" />
-                </label>
-
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 mt-2">
                   <button onClick={() => setEditingDestination(null)} className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm cursor-pointer">Cancel</button>
                   <button onClick={handleSaveDestination} className="px-4 py-2 rounded-lg bg-cyan-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
                     <Save className="h-4 w-4" /> Save

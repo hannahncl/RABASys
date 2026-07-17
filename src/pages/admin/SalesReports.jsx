@@ -38,17 +38,9 @@ const SalesReports = () => {
         <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Earnings</span>
-            <div className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-500">
-              <Wallet className="h-3 w-3" />
-            </div>
           </div>
           <div className="text-2xl font-display font-extrabold text-slate-100">
             PHP {totalEarnings.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 font-medium">Last 30 Days</div>
-          
-          <div className="absolute bottom-4 right-4 flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <TrendingUp className="h-3 w-3" /> +15.4%
           </div>
         </div>
 
@@ -56,17 +48,9 @@ const SalesReports = () => {
         <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Bookings</span>
-            <div className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-500">
-              <Receipt className="h-3 w-3" />
-            </div>
           </div>
           <div className="text-2xl font-display font-extrabold text-slate-100">
             {totalBookings}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 font-medium">Last 30 Days</div>
-          
-          <div className="absolute bottom-4 right-4 flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <TrendingUp className="h-3 w-3" /> +5.2%
           </div>
         </div>
 
@@ -74,17 +58,9 @@ const SalesReports = () => {
         <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Completed / Booked</span>
-            <div className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-500">
-              <Users className="h-3 w-3" />
-            </div>
           </div>
           <div className="text-2xl font-display font-extrabold text-slate-100">
             {confirmedCount}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 font-medium">Last 30 Days</div>
-          
-          <div className="absolute bottom-4 right-4 flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-            <TrendingUp className="h-3 w-3" /> +12.9%
           </div>
         </div>
 
@@ -92,17 +68,9 @@ const SalesReports = () => {
         <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Cancelled Bookings</span>
-            <div className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-500">
-              <Ban className="h-3 w-3" />
-            </div>
           </div>
           <div className="text-2xl font-display font-extrabold text-slate-100">
             {cancelledCount}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 font-medium">Last 30 Days</div>
-          
-          <div className="absolute bottom-4 right-4 flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            <TrendingDown className="h-3 w-3" /> -2.1%
           </div>
         </div>
       </div>

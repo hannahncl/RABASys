@@ -177,7 +177,7 @@ const Schedule = () => {
         </div>
 
         {/* Right Sidebar — Booking Details Panel */}
-        <div className="space-y-6 lg:sticky lg:top-24">
+        <div className="space-y-6">
           {/* Summary counters */}
           <div className="grid grid-cols-2 gap-4">
             <div className="glass-panel p-4 rounded-2xl border-slate-800 text-center">
@@ -185,7 +185,7 @@ const Schedule = () => {
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Bookings</span>
             </div>
             <div className="glass-panel p-4 rounded-2xl border-slate-800 text-center">
-              <span className="text-2xl font-extrabold font-display text-cyan-400 block">
+              <span className="text-2xl font-extrabold font-display text-emerald-400 block">
                 {bookings.filter(b => b.status === 'Confirmed').length}
               </span>
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Confirmed</span>
@@ -254,29 +254,6 @@ const Schedule = () => {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="glass-panel p-4 rounded-2xl border-slate-800 space-y-2">
-            <h4 className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500">Legend</h4>
-            <div className="flex flex-wrap gap-3 text-[10px] font-bold">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span className="text-slate-400">Confirmed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                <span className="text-slate-400">Pending</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                <span className="text-slate-400">Cancelled</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
-                <span className="text-slate-400">Today</span>
-              </div>
             </div>
           </div>
         </div>

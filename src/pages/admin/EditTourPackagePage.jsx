@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 
 const EditTourPackagePage = () => {
@@ -111,60 +111,58 @@ const EditTourPackagePage = () => {
         <ArrowLeft className="h-4 w-4" /> Back to Services
       </button>
 
-      <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/70 p-6 shadow-2xl shadow-cyan-950/20">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold font-display text-slate-100">Edit Tour Package</h1>
-          <p className="text-sm text-slate-400">Update the tour package details below.</p>
-        </div>
+      <div className="bg-slate-900/60 border border-cyan-500/50 rounded-2xl p-6 space-y-4">
+        <h3 className="font-bold text-cyan-400 border-b border-slate-800 pb-2">
+          Edit Tour Package
+        </h3>
+        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2">Update the tour package details below.</p>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Package Name</label>
+            <input name="packageName" value={formData.packageName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Destination</label>
+            <input name="destination" value={formData.destination} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Package Name</label>
-              <input name="packageName" value={formData.packageName} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Price</label>
+              <input name="price" type="number" value={formData.price} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Description</label>
-              <textarea name="description" value={formData.description} onChange={handleChange} rows={4} className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Destination</label>
-              <input name="destination" value={formData.destination} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Price</label>
-                <input name="price" type="number" value={formData.price} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-              </div>
-              <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Duration</label>
-                <input name="duration" value={formData.duration} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-              </div>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Duration</label>
+              <input name="duration" value={formData.duration} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
             </div>
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Inclusions</label>
-              <textarea name="inclusions" value={formData.inclusions} onChange={handleChange} rows={3} className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Maximum Capacity</label>
-              <input name="maximumCapacity" type="number" value={formData.maximumCapacity} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Meeting Location</label>
-              <input name="meetingLocation" value={formData.meetingLocation} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Itinerary</label>
-              <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={5} className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Maximum Capacity</label>
+            <input name="maximumCapacity" type="number" value={formData.maximumCapacity} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Meeting Location</label>
+            <input name="meetingLocation" value={formData.meetingLocation} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Description</label>
+            <textarea name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Inclusions</label>
+            <textarea name="inclusions" value={formData.inclusions} onChange={handleChange} rows={2} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Itinerary</label>
+            <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
-          <button onClick={handleSave} className="flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-cyan-500">
+        <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+          <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
+            <X className="h-4 w-4" /> Cancel
+          </button>
+          <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
             <Save className="h-4 w-4" /> Save Changes
           </button>
         </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 
 const EditCarRentalPage = () => {
@@ -110,49 +110,47 @@ const EditCarRentalPage = () => {
         <ArrowLeft className="h-4 w-4" /> Back to Services
       </button>
 
-      <div className="rounded-2xl border border-violet-500/30 bg-slate-900/70 p-6 shadow-2xl shadow-violet-950/20">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold font-display text-slate-100">Edit Car Rental</h1>
-          <p className="text-sm text-slate-400">Update the vehicle rental details below.</p>
-        </div>
+      <div className="bg-slate-900/60 border border-cyan-500/50 rounded-2xl p-6 space-y-4">
+        <h3 className="font-bold text-cyan-400 border-b border-slate-800 pb-2">
+          Edit Car Rental
+        </h3>
+        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2">Update the vehicle rental details below.</p>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Vehicle Name</label>
-              <input name="vehicleName" value={formData.vehicleName} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Vehicle Type</label>
-              <input name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Plate Number</label>
-              <input name="plateNumber" value={formData.plateNumber} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Seating Capacity</label>
-              <input name="seatingCapacity" type="number" value={formData.seatingCapacity} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Name</label>
+            <input name="vehicleName" value={formData.vehicleName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Daily Rate</label>
-              <input name="dailyRate" type="number" value={formData.dailyRate} onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Vehicle Image</label>
-              <input name="vehicleImage" type="file" accept="image/*" onChange={handleChange} className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-300" />
-              {formData.vehicleImage && (
-                <img src={formData.vehicleImage} alt="Vehicle preview" className="mt-3 h-32 w-full rounded-lg object-cover border border-slate-800" />
-              )}
-            </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Type</label>
+            <input name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Plate Number</label>
+            <input name="plateNumber" value={formData.plateNumber} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Seating Capacity</label>
+            <input name="seatingCapacity" type="number" value={formData.seatingCapacity} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Daily Rate</label>
+            <input name="dailyRate" type="number" value={formData.dailyRate} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Image</label>
+            <input name="vehicleImage" type="file" accept="image/*" onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30" />
+            {formData.vehicleImage && (
+              <img src={formData.vehicleImage} alt="Vehicle preview" className="mt-3 h-32 w-full rounded-lg object-cover border border-slate-800" />
+            )}
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
-          <button onClick={handleSave} className="flex items-center gap-2 rounded-lg bg-violet-400 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-violet-500">
+        <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+          <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
+            <X className="h-4 w-4" /> Cancel
+          </button>
+          <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
             <Save className="h-4 w-4" /> Save Changes
           </button>
         </div>
