@@ -1,71 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { api } from '../../services/api';
 
-const ChangePassword = () => {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (newPassword && newPassword === confirmPassword) {
-      // Simulate password change logic
-      alert('Password successfully changed! Please login with your new password.');
-      navigate('/login');
-    } else {
-      alert('Passwords do not match or are empty.');
-    }
-  };
-
-  return (
-    <div className="w-full text-slate-700">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold font-sans tracking-widest text-[#3b3a36] mb-2 uppercase">Change Password</h2>
-        <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
-          Follow the following instructions to successfully change your account password.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Enter New Password</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
-            placeholder=""
-            required
-          />
-          <p className="text-xs text-slate-550 mt-2 font-medium leading-relaxed">
-            Your new password must contain <span className="font-bold">at least 8-12 characters including letters, symbols, and numbers.</span>
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Re-enter New Password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
-            placeholder=""
-            required
-          />
-          <p className="text-xs text-slate-500 mt-2 font-medium leading-relaxed">
-            Make sure that you remember the new password you entered.
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          Change Password
-        </button>
-      </form>
-    </div>
-  );
-};
-
-export default ChangePassword;
+export default function ChangePassword() {
+  const { state } = useLocation(); const navigate = useNavigate(); const [password, setPassword] = useState(''); const [confirm, setConfirm] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  if (!state?.resetToken) return <div className="text-center text-slate-600">Verify your code first from <Link to="/forgot-password" className="text-yellow-700 underline">Forgot password</Link>.</div>;
+  const submit = async (event) => { event.preventDefault(); if (password.length < 8) return setError('Password must contain at least 8 characters.'); if (password !== confirm) return setError('Passwords do not match.'); setError(''); setBusy(true); try { await api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ resetToken: state.resetToken, newPassword: password }) }); navigate('/login'); } catch (err) { setError(err.message); } finally { setBusy(false); } };
+  return <div className="w-full text-slate-700"><div className="text-center mb-8"><h2 className="text-2xl font-bold tracking-widest text-[#3b3a36] mb-2 uppercase">Set new password</h2><p className="text-slate-500 text-sm">Choose a new password for your account.</p></div>{error && <div className="mb-5 flex gap-2 p-3 rounded-xl bg-rose-50 text-rose-600 text-sm"><AlertCircle className="h-5 w-5 shrink-0" />{error}</div>}<form onSubmit={submit} className="space-y-5"><label className="block text-sm font-semibold text-gray-600">New password<input required minLength="8" autoComplete="new-password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full border border-gray-200 rounded-lg py-3 px-4 focus:outline-none focus:border-yellow-500" /></label><label className="block text-sm font-semibold text-gray-600">Confirm new password<input required minLength="8" autoComplete="new-password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="mt-2 w-full border border-gray-200 rounded-lg py-3 px-4 focus:outline-none focus:border-yellow-500" /></label><button disabled={busy} className="w-full py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl flex justify-center">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Change password'}</button></form></div>;
+}

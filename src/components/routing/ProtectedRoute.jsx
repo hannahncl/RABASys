@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../../contexts/AuthContext';
+import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
@@ -22,13 +22,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const normalizedRole = normalizeFrontendRole(user?.role);
+
   // Role authorization check
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(normalizedRole)) {
     // Redirect to home/dashboard based on their actual role
-    if (user.role === 'admin') {
+    if (normalizedRole === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
     }
-    if (user.role === 'staff') {
+    if (normalizedRole === 'staff') {
       return <Navigate to="/staff/dashboard" replace />;
     }
     return <Navigate to="/" replace />;
