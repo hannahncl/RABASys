@@ -45,13 +45,6 @@ const Calendar = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold font-display text-slate-100">Tour Calendar</h1>
-          <p className="text-slate-400 text-sm">View your schedule and upcoming assigned tours.</p>
-        </div>
-      </div>
-
       <div className="glass-panel p-6 rounded-2xl border-slate-900">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-200">

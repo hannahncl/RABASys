@@ -17,7 +17,7 @@ const StaffLayout = () => {
   };
 
   const menuItems = [
-    { name: 'Overview', path: '/staff/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
     { name: 'My Tours', path: '/staff/my-tours', icon: Compass },
     { name: 'Calendar', path: '/staff/calendar', icon: CalendarCheck },
   ];
@@ -123,7 +123,13 @@ const StaffLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold text-slate-200">Tour Guide Portal</h2>
+            <h2 className="hidden md:block text-lg font-semibold text-slate-200">
+              {location.pathname === '/staff/my-tours'
+                ? 'MY TOURS'
+                : location.pathname === '/staff/calendar'
+                  ? 'CALENDARS'
+                  : 'DASHBOARD'}
+            </h2>
           </div>
 
           <div className="flex items-center gap-6">

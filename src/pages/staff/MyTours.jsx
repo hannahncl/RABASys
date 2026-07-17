@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
-import { CalendarCheck, ShieldCheck, XCircle, Search, RefreshCw, Smartphone } from 'lucide-react';
+import { CalendarCheck, ShieldCheck, XCircle, Search, Smartphone } from 'lucide-react';
 
 const MyTours = () => {
   const [bookings, setBookings] = useState([]);
@@ -37,21 +37,6 @@ const MyTours = () => {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold font-display text-slate-100">My Assigned Tours</h1>
-          <p className="text-slate-400 text-sm">View and manage your upcoming assigned tours and client details.</p>
-        </div>
-        <button
-          onClick={loadBookings}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all cursor-pointer"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Bookings
-        </button>
-      </div>
-
       {/* Filters and search */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-900">
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -100,7 +85,9 @@ const MyTours = () => {
                   <span className="text-xs font-bold text-slate-500 font-mono">{b.id}</span>
                   <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
                     b.status === 'Confirmed'
-                      ? 'bg-emerald-950/60 border-emerald-800/40 text-emerald-400'
+                      ? 'bg-emerald-100 border-emerald-200 text-emerald-700'
+                      : b.status === 'Pending Verification'
+                      ? 'bg-amber-100 border-amber-300 text-amber-700'
                       : b.status === 'Cancelled'
                       ? 'bg-rose-950/60 border-rose-800/40 text-rose-400'
                       : 'bg-amber-950/60 border-amber-800/40 text-amber-400'
