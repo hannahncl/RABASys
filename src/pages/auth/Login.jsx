@@ -86,6 +86,16 @@ const Login = () => {
           />
         </div>
 
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            state={{ email: email.trim() }}
+            className="text-sm font-semibold text-yellow-700 transition-colors hover:text-yellow-800 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <button
           type="submit"
           disabled={loading}

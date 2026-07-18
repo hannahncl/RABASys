@@ -76,7 +76,10 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
         const otp = crypto.randomInt(100000, 1000000).toString();
         await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
         await db.execute("INSERT INTO password_reset_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
-        await sendPasswordResetOtp(account.email, otp);
+        const emailSent = await sendPasswordResetOtp(account.email, otp);
+        if (!emailSent) {
+            console.warn(`[auth] Password reset email was not sent for ${account.email}. OTP was stored and can still be verified.`);
+        }
         res.json({ message: "If that email is registered, a reset code has been sent." });
     } catch (error) { next(error); }
 });
