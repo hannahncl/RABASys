@@ -1,152 +1,39 @@
-// Mock Account Service with LocalStorage persistence for managing staff & tourist accounts
+import { api } from '../../services/api';
 
-const STORAGE_KEY = 'rabas_accounts_db';
-
-const DEFAULT_ACCOUNTS = [
-  {
-    id: 'ACC-001',
-    name: 'Rabas Admin',
-    email: 'admin@rabastravel.com',
-    username: 'admin',
-    role: 'admin',
-    status: 'Active',
-    phone: '09171000001',
-    createdAt: '2026-01-01T00:00:00Z'
-  },
-  {
-    id: 'ACC-002',
-    name: 'Rabas Coordinator',
-    email: 'staff@rabastravel.com',
-    username: 'staff',
-    role: 'staff',
-    status: 'Active',
-    phone: '09171000002',
-    createdAt: '2026-01-15T00:00:00Z'
-  },
-  {
-    id: 'ACC-003',
-    name: 'Maria Santos',
-    email: 'maria.santos@rabastravel.com',
-    username: 'maria.santos',
-    role: 'staff',
-    status: 'Active',
-    phone: '09181234567',
-    createdAt: '2026-02-10T00:00:00Z'
-  },
-  {
-    id: 'ACC-004',
-    name: 'Carlos Reyes',
-    email: 'carlos.reyes@rabastravel.com',
-    username: 'carlos.reyes',
-    role: 'staff',
-    status: 'Inactive',
-    phone: '09191234567',
-    createdAt: '2026-03-05T00:00:00Z'
-  },
-  {
-    id: 'ACC-005',
-    name: 'Happy Tourist',
-    email: 'tourist@gmail.com',
-    username: 'tourist',
-    role: 'customer',
-    status: 'Active',
-    phone: '09201234567',
-    createdAt: '2026-04-20T00:00:00Z'
-  },
-  {
-    id: 'ACC-006',
-    name: 'Jose Rizal',
-    email: 'jose.rizal@example.com',
-    username: 'jose.rizal',
-    role: 'customer',
-    status: 'Active',
-    phone: '09171234567',
-    createdAt: '2026-05-12T00:00:00Z'
-  },
-  {
-    id: 'ACC-007',
-    name: 'Maria Clara',
-    email: 'maria.clara@example.com',
-    username: 'maria.clara',
-    role: 'customer',
-    status: 'Active',
-    phone: '09187654321',
-    createdAt: '2026-05-25T00:00:00Z'
-  },
-  {
-    id: 'ACC-008',
-    name: 'Juan Dela Cruz',
-    email: 'juan.delacruz@example.com',
-    username: 'juan.delacruz',
-    role: 'customer',
-    status: 'Inactive',
-    phone: '09228881234',
-    createdAt: '2026-06-01T00:00:00Z'
-  }
-];
-
-// Initialize database if empty
-if (!localStorage.getItem(STORAGE_KEY)) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
-}
+const roleFromApi = (role) => ({ Customer: 'customer', Admin: 'admin', 'Tour Guide': 'tour-guide' })[role] || role;
+const roleToApi = (role) => ({ customer: 'Customer', admin: 'Admin', 'tour-guide': 'Tour Guide' })[role] || role;
+const fromApi = (item) => ({
+  ...item,
+  id: String(item.account_id),
+  firstName: item.first_name,
+  lastName: item.last_name,
+  name: `${item.first_name} ${item.last_name}`,
+  email: item.email,
+  phone: item.contact_number,
+  contactNumber: item.contact_number,
+  role: roleFromApi(item.role),
+  status: item.account_status,
+  createdAt: item.created_at,
+});
+const toApi = (item) => ({
+  first_name: item.firstName,
+  last_name: item.lastName,
+  email: item.email,
+  contact_number: item.phone || item.contactNumber,
+  role: roleToApi(item.role),
+  account_status: item.status,
+});
 
 export const accountService = {
-  getAll: async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  getAll: async () => (await api('/accounts')).map(fromApi),
+  getById: async (id) => fromApi(await api(`/accounts/${id}`)),
+  // Admin account creation requires a password, so public registration is used for customer accounts.
+  create: async (item) => {
+    if (item.role && item.role !== 'customer') throw new Error('Create staff accounts from the backend admin workflow after setting an initial password.');
+    const result = await api('/auth/register', { method: 'POST', body: JSON.stringify({ firstName: item.firstName, lastName: item.lastName, email: item.email, password: item.password, contactNumber: item.phone || item.contactNumber }) });
+    return fromApi(result.user);
   },
-
-  getById: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    return list.find(a => a.id === id) || null;
-  },
-
-  create: async (accountData) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    const newAccount = {
-      id: `ACC-${String(list.length + 1).padStart(3, '0')}`,
-      createdAt: new Date().toISOString(),
-      status: 'Active',
-      ...accountData
-    };
-
-    list.push(newAccount);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    return newAccount;
-  },
-
-  update: async (id, updates) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const index = list.findIndex(a => a.id === id);
-
-    if (index === -1) throw new Error('Account not found');
-
-    list[index] = { ...list[index], ...updates };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    return list[index];
-  },
-
-  delete: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const filtered = list.filter(a => a.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    return true;
-  },
-
-  toggleStatus: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const index = list.findIndex(a => a.id === id);
-
-    if (index === -1) throw new Error('Account not found');
-
-    list[index].status = list[index].status === 'Active' ? 'Inactive' : 'Active';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    return list[index];
-  }
+  update: async (id, item) => fromApi(await api(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(toApi(item)) })),
+  delete: async (id) => api(`/accounts/${id}`, { method: 'DELETE' }),
+  toggleStatus: async (id, currentStatus) => fromApi(await api(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ account_status: currentStatus === 'Active' ? 'Inactive' : 'Active' }) })),
 };

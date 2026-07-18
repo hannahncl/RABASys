@@ -282,8 +282,7 @@ const CustomPlanner = () => {
       <div style={S.container}>
         {/* Header */}
         <div style={{ marginBottom: '32px' }} id="customize-header">
-          <h1 style={S.h1}>Try the First Ever TukTrip in Bicol Region with Rabas!</h1>
-          <p style={S.subtitle}>Choose your destination, hotels, and activities with real-time price updates.</p>
+          <h1 style={S.h1}>Customize Trip</h1>
         </div>
 
         {/* Main Layout Grid */}

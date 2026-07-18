@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Star, MapPin, Gauge, Settings2, Fuel, Users, SlidersHorizontal } from 'lucide-react';
+import { Heart, Star, MapPin, Gauge, Settings2, Fuel, Users, SlidersHorizontal, Zap, Tag, Square } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DualRangeSlider from '../../components/ui/DualRangeSlider';
 
@@ -27,6 +27,8 @@ const CarRentals = () => {
       fuel: 'Electric',
       seats: 4,
       color: 'White',
+      plateNumber: 'ARI 3435',
+      vehicleType: 'Electrified',
       price: '1,000',
       priceNum: 1000
     },
@@ -42,6 +44,8 @@ const CarRentals = () => {
       fuel: 'Petrol',
       seats: 4,
       color: 'White',
+      plateNumber: 'LEX 5678',
+      vehicleType: 'Petrol',
       price: '1,500',
       priceNum: 1500
     },
@@ -57,6 +61,8 @@ const CarRentals = () => {
       fuel: 'Petrol',
       seats: 2,
       color: 'Gray',
+      plateNumber: 'COR 9012',
+      vehicleType: 'Petrol',
       price: '1,800',
       priceNum: 1800
     },
@@ -72,6 +78,8 @@ const CarRentals = () => {
       fuel: 'Petrol',
       seats: 4,
       color: 'White',
+      plateNumber: 'BMW 3456',
+      vehicleType: 'Petrol',
       price: '1,200',
       priceNum: 1200
     },
@@ -87,6 +95,8 @@ const CarRentals = () => {
       fuel: 'Hybrid',
       seats: 4,
       color: 'Gray',
+      plateNumber: 'A7 7890',
+      vehicleType: 'Hybrid',
       price: '1,600',
       priceNum: 1600
     },
@@ -102,6 +112,8 @@ const CarRentals = () => {
       fuel: 'Petrol',
       seats: 2,
       color: 'Black',
+      plateNumber: 'POR 2345',
+      vehicleType: 'Petrol',
       price: '1,400',
       priceNum: 1400
     },
@@ -117,6 +129,8 @@ const CarRentals = () => {
       fuel: 'Diesel',
       seats: 6,
       color: 'Black',
+      plateNumber: 'RAN 6789',
+      vehicleType: 'Diesel',
       price: '2,000',
       priceNum: 2000
     }
@@ -159,8 +173,7 @@ const CarRentals = () => {
                       capacity === cap 
                       ? 'border-yellow-250 bg-yellow-50 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]' 
                       : 'border-slate-150 hover:border-slate-300 text-slate-700'
-                    }`}
-                  >
+                    }`}>
                     {cap}
                   </button>
                 ))}
@@ -194,13 +207,9 @@ const CarRentals = () => {
           <div className="flex-1">
             {cars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {cars.map((car) => (
-                  <div key={car.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
-                    {/* Favorite Button */}
-                    <button className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-sm border border-slate-100 z-10 hover:bg-slate-50 transition-colors">
-                      <Heart className="w-3.5 h-3.5 text-black" />
-                    </button>
-                    
+                {cars.map((car, idx) => (
+                  <div key={car.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
+
                     {/* Image Area - Clean White Background */}
                     <div className="h-[220px] bg-white relative flex items-center justify-center p-4">
                       <img 
@@ -212,25 +221,20 @@ const CarRentals = () => {
                     
                     {/* Card Content */}
                     <div className="px-6 pb-6 pt-2 flex-1 flex flex-col border-t border-slate-50">
-                      {/* Floating Rating Badge */}
-                      <div className="flex justify-center -mt-8 relative z-10 mb-5">
-                        <div className="bg-white border border-slate-100 rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
-                          <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
-                          {car.rating} <span className="text-black font-medium ml-0.5">({car.reviews} reviews)</span>
-                        </div>
-                      </div>
-                      
+
                       <h3 className="font-extrabold text-black text-base mb-1.5 leading-tight">{car.name}</h3>
-                      <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
-                        <MapPin className="w-3 h-3" /> {car.location}
-                      </p>
+                      {idx > 2 && (
+                        <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
+                          <MapPin className="w-3 h-3" /> {car.location}
+                        </p>
+                      )}
                       
                       {/* Specs Grid */}
-                      <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 border-t border-slate-100">
-                        <div className="flex items-center gap-2"><Gauge className="w-3.5 h-3.5 text-black" /> {car.miles} miles</div>
-                        <div className="flex items-center gap-2"><Settings2 className="w-3.5 h-3.5 text-black" /> {car.transmission}</div>
-                        <div className="flex items-center gap-2"><Fuel className="w-3.5 h-3.5 text-black" /> {car.fuel}</div>
+                      <div className={`grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 ${idx > 2 ? 'border-t border-slate-100' : ''}`}>
+                        <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /> <span className="font-medium">{car.vehicleType || car.fuel}</span></div>
+                        <div className="flex items-center gap-2"><Tag className="w-3.5 h-3.5" /> <span className="font-medium">{car.plateNumber || 'N/A'}</span></div>
                         <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-black" /> {car.seats} seats</div>
+                        <div className="flex items-center gap-2"><Square className="w-3.5 h-3.5" /> <span className="font-medium">{car.color}</span></div>
                       </div>
                       
                       {/* Price & Action */}

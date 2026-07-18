@@ -70,8 +70,7 @@ const CarBooking = () => {
         
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-3xl font-extrabold text-black mb-2">Experience the road like never before! Book a car with Rabas!</h1>
-          <p className="text-sm font-medium text-black">Your Journey, Your Car, Your Way.</p>
+          <h1 className="text-3xl font-extrabold text-black mb-2">Car Rentals</h1>
         </div>
 
         <h2 className="text-[17px] font-extrabold text-black mb-6">Car Details</h2>

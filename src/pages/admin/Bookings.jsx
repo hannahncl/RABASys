@@ -24,12 +24,16 @@ const FILTERS = [
 ];
 
 const statusStyle = (status) => {
-  if (status === 'Confirmed') return 'bg-emerald-950/60 border-emerald-800/40 text-emerald-400';
+  if (status === 'Confirmed') return 'bg-emerald-100 border-emerald-200 text-emerald-700';
   if (status === 'Cancelled') return 'bg-rose-950/60 border-rose-800/40 text-rose-400';
-  return 'bg-amber-950/60 border-amber-800/40 text-amber-400';
+  return 'bg-amber-100 border-amber-200 text-amber-700';
 };
 
-const statusLabel = (status) => status === 'Confirmed' ? 'Booked' : status;
+const statusLabel = (status) => {
+  if (status === 'Confirmed') return 'Booked';
+  if (status === 'Pending Verification') return 'Pending';
+  return status;
+};
 
 const formatDate = (value) => {
   if (!value) return 'Not set';
@@ -47,6 +51,7 @@ const Bookings = () => {
   const [search, setSearch] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [bookingType, setBookingType] = useState('Tour Packages');
   const { showNotification } = useNotification();
 
   useEffect(() => {
@@ -66,16 +71,20 @@ const Bookings = () => {
     }
   };
 
+  const typeFilteredBookings = useMemo(() => {
+    return bookings.filter(b => (b.type || 'Tour Packages') === bookingType);
+  }, [bookings, bookingType]);
+
   const counts = useMemo(() => ({
-    all: bookings.length,
-    pending: bookings.filter(b => b.status === 'Pending Verification').length,
-    booked: bookings.filter(b => b.status === 'Confirmed').length,
-    cancelled: bookings.filter(b => b.status === 'Cancelled').length
-  }), [bookings]);
+    all: typeFilteredBookings.length,
+    pending: typeFilteredBookings.filter(b => b.status === 'Pending Verification').length,
+    booked: typeFilteredBookings.filter(b => b.status === 'Confirmed').length,
+    cancelled: typeFilteredBookings.filter(b => b.status === 'Cancelled').length
+  }), [typeFilteredBookings]);
 
   const filteredBookings = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return bookings
+    return typeFilteredBookings
       .filter(booking => activeFilter === 'all' || booking.status === activeFilter)
       .filter(booking => {
         if (!term) return true;
@@ -110,11 +119,22 @@ const Bookings = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Bookings</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Review booking information, confirm pending payments, and monitor booked trips.
-          </p>
+        <div className="w-full lg:w-auto">
+          <div className="flex flex-wrap gap-2">
+            {['Tour Packages', 'TukTrip', 'Car Rental'].map(type => (
+              <button
+                key={type}
+                onClick={() => setBookingType(type)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                  bookingType === type 
+                    ? 'bg-cyan-500 text-slate-950' 
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="relative w-full lg:w-80">
           <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -139,7 +159,7 @@ const Bookings = () => {
           <button
             key={filter.key}
             onClick={() => setActiveFilter(filter.key)}
-            className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
               activeFilter === filter.key
                 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
                 : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'

@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { accountService } from '../services/accountService';
 import { Plus, Edit, Trash2, Save, X, Loader, UserCheck, UserX, Search, Users, ShieldCheck, Briefcase } from 'lucide-react';
+=======
+import { accountService } from '../../services/accountService';
+import { Plus, Edit, Save, X, Loader, UserCheck, UserX, Search } from 'lucide-react';
+>>>>>>> ad862ad748519c2d2ee7f9516014e8fcffc906e6
 import { useNotification } from '../../hooks/useNotification';
 
 const ManageAccounts = () => {
@@ -8,7 +13,7 @@ const ManageAccounts = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(null);
-  const [filterRole, setFilterRole] = useState('all');
+  const [filterRole, setFilterRole] = useState('tour-guide');
   const [searchQuery, setSearchQuery] = useState('');
   const { showNotification } = useNotification();
 
@@ -28,25 +33,74 @@ const ManageAccounts = () => {
     }
   };
 
+  const splitFullName = (fullName = '') => {
+    const trimmed = fullName.trim();
+    if (!trimmed) return { firstName: '', lastName: '' };
+
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    }
+
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' ')
+    };
+  };
+
+  const buildAccountPayload = (form) => {
+    const firstName = (form.firstName || '').trim();
+    const lastName = (form.lastName || '').trim();
+    const name = [firstName, lastName].filter(Boolean).join(' ');
+    const username = `${firstName}.${lastName}`.replace(/\s+/g, '').toLowerCase();
+
+    return {
+      ...form,
+      name,
+      firstName,
+      lastName,
+      role: 'tour-guide',
+      username: username || form.username || '',
+      sex: form.sex || '',
+      birthDate: form.birthDate || '',
+      yearsExperience: form.yearsExperience || '',
+      description: form.description || '',
+      languageSpoken: form.languageSpoken || '',
+      profilePicture: form.profilePicture || ''
+    };
+  };
+
   const handleEdit = (acc) => {
+    const { firstName, lastName } = splitFullName(acc.name);
+
     setEditingId(acc.id);
     setFormData({
-      name: acc.name,
-      email: acc.email,
-      username: acc.username,
-      role: acc.role,
-      phone: acc.phone
+      firstName,
+      lastName,
+      email: acc.email || '',
+      phone: acc.phone || '',
+      sex: acc.sex || '',
+      birthDate: acc.birthDate || '',
+      yearsExperience: acc.yearsExperience || '',
+      description: acc.description || '',
+      languageSpoken: acc.languageSpoken || '',
+      profilePicture: acc.profilePicture || ''
     });
   };
 
   const handleAddNew = () => {
     setEditingId('new');
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
-      username: '',
-      role: 'staff',
-      phone: ''
+      phone: '',
+      sex: '',
+      birthDate: '',
+      yearsExperience: '',
+      description: '',
+      languageSpoken: '',
+      profilePicture: ''
     });
   };
 
@@ -60,62 +114,100 @@ const ManageAccounts = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFormData(prev => ({ ...prev, profilePicture: file.name }));
+  };
+
   const handleSave = async () => {
-    if (!formData.name || !formData.email || !formData.username) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       showNotification('Please fill in all required fields', 'error');
       return;
     }
+
+    const payload = buildAccountPayload(formData);
+
     try {
       if (editingId === 'new') {
-        await accountService.create(formData);
-        showNotification('Account created successfully', 'success');
+        await accountService.create(payload);
+        showNotification('Tour guide created successfully', 'success');
       } else {
-        await accountService.update(editingId, formData);
-        showNotification('Account updated successfully', 'success');
+        await accountService.update(editingId, payload);
+        showNotification('Tour guide updated successfully', 'success');
       }
       setEditingId(null);
       setFormData(null);
       loadAccounts();
     } catch (e) {
-      showNotification('Failed to save account', 'error');
+      showNotification('Failed to save tour guide', 'error');
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete ${name}'s account?`)) {
-      try {
-        await accountService.delete(id);
-        showNotification('Account deleted', 'success');
-        loadAccounts();
-      } catch (e) {
-        showNotification('Failed to delete account', 'error');
-      }
-    }
+  const updateAccountLocally = (id, updates) => {
+    setAccounts(prev => prev.map(acc => (acc.id === id ? { ...acc, ...updates } : acc)));
   };
 
   const handleToggleStatus = async (id) => {
+    const current = accounts.find(acc => acc.id === id);
+    if (!current) return;
+
+    const nextStatus = current.status === 'Active' ? 'Inactive' : 'Active';
+    updateAccountLocally(id, { status: nextStatus });
+
     try {
       await accountService.toggleStatus(id);
-      showNotification('Account status updated', 'success');
-      loadAccounts();
+      showNotification('Tour guide status updated', 'success');
     } catch (e) {
+      updateAccountLocally(id, { status: current.status });
       showNotification('Failed to update status', 'error');
     }
   };
 
-  // Filter accounts (exclude admin from editable list)
-  const filteredAccounts = accounts
-    .filter(acc => acc.role !== 'admin')
-    .filter(acc => filterRole === 'all' || acc.role === filterRole)
-    .filter(acc =>
-      acc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      acc.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      acc.username.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const handleToggleAvailability = async (id) => {
+    const current = accounts.find(acc => acc.id === id);
+    if (!current) return;
 
-  const staffCount = accounts.filter(a => a.role === 'staff').length;
-  const touristCount = accounts.filter(a => a.role === 'customer').length;
-  const activeCount = accounts.filter(a => a.role !== 'admin' && a.status === 'Active').length;
+    const nextAvailability = current.availability === 'Available' ? 'Unavailable' : 'Available';
+    updateAccountLocally(id, { availability: nextAvailability });
+
+    try {
+      await accountService.toggleAvailability(id);
+      showNotification('Availability updated', 'success');
+    } catch (e) {
+      updateAccountLocally(id, { availability: current.availability });
+      showNotification('Failed to update availability', 'error');
+    }
+  };
+
+  const handleToggleEmployment = async (id) => {
+    const current = accounts.find(acc => acc.id === id);
+    if (!current) return;
+
+    const nextEmploymentStatus = current.employmentStatus === 'Active' ? 'Inactive' : 'Active';
+    updateAccountLocally(id, { employmentStatus: nextEmploymentStatus });
+
+    try {
+      await accountService.toggleEmployment(id);
+      showNotification('Employment status updated', 'success');
+    } catch (e) {
+      updateAccountLocally(id, { employmentStatus: current.employmentStatus });
+      showNotification('Failed to update employment status', 'error');
+    }
+  };
+
+  const filteredAccounts = accounts
+    .filter(acc => acc.role === 'tour-guide' || acc.role === 'customer')
+    .filter(acc => acc.role === filterRole)
+    .filter(acc => {
+      const query = searchQuery.toLowerCase();
+      const fullName = `${acc.name || ''} ${acc.firstName || ''} ${acc.lastName || ''}`.toLowerCase();
+      return fullName.includes(query) ||
+        (acc.email || '').toLowerCase().includes(query) ||
+        (acc.languageSpoken || '').toLowerCase().includes(query);
+    });
+
+  const isCustomerView = filterRole === 'customer';
 
   if (loading) {
     return (
@@ -127,104 +219,75 @@ const ManageAccounts = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Account Management</h1>
-          <p className="text-slate-400 text-sm">Manage staff and tourist accounts.</p>
-        </div>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center gap-2 bg-cyan-400 hover:bg-cyan-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          Add Account
-        </button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <Briefcase className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Staff</span>
-            <span className="text-xl font-extrabold text-slate-100 font-display">{staffCount}</span>
-          </div>
-        </div>
-        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Tourists</span>
-            <span className="text-xl font-extrabold text-slate-100 font-display">{touristCount}</span>
-          </div>
-        </div>
-        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Active</span>
-            <span className="text-xl font-extrabold text-slate-100 font-display">{activeCount}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by name, email, or username..."
+            placeholder="Search by name, email, or language..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-900/60 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none"
           />
         </div>
-        <div className="flex gap-2">
-          {['all', 'staff', 'customer'].map((role) => (
+        <div className="flex gap-2 flex-wrap items-center">
+          {['customer', 'tour-guide'].map((role) => {
+            const isTourGuide = role === 'tour-guide';
+            const isCustomer = role === 'customer';
+            const isActive = filterRole === role;
+
+            return (
+              <button
+                key={role}
+                onClick={() => setFilterRole(role)}
+                className={`whitespace-nowrap min-w-[6.5rem] flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border ${
+                  isActive
+                    ? isTourGuide
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      : 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                    : isTourGuide
+                      ? 'bg-slate-900/60 text-amber-400 border-slate-800 hover:text-amber-300 hover:border-amber-500/20'
+                      : 'bg-slate-900/60 text-purple-400 border-slate-800 hover:text-purple-300 hover:border-purple-500/20'
+                }`}
+              >
+                {role === 'tour-guide' ? 'Tour Guide' : 'Customer'}
+              </button>
+            );
+          })}
+          {filterRole === 'tour-guide' && (
             <button
-              key={role}
-              onClick={() => setFilterRole(role)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                filterRole === role
-                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                  : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-              }`}
+              onClick={handleAddNew}
+              className="ml-auto flex items-center gap-2 bg-cyan-400 hover:bg-cyan-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer"
             >
-              {role === 'customer' ? 'Tourist' : role === 'all' ? 'All' : 'Staff'}
+              <Plus className="h-4 w-4" />
+              Add Tour Guide
             </button>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Add New Account Form */}
-      {editingId === 'new' && (
+      {editingId && (
         <div className="bg-slate-900/60 border border-cyan-500/50 rounded-2xl p-6 space-y-4">
-          <h3 className="font-bold text-cyan-400 border-b border-slate-800 pb-2">New Account</h3>
+          <h3 className="font-bold text-cyan-400 border-b border-slate-800 pb-2">
+            {editingId === 'new' ? 'New Tour Guide' : 'Edit Tour Guide'}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Full Name</label>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">First Name</label>
               <input
-                name="name"
-                value={formData.name}
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
-                placeholder="e.g. Juan Dela Cruz"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Username</label>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Last Name</label>
               <input
-                name="username"
-                value={formData.username}
+                name="lastName"
+                value={formData.lastName}
                 onChange={handleChange}
-                placeholder="e.g. juan.delacruz"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
               />
             </div>
             <div>
@@ -233,36 +296,88 @@ const ManageAccounts = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="e.g. juan@rabastravel.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Phone Number</label>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Contact Number</label>
               <input
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="e.g. 09171234567"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Profile Picture (Attachment)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30"
+              />
+              {formData.profilePicture && (
+                <p className="mt-1 text-xs text-slate-300">Selected file: {formData.profilePicture}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Sex</label>
+              <select
+                name="sex"
+                value={formData.sex}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none cursor-pointer"
+              >
+                <option value="">Select sex</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Birthdate</label>
+              <input
+                type="date"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Role</label>
-              <select
-                name="role"
-                value={formData.role}
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Years of Experience</label>
+              <input
+                type="number"
+                min="0"
+                name="yearsExperience"
+                value={formData.yearsExperience}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white focus:border-cyan-500 cursor-pointer"
-              >
-                <option value="staff">Staff</option>
-                <option value="customer">Tourist</option>
-              </select>
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Language Spoken</label>
+              <input
+                name="languageSpoken"
+                value={formData.languageSpoken}
+                onChange={handleChange}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows="3"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
             </div>
           </div>
           <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-            <button onClick={handleCancel} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm">
-              Cancel
+            <button onClick={handleCancel} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
+              <X className="h-4 w-4" /> Cancel
             </button>
             <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
               <Save className="h-4 w-4" /> Save
@@ -271,125 +386,52 @@ const ManageAccounts = () => {
         </div>
       )}
 
-      {/* Accounts Table */}
-      <div className="glass-panel rounded-2xl overflow-hidden border-slate-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
-                <th className="p-4 font-bold uppercase">Name</th>
-                <th className="p-4 font-bold uppercase">Username</th>
-                <th className="p-4 font-bold uppercase">Email</th>
-                <th className="p-4 font-bold uppercase">Phone</th>
-                <th className="p-4 font-bold uppercase text-center">Role</th>
-                <th className="p-4 font-bold uppercase text-center">Status</th>
-                <th className="p-4 font-bold uppercase text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-900 text-slate-300">
-              {filteredAccounts.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-500">
-                    No accounts found.
-                  </td>
-                </tr>
-              ) : (
-                filteredAccounts.map((acc) => (
-                  <tr key={acc.id} className="hover:bg-slate-900/20">
-                    {editingId === acc.id ? (
-                      /* Inline Edit Row */
-                      <>
-                        <td className="p-3">
-                          <input
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            placeholder="e.g. Juan Dela Cruz"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white focus:border-cyan-500"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                            placeholder="e.g. juan.delacruz"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white focus:border-cyan-500"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="e.g. juan@email.com"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white focus:border-cyan-500"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            placeholder="e.g. 09171234567"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white focus:border-cyan-500"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <select
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-white focus:border-cyan-500 cursor-pointer"
-                          >
-                            <option value="staff">Staff</option>
-                            <option value="customer">Tourist</option>
-                          </select>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="text-[9px] text-slate-500">—</span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <button onClick={handleCancel} className="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={handleSave} className="p-1.5 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer">
-                              <Save className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      /* Display Row */
-                      <>
+      {!editingId && (
+        <div className="glass-panel rounded-2xl overflow-hidden border-slate-900">
+          <div className="overflow-x-auto">
+            {isCustomerView ? (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
+                    <th className="p-4 font-bold uppercase">Name</th>
+                    <th className="p-4 font-bold uppercase">Email Address</th>
+                    <th className="p-4 font-bold uppercase">Contact Number</th>
+                    <th className="p-4 font-bold uppercase">Role</th>
+                    <th className="p-4 font-bold uppercase">Status</th>
+                    <th className="p-4 font-bold uppercase text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-slate-300">
+                  {filteredAccounts.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="p-8 text-center text-slate-500">
+                        No customers found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAccounts.map((acc) => (
+                      <tr key={acc.id} className="hover:bg-slate-900/20 align-top">
                         <td className="p-4 font-medium text-slate-200">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
-                              {acc.name.charAt(0).toUpperCase()}
+                              {(acc.name || 'C').charAt(0).toUpperCase()}
                             </div>
-                            {acc.name}
+                            <div className="min-w-0">
+                              <div className="truncate">{acc.name || `${acc.firstName || ''} ${acc.lastName || ''}`.trim()}</div>
+                              <div className="text-[10px] text-purple-400 uppercase">Customer</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="p-4 font-mono text-slate-400">{acc.username}</td>
-                        <td className="p-4 text-slate-400">{acc.email}</td>
+                        <td className="p-4 text-slate-400">{acc.email || '—'}</td>
                         <td className="p-4 text-slate-400">{acc.phone || '—'}</td>
-                        <td className="p-4 text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
-                            acc.role === 'staff'
-                              ? 'bg-cyan-950/40 border-cyan-900/40 text-cyan-400'
-                              : 'bg-purple-950/40 border-purple-900/40 text-purple-400'
-                          }`}>
-                            {acc.role === 'customer' ? 'Tourist' : 'Staff'}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                        <td className="p-4 text-slate-400">{acc.role === 'tour-guide' ? 'Tour Guide' : 'Customer'}</td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
                             acc.status === 'Active'
-                              ? 'bg-emerald-950/40 border-emerald-900/40 text-emerald-400'
-                              : 'bg-rose-950/40 border-rose-900/40 text-rose-400'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-rose-500/15 text-rose-400'
                           }`}>
-                            {acc.status}
+                            {acc.status || 'Inactive'}
                           </span>
                         </td>
                         <td className="p-4">
@@ -397,37 +439,120 @@ const ManageAccounts = () => {
                             <button
                               onClick={() => handleToggleStatus(acc.id)}
                               title={acc.status === 'Active' ? 'Deactivate' : 'Activate'}
-                              className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                                acc.status === 'Active'
-                                  ? 'text-emerald-400 hover:bg-emerald-950/30'
-                                  : 'text-rose-400 hover:bg-rose-950/30'
-                              }`}
+                              className="p-2 rounded-full cursor-pointer border border-slate-800/30 text-slate-400 hover:bg-slate-800 focus:outline-none transition-colors"
                             >
-                              {acc.status === 'Active' ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5" />}
+                              {acc.status === 'Active' ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                             </button>
                             <button
                               onClick={() => handleEdit(acc)}
-                              className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
                             >
-                              <Edit className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(acc.id, acc.name)}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg cursor-pointer transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Edit className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
-                      </>
-                    )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
+                    <th className="p-4 font-bold uppercase">Name</th>
+                    <th className="p-4 font-bold uppercase">Email Address</th>
+                    <th className="p-4 font-bold uppercase">Contact Number</th>
+                    <th className="p-4 font-bold uppercase">Sex</th>
+                    <th className="p-4 font-bold uppercase">Birthdate</th>
+                    <th className="p-4 font-bold uppercase">Years of Experience</th>
+                    <th className="p-4 font-bold uppercase">Language Spoken</th>
+                    <th className="p-4 font-bold uppercase">Description</th>
+                    <th className="p-4 font-bold uppercase text-center">Availability</th>
+                    <th className="p-4 font-bold uppercase text-center">Employment</th>
+                    <th className="p-4 font-bold uppercase text-center">Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-slate-300">
+                  {filteredAccounts.length === 0 ? (
+                    <tr>
+                      <td colSpan="11" className="p-8 text-center text-slate-500">
+                        No tour guides found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAccounts.map((acc) => (
+                      <tr key={acc.id} className="hover:bg-slate-900/20 align-top">
+                        <td className="p-4 font-medium text-slate-200">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
+                              {(acc.name || 'T').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate">{acc.name || `${acc.firstName || ''} ${acc.lastName || ''}`.trim()}</div>
+                              <div className="text-[10px] text-amber-400 uppercase">Tour Guide</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-slate-400">{acc.email || '—'}</td>
+                        <td className="p-4 text-slate-400">{acc.phone || '—'}</td>
+                        <td className="p-4 text-slate-400">{acc.sex || '—'}</td>
+                        <td className="p-4 text-slate-400">{acc.birthDate || '—'}</td>
+                        <td className="p-4 text-slate-400">{acc.yearsExperience || '—'}</td>
+                        <td className="p-4 text-slate-400">{acc.languageSpoken || '—'}</td>
+                        <td className="p-4 text-slate-400 max-w-[16rem]">
+                          <div className="line-clamp-3">{acc.description || '—'}</div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handleToggleAvailability(acc.id)}
+                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus:outline-none ${
+                              acc.availability === 'Available'
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                                : 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
+                            }`}
+                          >
+                            {acc.availability || 'Unavailable'}
+                          </button>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handleToggleEmployment(acc.id)}
+                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer focus:outline-none ${
+                              acc.employmentStatus === 'Active'
+                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20'
+                                : 'bg-slate-700/70 text-slate-300 border border-slate-600 hover:bg-slate-800/50'
+                            }`}
+                          >
+                            {acc.employmentStatus || 'Inactive'}
+                          </button>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleToggleStatus(acc.id)}
+                              title={acc.status === 'Active' ? 'Deactivate' : 'Activate'}
+                              className="p-2 rounded-full cursor-pointer border border-slate-800/30 text-slate-400 hover:bg-slate-800 focus:outline-none transition-colors"
+                            >
+                              {acc.status === 'Active' ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleEdit(acc)}
+                              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -3,12 +3,16 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
-  Camera, MapPin, X, CloudSun, Wind, ArrowLeft,
-  Droplets, Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn,
+  Camera, MapPin, X, ArrowLeft,
+  Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn,
   Link2, SwitchCamera, RotateCcw, Check, VideoOff
 } from 'lucide-react';
+<<<<<<< HEAD
 import mapGalleryService from '../services/mapGalleryService';
 import { weatherService } from '../services/weatherService';
+=======
+import mapGalleryService from '../../services/mapGalleryService';
+>>>>>>> ad862ad748519c2d2ee7f9516014e8fcffc906e6
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -49,8 +53,6 @@ const ExploreMap = () => {
   const [spots, setSpots] = useState([]);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [uploads, setUploads] = useState([]);
-  const [weather, setWeather] = useState(null);
-  const [loadingWeather, setLoadingWeather] = useState(false);
   const [mapCenter, setMapCenter] = useState([13.4, 123.6]);
   const [mapZoom, setMapZoom] = useState(8.5);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -184,28 +186,17 @@ const ExploreMap = () => {
     fetchSpots();
   }, []);
 
-  // When a spot is selected, load its photos and weather
+  // When a spot is selected, load its photos.
   useEffect(() => {
     if (selectedSpot) {
       const loadDetails = async () => {
         const gallery = await mapGalleryService.getUploads(selectedSpot.id);
         setUploads(gallery);
-        setLoadingWeather(true);
-        setWeather(null);
-        try {
-          const w = await weatherService.getWeatherByDestination(selectedSpot.name);
-          setWeather(w);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoadingWeather(false);
-        }
       };
       loadDetails();
       setLeftPanelMode('photos'); // Switch left panel to photo album view
     } else {
       setUploads([]);
-      setWeather(null);
       setLeftPanelMode('grid');
     }
   }, [selectedSpot]);
@@ -265,7 +256,7 @@ const ExploreMap = () => {
           <div class="relative flex items-center justify-center h-9 w-9 rounded-full ${isSelected ? 'border-4 border-yellow-500' : 'border-2 border-white'} shadow-xl overflow-hidden">
             <img src="${spot.featuredImage}" class="w-full h-full object-cover" />
           </div>
-          <div class="absolute -bottom-7 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold py-0.5 px-2 rounded-full whitespace-nowrap shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div class="absolute -bottom-7 bg-white border border-slate-200 text-slate-400 text-[10px] font-bold py-0.5 px-2 rounded-full whitespace-nowrap shadow-md opacity-100 transition-opacity pointer-events-none">
             ${spot.name.split(',')[0]}
           </div>
         </div>
@@ -285,36 +276,15 @@ const ExploreMap = () => {
   return (
     <div className="bg-slate-50 min-h-screen pb-16">
       {/* Page Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Explore</span>
-          </div>
-          <h1 className="text-3xl font-extrabold text-slate-800 font-display">Spot Gallery & Travel Map</h1>
-          <p className="text-slate-500 text-sm mt-1">Browse destination spots, explore locations on the map, and share your own travel moments.</p>
+          <h1 className="text-3xl font-extrabold text-black font-display">Spot Gallery & Travel Map</h1>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
 
-        {/* ── When in GRID mode: show category pills ── */}
-        {leftPanelMode === 'grid' && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-yellow-400 hover:text-yellow-600'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+
 
         {/* ── When in PHOTOS mode: show back button header ── */}
         {leftPanelMode === 'photos' && selectedSpot && (
@@ -326,13 +296,13 @@ const ExploreMap = () => {
               <ArrowLeft className="h-4 w-4" />
               All Spots
             </button>
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full overflow-hidden border-2 border-yellow-500 shadow-sm">
                 <img src={selectedSpot.featuredImage} alt={selectedSpot.name} className="w-full h-full object-cover" />
               </div>
               <div>
                 <h2 className="text-base font-extrabold text-slate-800 leading-tight">{selectedSpot.name}</h2>
-                <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider">{selectedSpot.category}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{selectedSpot.category}</span>
               </div>
             </div>
           </div>
@@ -359,8 +329,8 @@ const ExploreMap = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-slate-800 text-[11px] font-bold px-2.5 py-1.5 rounded-full shadow-md">
-                      <MapPin className="h-3 w-3 text-yellow-500 shrink-0" />
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-slate-400 text-[11px] font-bold px-2.5 py-1.5 rounded-full shadow-md">
+                      <MapPin className="h-3 w-3 text-slate-700 shrink-0" />
                       <span className="truncate max-w-[100px]">{spot.name.split(',')[0]}</span>
                     </div>
                     <div className="absolute top-3 right-3 bg-yellow-500 text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -388,41 +358,6 @@ const ExploreMap = () => {
             {/* ── PHOTO ALBUM VIEW: all uploaded photos for selected spot ── */}
             {leftPanelMode === 'photos' && selectedSpot && (
               <div className="space-y-4">
-                {/* Spot description card */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                  <p className="text-slate-600 text-sm leading-relaxed">{selectedSpot.description}</p>
-
-                  {/* Weather strip */}
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                      <CloudSun className="h-3.5 w-3.5 text-yellow-500" />
-                      Live Weather
-                    </div>
-                    {loadingWeather ? (
-                      <div className="flex items-center gap-2 text-slate-400 text-xs">
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-yellow-500" />
-                        Checking conditions...
-                      </div>
-                    ) : weather ? (
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <img src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`} alt={weather.description} className="w-9 h-9" />
-                          <div>
-                            <div className="text-lg font-black text-slate-800">{weather.temp}°C</div>
-                            <div className="text-[10px] text-slate-500 capitalize">{weather.description}</div>
-                          </div>
-                        </div>
-                        <div className="space-y-1 border-l border-slate-100 pl-4 text-xs text-slate-500">
-                          <div className="flex items-center gap-1"><Droplets className="h-3 w-3 text-yellow-500" /> {weather.humidity}% humidity</div>
-                          <div className="flex items-center gap-1"><Wind className="h-3 w-3 text-yellow-500" /> {weather.wind} km/h</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400">Weather unavailable.</p>
-                    )}
-                  </div>
-                </div>
-
                 {/* Photo album header */}
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-extrabold text-slate-700 flex items-center gap-1.5">
@@ -479,7 +414,7 @@ const ExploreMap = () => {
                         <div className="absolute bottom-0 left-0 right-0 p-3">
                           <p className="text-[11px] text-white font-semibold line-clamp-2 leading-snug">"{up.caption}"</p>
                           <div className="flex items-center justify-between mt-1.5">
-                            <span className="text-[10px] font-bold text-yellow-400">{up.touristName}</span>
+                            <span className="text-[10px] font-bold text-slate-700">{up.touristName}</span>
                             <span className="text-[9px] text-white/60">
                               {new Date(up.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
@@ -534,18 +469,18 @@ const ExploreMap = () => {
             </div>
 
             {/* Map Legend / Spot list chips */}
-            <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
               {filteredSpots.map(spot => (
                 <button
                   key={spot.id}
                   onClick={() => handleSpotClick(spot)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                    selectedSpot?.id === spot.id
-                      ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-yellow-400 hover:text-yellow-600'
-                  }`}
+                      selectedSpot?.id === spot.id
+                        ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
+                        : 'bg-white text-slate-400 border-slate-200 hover:border-yellow-400 hover:text-yellow-600'
+                    }`}
                 >
-                  <MapPin className="h-3 w-3" />
+                    <MapPin className="h-3 w-3 text-slate-600" />
                   {spot.name.split(',')[0]}
                 </button>
               ))}
@@ -591,7 +526,7 @@ const ExploreMap = () => {
             <div className="mt-4 text-center space-y-1">
               <p className="text-white font-semibold text-sm">"{uploads[lightboxIndex].caption}"</p>
               <div className="flex items-center justify-center gap-3 text-xs">
-                <span className="font-bold text-yellow-400">{uploads[lightboxIndex].touristName}</span>
+                <span className="font-bold text-slate-700">{uploads[lightboxIndex].touristName}</span>
                 <span className="text-white/50">•</span>
                 <span className="text-white/60">
                   {new Date(uploads[lightboxIndex].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -634,8 +569,8 @@ const ExploreMap = () => {
 
             {/* Spot name pill */}
             <div className="px-6 pb-3">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 px-2.5 py-1 rounded-full">
-                <MapPin className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                <MapPin className="h-3 w-3 text-slate-700" />
                 {selectedSpot.name}
               </span>
             </div>

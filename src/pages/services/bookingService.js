@@ -1,111 +1,30 @@
-// Mock Booking Service with LocalStorage persistence to link roles together in the frontend sandbox
-import { emailService } from './emailService';
+import { api } from '../../services/api';
 
-const STORAGE_KEY = 'rabas_bookings_db';
-
-const DEFAULT_BOOKINGS = [
-  {
-    id: 'RBT-9820-21',
-    packageId: 'el-nido-premium',
-    packageName: 'El Nido Premium Island Hopping',
-    customerName: 'Jose Rizal',
-    customerEmail: 'jose.rizal@example.com',
-    customerPhone: '09171234567',
-    tourDate: '2026-07-15',
-    guestsCount: 2,
-    totalPrice: 37000,
-    paymentMethod: 'GCash',
-    paymentRef: 'GC-9871654',
-    status: 'Pending Verification', // Pending Verification, Confirmed, Cancelled
-    createdAt: '2026-06-20T10:30:00Z',
-    gcashNumber: '09171234567'
-  },
-  {
-    id: 'RBT-3210-99',
-    packageId: 'boracay-sunset-getaway',
-    packageName: 'Boracay Sunset & Watersports Escape',
-    customerName: 'Maria Clara',
-    customerEmail: 'maria.clara@example.com',
-    customerPhone: '09187654321',
-    tourDate: '2026-07-20',
-    guestsCount: 4,
-    totalPrice: 48000,
-    paymentMethod: 'GCash',
-    paymentRef: 'GC-1230491',
-    status: 'Confirmed',
-    createdAt: '2026-06-22T14:15:00Z',
-    gcashNumber: '09187654321'
-  },
-  {
-    id: 'RBT-7741-02',
-    packageId: 'siargao-surf-adventure',
-    packageName: 'Siargao Surf & Island Hop Adventure',
-    customerName: 'Juan Dela Cruz',
-    customerEmail: 'juan.delacruz@example.com',
-    customerPhone: '09228881234',
-    tourDate: '2026-08-02',
-    guestsCount: 1,
-    totalPrice: 15800,
-    paymentMethod: 'GCash',
-    paymentRef: 'GC-7741982',
-    status: 'Pending Verification',
-    createdAt: '2026-06-24T09:00:00Z',
-    gcashNumber: '09228881234'
-  }
-];
-
-// Initialize database if empty
-if (!localStorage.getItem(STORAGE_KEY)) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_BOOKINGS));
-}
+const bookingFromApi = (item) => ({
+  ...item,
+  id: String(item.booking_id),
+  packageId: String(item.package_id),
+  packageName: item.package_name,
+  customerName: item.customer_name,
+  customerEmail: item.email,
+  customerPhone: item.contact_number,
+  tourDate: item.travel_date?.slice(0, 10),
+  guestsCount: item.number_of_persons,
+  totalPrice: Number(item.total_amount),
+  status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
+  createdAt: item.created_at,
+  paymentRef: item.booking_reference,
+});
 
 export const bookingService = {
-  getAll: async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  },
-
-  getById: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    return list.find(b => b.id === id) || null;
-  },
-
-  create: async (bookingData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    
-    const newBooking = {
-      id: `RBT-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}`,
-      createdAt: new Date().toISOString(),
-      status: 'Pending Verification',
-      ...bookingData
-    };
-    
-    list.unshift(newBooking);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    
-    // Trigger simulation email
-    await emailService.sendBookingConfirmation(newBooking);
-    
-    return newBooking;
-  },
-
-  updateStatus: async (id, status) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const index = list.findIndex(b => b.id === id);
-    
-    if (index === -1) throw new Error('Booking not found');
-    
-    list[index].status = status;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    
-    // Trigger approval email simulation if approved
-    if (status === 'Confirmed') {
-      await emailService.sendPaymentApproval(list[index]);
-    }
-    
-    return list[index];
-  }
+  getAll: async () => (await api('/bookings')).map(bookingFromApi),
+  getById: async (id) => bookingFromApi(await api(`/bookings/${id}`)),
+  create: async (item) => bookingFromApi(await api('/bookings', {
+    method: 'POST',
+    body: JSON.stringify({ package_id: Number(item.packageId), travel_date: item.tourDate, number_of_persons: Number(item.guestsCount) }),
+  })),
+  updateStatus: async (id, status) => bookingFromApi(await api(`/bookings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ booking_status: status === 'Pending Verification' ? 'Pending' : status }),
+  })),
 };

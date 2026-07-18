@@ -9,9 +9,8 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [address, setAddress] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,8 +18,12 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password || !firstName || !lastName || !address || !contactNumber) {
+    if (!email || !password || !firstName || !lastName || !contactNumber) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must contain at least 8 characters.');
       return;
     }
 
@@ -28,9 +31,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const fullName = `${firstName} ${lastName}`;
-      const username = email.split('@')[0] || firstName.toLowerCase();
-      const result = await register(fullName, email, username, password, address, contactNumber);
+      const result = await register(firstName, lastName, email.trim(), password, contactNumber.trim());
       if (result.success) {
         navigate('/');
       } else {
@@ -45,18 +46,18 @@ const Register = () => {
 
   return (
     <div className="w-full text-slate-700">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold font-sans tracking-widest text-[#3b3a36] mb-1 uppercase">Create Account</h2>
-        <p className="text-slate-500 text-sm font-medium">
+      <div className="mb-8 text-center">
+        <h2 className="mb-1 text-2xl font-bold uppercase tracking-widest text-[#3b3a36]">Create Account</h2>
+        <p className="text-sm font-medium text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="text-yellow-600 font-semibold hover:text-yellow-750 hover:underline transition-colors">
+          <Link to="/login" className="font-semibold text-yellow-600 transition-colors hover:text-yellow-750 hover:underline">
             Back to Log In
           </Link>
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-sm">
+        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-600">
           <AlertCircle className="h-5 w-5 shrink-0 text-rose-500" />
           <span>{error}</span>
         </div>
@@ -64,68 +65,60 @@ const Register = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Email</label>
+          <label className="mb-2 block text-sm font-semibold text-gray-600">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
+            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
             placeholder=""
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Password</label>
+          <label className="mb-2 block text-sm font-semibold text-gray-600">Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
-            placeholder=""
+            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            minLength="8"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">First Name</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-600">First Name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none"
               placeholder=""
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">Last Name</label>
+            <label className="mb-2 block text-sm font-semibold text-gray-600">Last Name</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none"
               placeholder=""
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Address</label>
+          <label className="mb-2 block text-sm font-semibold text-gray-600">Contact Number</label>
           <input
             type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
-            placeholder=""
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">Contact Number</label>
-          <input
-            type="text"
+            autoComplete="tel"
             value={contactNumber}
             onChange={(e) => setContactNumber(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
+            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
             placeholder=""
           />
         </div>
@@ -133,13 +126,9 @@ const Register = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 mt-6 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-yellow-250 bg-yellow-50 py-3 font-bold text-yellow-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:bg-yellow-100 disabled:opacity-50"
         >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            'Sign Up'
-          )}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Sign Up'}
         </button>
       </form>
     </div>

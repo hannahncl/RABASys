@@ -82,26 +82,7 @@ const Packages = () => {
               />
             </div>
 
-            {/* Category */}
-            <div className="mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-4">Category</h4>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setSelectedTag(tag)}
-                    className={`px-4 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
-                      selectedTag === tag
-                        ? 'bg-yellow-50 border-yellow-250 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                        : 'border-slate-150 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
+
             {/* Price Range */}
             <div className="mb-8">
               <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
@@ -126,7 +107,7 @@ const Packages = () => {
             ) : filteredPackages.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredPackages.map((pkg, index) => (
-                  <div key={pkg.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
+                  <div key={pkg.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
                     
                     {/* Image Area */}
                     <div className="h-[250px] w-full overflow-hidden relative">
@@ -136,23 +117,8 @@ const Packages = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       
-                      {/* Badge */}
-                      <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold text-white ${
-                        index % 3 === 0 ? 'bg-green-500' : index % 3 === 1 ? 'bg-blue-500' : 'bg-yellow-500'
-                      }`}>
-                        {badges[index % 3]}
-                      </div>
-                      
-                      {/* Heart Button */}
-                      <button className="absolute top-4 right-4 bg-white/90 rounded-full p-2 shadow-sm hover:bg-white transition-colors">
-                        <Heart className="w-3.5 h-3.5 text-black" />
-                      </button>
-                      
-                      {/* Rating Badge at bottom of image */}
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm text-[10px] font-bold flex items-center gap-1 text-black">
-                        <Star className="w-3 h-3 text-yellow-400 fill-current" /> 
-                        {pkg.rating} <span className="text-black font-medium ml-0.5">({Math.floor(Math.random() * 500 + 200)} reviews)</span>
-                      </div>
+
+                      {/* Rating badge removed per request */}
                     </div>
                     
                     {/* Card Content */}
