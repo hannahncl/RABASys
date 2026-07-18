@@ -121,21 +121,26 @@ const ManageAccounts = () => {
       return;
     }
 
-    const payload = buildAccountPayload(formData);
-
     try {
       if (editingId === 'new') {
-        await accountService.create(payload);
-        showNotification('Tour guide created successfully', 'success');
+        const result = await accountService.createTourGuide(formData);
+        if (result.tempPassword) {
+          showNotification(
+            `Tour guide created! Temporary password: ${result.tempPassword} — please share with the guide.`,
+            'success'
+          );
+        } else {
+          showNotification('Tour guide created successfully', 'success');
+        }
       } else {
-        await accountService.update(editingId, payload);
+        await accountService.updateTourGuide(editingId, formData);
         showNotification('Tour guide updated successfully', 'success');
       }
       setEditingId(null);
       setFormData(null);
       loadAccounts();
     } catch (e) {
-      showNotification('Failed to save tour guide', 'error');
+      showNotification(e.message || 'Failed to save tour guide', 'error');
     }
   };
 

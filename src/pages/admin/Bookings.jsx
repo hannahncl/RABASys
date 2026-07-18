@@ -75,6 +75,12 @@ const Bookings = () => {
     return bookings.filter(b => (b.type || 'Tour Packages') === bookingType);
   }, [bookings, bookingType]);
 
+  const tabCounts = useMemo(() => ({
+    'Tour Packages': bookings.filter(b => (b.type || 'Tour Packages') === 'Tour Packages').length,
+    'TukTrip': bookings.filter(b => b.type === 'TukTrip').length,
+    'Car Rental': bookings.filter(b => b.type === 'Car Rental').length,
+  }), [bookings]);
+
   const counts = useMemo(() => ({
     all: typeFilteredBookings.length,
     pending: typeFilteredBookings.filter(b => b.status === 'Pending Verification').length,
@@ -97,7 +103,7 @@ const Bookings = () => {
           booking.paymentRef
         ].some(value => String(value || '').toLowerCase().includes(term));
       });
-  }, [bookings, activeFilter, search]);
+  }, [typeFilteredBookings, activeFilter, search]);
 
   const handleStatusUpdate = async (booking, status) => {
     const actionLabel = status === 'Confirmed' ? 'confirm this booking' : 'cancel this booking';
@@ -105,7 +111,7 @@ const Bookings = () => {
 
     setUpdatingId(booking.id);
     try {
-      const updated = await bookingService.updateStatus(booking.id, status);
+      const updated = await bookingService.updateStatus(booking.id, status, booking.type);
       setBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
       showNotification(status === 'Confirmed' ? 'Booking confirmed as booked' : 'Booking cancelled', 'success');
@@ -125,13 +131,20 @@ const Bookings = () => {
               <button
                 key={type}
                 onClick={() => setBookingType(type)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
                   bookingType === type 
                     ? 'bg-cyan-500 text-slate-950' 
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {type}
+                {tabCounts[type] > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-extrabold ${
+                    bookingType === type ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {tabCounts[type]}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -266,6 +279,7 @@ const BookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
   }
 
   const isPending = booking.status === 'Pending Verification';
+  const isCarRental = booking.type === 'Car Rental';
 
   return (
     <aside className="glass-panel rounded-2xl border-slate-800 overflow-hidden xl:sticky xl:top-24">
@@ -286,11 +300,17 @@ const BookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
           <InfoRow icon={UserRound} label="Name" value={booking.customerName} />
           <InfoRow icon={Mail} label="Email" value={booking.customerEmail} />
           <InfoRow icon={Phone} label="Phone" value={booking.customerPhone} />
-          <InfoRow icon={Users} label="Guests" value={`${booking.guestsCount} guest(s)`} />
+          {!isCarRental && <InfoRow icon={Users} label="Guests" value={`${booking.guestsCount} guest(s)`} />}
         </InfoGroup>
 
-        <InfoGroup title="Trip">
-          <InfoRow icon={CalendarDays} label="Tour Date" value={formatDate(booking.tourDate)} />
+        <InfoGroup title={isCarRental ? "Rental Details" : "Trip"}>
+          <InfoRow icon={CalendarDays} label={isCarRental ? "Pickup Date" : "Tour Date"} value={formatDate(booking.tourDate)} />
+          {isCarRental && (
+            <>
+              <InfoRow icon={CalendarDays} label="Return Date" value={formatDate(booking.returnDate)} />
+              <InfoRow icon={UserRound} label="Location" value={booking.pickupLocation || 'Not specified'} />
+            </>
+          )}
           <InfoRow icon={ReceiptText} label="Created" value={new Date(booking.createdAt).toLocaleString()} />
         </InfoGroup>
 

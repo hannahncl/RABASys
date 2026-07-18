@@ -27,11 +27,15 @@ const vehicleFromApi = (item) => ({
   id: String(item.vehicle_id),
   category: 'car',
   title: item.vehicle_name,
+  vehicleName: item.vehicle_name,
   price: Number(item.daily_rate),
+  dailyRate: Number(item.daily_rate),
   vehicleType: item.vehicle_type,
   capacity: `${item.capacity} Passengers`,
+  seatingCapacity: item.capacity,
   image: item.image || '/CAGSAWA.jpg',
   duration: 'Per Day',
+  availabilityStatus: item.availability_status || 'Available',
 });
 
 const packagePayload = (item) => ({
@@ -48,11 +52,12 @@ const packagePayload = (item) => ({
 });
 
 const vehiclePayload = (item) => ({
-  vehicle_name: item.title || item.vehicleName,
+  vehicle_name: item.vehicleName || item.title || item.vehicle_name,
   vehicle_type: item.vehicleType || item.vehicle_type || 'Car',
   plate_number: item.plateNumber || item.plate_number,
-  capacity: Number(String(item.capacity || 1).match(/\d+/)?.[0] || 1),
-  daily_rate: Number(item.price || item.daily_rate),
+  capacity: Number(String(item.seatingCapacity || item.capacity || 1).match(/\d+/)?.[0] || 1),
+  daily_rate: Number(item.dailyRate || item.price || item.daily_rate || 0),
+  image: item.vehicleImage || item.image || null,
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
 });
 
