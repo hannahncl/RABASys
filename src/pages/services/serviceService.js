@@ -29,8 +29,12 @@ const vehicleFromApi = (item) => ({
   title: item.vehicle_name,
   price: Number(item.daily_rate),
   vehicleType: item.vehicle_type,
+  plateNumber: item.plate_number,
   capacity: `${item.capacity} Passengers`,
   image: item.image || '/CAGSAWA.jpg',
+  description: item.description,
+  color: item.color,
+  pickupLocation: item.pickup_location,
   duration: 'Per Day',
 });
 
@@ -48,12 +52,16 @@ const packagePayload = (item) => ({
 });
 
 const vehiclePayload = (item) => ({
-  vehicle_name: item.title || item.vehicleName,
+  vehicle_name: item.title || item.vehicleName || item.vehicle_name,
   vehicle_type: item.vehicleType || item.vehicle_type || 'Car',
-  plate_number: item.plateNumber || item.plate_number,
-  capacity: Number(String(item.capacity || 1).match(/\d+/)?.[0] || 1),
-  daily_rate: Number(item.price || item.daily_rate),
+  plate_number: item.plateNumber || item.plate_number || null,
+  capacity: Number(String(item.capacity || item.seatingCapacity || 1).match(/\d+/)?.[0] || 1),
+  daily_rate: Number(item.price || item.daily_rate || 0),
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
+  image: item.image || item.vehicleImage || null,
+  description: item.description || item.details || null,
+  color: item.color || null,
+  pickup_location: item.pickupLocation || item.destination || null,
 });
 
 export const serviceService = {

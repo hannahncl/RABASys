@@ -1,142 +1,48 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Heart, Star, MapPin, Gauge, Settings2, Fuel, Users, SlidersHorizontal, Zap, Tag, Square } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DualRangeSlider from '../../components/ui/DualRangeSlider';
+import { serviceService } from '../services/serviceService';
 
 const CarRentals = () => {
   // Filter States
   const [capacity, setCapacity] = useState(4);
   const [selectedColor, setSelectedColor] = useState('White');
   const [priceRange, setPriceRange] = useState([0, 3000]);
+  const [allCars, setAllCars] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for the bars in the price range chart
-  const priceBars = [
-    3, 5, 4, 7, 5, 8, 12, 10, 15, 20, 16, 25, 22, 18, 14, 10, 16, 12, 8, 6, 4, 3, 5, 4, 2, 3, 2, 1
-  ];
+  useEffect(() => {
+    const loadCars = async () => {
+      try {
+        const vehicles = await serviceService.getByCategory('car');
+        const mappedCars = vehicles.map((car) => ({
+          ...car,
+          name: car.title,
+          location: car.pickupLocation || 'Bicol Region',
+          color: car.color || 'White',
+          plateNumber: car.plateNumber || 'N/A',
+          vehicleType: car.vehicleType || 'Car',
+          seats: Number(String(car.capacity || '4').match(/\d+/)?.[0] || 4),
+          priceNum: Number(car.price || 0),
+          price: String(car.price || 0),
+        }));
+        setAllCars(mappedCars);
+      } catch {
+        setAllCars([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const allCars = [
-    {
-      id: 1,
-      name: 'Audi e-tron GT',
-      location: 'Manchester, England',
-      image: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Electric',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'ARI 3435',
-      vehicleType: 'Electrified',
-      price: '1,000',
-      priceNum: 1000
-    },
-    {
-      id: 2,
-      name: 'Lexus RX 350',
-      location: 'London, England',
-      image: 'https://images.unsplash.com/photo-1619682817481-e994891cd1f5?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'LEX 5678',
-      vehicleType: 'Petrol',
-      price: '1,500',
-      priceNum: 1500
-    },
-    {
-      id: 3,
-      name: 'Chevrolet Corvette',
-      location: 'Birmingham, England',
-      image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 2,
-      color: 'Gray',
-      plateNumber: 'COR 9012',
-      vehicleType: 'Petrol',
-      price: '1,800',
-      priceNum: 1800
-    },
-    {
-      id: 4,
-      name: 'BMW M4 Competition',
-      location: 'Manchester, England',
-      image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'BMW 3456',
-      vehicleType: 'Petrol',
-      price: '1,200',
-      priceNum: 1200
-    },
-    {
-      id: 5,
-      name: 'Audi A7 Sportback',
-      location: 'Liverpool, England',
-      image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Hybrid',
-      seats: 4,
-      color: 'Gray',
-      plateNumber: 'A7 7890',
-      vehicleType: 'Hybrid',
-      price: '1,600',
-      priceNum: 1600
-    },
-    {
-      id: 6,
-      name: 'Porsche 911 Carrera',
-      location: 'Leeds, England',
-      image: 'https://images.unsplash.com/photo-1503376712341-ea78262f3a61?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 2,
-      color: 'Black',
-      plateNumber: 'POR 2345',
-      vehicleType: 'Petrol',
-      price: '1,400',
-      priceNum: 1400
-    },
-    {
-      id: 7,
-      name: 'Range Rover Velar',
-      location: 'Bristol, England',
-      image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Diesel',
-      seats: 6,
-      color: 'Black',
-      plateNumber: 'RAN 6789',
-      vehicleType: 'Diesel',
-      price: '2,000',
-      priceNum: 2000
-    }
-  ];
+    loadCars();
+  }, []);
 
-  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor && car.priceNum >= priceRange[0] && car.priceNum <= priceRange[1]);
+  const cars = allCars.filter((car) => {
+    const seatCount = Number(car.seats || 4);
+    const colorMatch = !selectedColor || car.color === selectedColor;
+    return seatCount === capacity && colorMatch && car.priceNum >= priceRange[0] && car.priceNum <= priceRange[1];
+  });
 
   return (
     <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">
@@ -205,7 +111,11 @@ const CarRentals = () => {
           
           {/* Main Content Grid */}
           <div className="flex-1">
-            {cars.length > 0 ? (
+            {loading ? (
+              <div className="h-64 flex flex-col items-center justify-center bg-slate-50 border border-slate-100 rounded-3xl">
+                <h3 className="text-black font-bold mb-2">Loading available cars...</h3>
+              </div>
+            ) : cars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {cars.map((car, idx) => (
                   <div key={car.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">

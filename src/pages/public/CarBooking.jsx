@@ -1,25 +1,45 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { AuthContext } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
 
 const CarBooking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showNotification } = useNotification();
+  const { user } = useContext(AuthContext);
+  const [car, setCar] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock car details based on the ID for presentation
-  const car = {
-    id,
-    name: 'Audi e-tron GT',
-    type: 'Electrified',
-    plate: 'ARI 3435',
-    capacity: 4,
-    color: 'White',
-    rate: 'PHP 2,500.00',
-    image: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=600'
-  };
+  useEffect(() => {
+    const loadCar = async () => {
+      try {
+        const vehicle = await api(`/vehicles/${id}`);
+        setCar({
+          id: String(vehicle.vehicle_id),
+          name: vehicle.vehicle_name,
+          type: vehicle.vehicle_type,
+          plate: vehicle.plate_number,
+          capacity: vehicle.capacity,
+          color: vehicle.color || 'N/A',
+          rate: `PHP ${Number(vehicle.daily_rate || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          image: vehicle.image || 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=600',
+          vehicle_id: vehicle.vehicle_id,
+          price: Number(vehicle.daily_rate || 0),
+        });
+      } catch {
+        showNotification('Unable to load this car right now.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleBookCar = (e) => {
+    loadCar();
+  }, [id, showNotification]);
+
+  const handleBookCar = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const firstName = formData.get('firstName');
@@ -31,38 +51,42 @@ const CarBooking = () => {
     const issuingCountry = formData.get('issuingCountry');
     const expirationDate = formData.get('expirationDate');
 
-    const numericPrice = parseFloat(car.rate.replace(/[^0-9.-]+/g, ""));
+    if (!user) {
+      showNotification('Please log in before booking a car rental.', 'error');
+      navigate('/login', { state: { from: location } });
+      return;
+    }
 
-    const carPkg = {
-      id: `car-rental-${car.id}`,
-      title: `Car Rental: ${car.name}`,
-      destination: `Plate: ${car.plate}`,
-      duration: '1 Day',
-      price: numericPrice,
-      image: car.image,
-      customizedDetails: { 
-        type: car.type, 
-        color: car.color, 
-        capacity: car.capacity,
-        driverInfo: `${firstName} ${lastName} (Age: ${age})`,
-        license: `${licenseNumber} (${issuingCountry}) Exp: ${expirationDate}`
-      }
-    };
-
-    navigate('/booking/custom', {
-      state: {
-        customPackage: carPkg,
-        firstName,
-        lastName,
-        email,
-        phone,
-        tourDate: new Date().toISOString().split('T')[0],
-        adultsCount: 1,
-        childrenCount: 0,
-        startStep: 2
-      }
-    });
+    try {
+      await api('/rentalBookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          vehicle_id: car.vehicle_id,
+          booking_reference: `CR-${Date.now()}`,
+          pickup_date: new Date().toISOString(),
+          return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          pickup_location: 'Rabas Travel Office',
+          total_amount: Number(car.price || 0),
+          booking_status: 'Pending',
+          driver_name: `${firstName} ${lastName}`,
+          driver_age: age,
+          driver_phone: phone,
+          driver_email: email,
+          license_number: licenseNumber,
+          issuing_country: issuingCountry,
+          expiration_date: expirationDate,
+        }),
+      });
+      showNotification('Car rental booking was saved successfully.', 'success');
+      navigate('/profile');
+    } catch (error) {
+      showNotification(error.message || 'Unable to save your car rental booking.', 'error');
+    }
   };
+
+  if (loading || !car) {
+    return <div className="bg-white min-h-screen pt-12 pb-24 flex items-center justify-center text-black">Loading car details...</div>;
+  }
 
   return (
     <div className="bg-white min-h-screen pt-12 pb-24 font-sans text-black">

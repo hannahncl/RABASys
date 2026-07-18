@@ -48,21 +48,21 @@ const AddCarRentalPage = () => {
         vehicleName: formData.vehicleName.trim(),
         vehicleType: formData.vehicleType.trim(),
         plateNumber: formData.plateNumber.trim(),
-        capacity: formData.seatingCapacity.trim(),
+        capacity: Number(formData.seatingCapacity),
         price: Number(formData.dailyRate),
         image: formData.vehicleImage.trim(),
         description: `${formData.vehicleName.trim()} available for daily rental.`,
         destination: 'Bicol Region',
         duration: 'Per Day',
-        tags: ['Car Rental', formData.vehicleType.trim()],
-        details: `Plate Number: ${formData.plateNumber.trim()}`
+        color: 'N/A',
+        pickupLocation: 'Bicol Region',
       };
 
       await serviceService.create({ ...payload, id: Date.now().toString() });
       showNotification('Car rental created successfully', 'success');
       navigate('/admin/services');
     } catch (error) {
-      showNotification('Failed to create car rental', 'error');
+      showNotification(error.message || 'Failed to create car rental', 'error');
     }
   };
 
