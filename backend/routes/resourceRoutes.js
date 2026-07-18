@@ -24,6 +24,26 @@ function selected(resource, input) {
     return resource.fields.filter((field) => Object.prototype.hasOwnProperty.call(input, field));
 }
 
+function normalizeVehiclePayload(input = {}) {
+    const vehicleName = input.vehicle_name || input.vehicleName || input.name || "";
+    const vehicleType = input.vehicle_type || input.vehicleType || "Car";
+    const plateNumber = input.plate_number || input.plateNumber || "";
+    const capacity = Number(input.capacity ?? input.seatingCapacity ?? input.seating_capacity ?? 1);
+    const dailyRate = Number(input.daily_rate ?? input.dailyRate ?? input.price ?? 0);
+    const availabilityStatus = input.availability_status || input.availabilityStatus || "Available";
+    const image = input.image || input.vehicleImage || input.vehicle_image || null;
+
+    return {
+        vehicle_name: String(vehicleName).trim(),
+        vehicle_type: String(vehicleType).trim() || "Car",
+        plate_number: String(plateNumber).trim(),
+        capacity: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 1,
+        daily_rate: Number.isFinite(dailyRate) && dailyRate >= 0 ? dailyRate : 0,
+        availability_status: ["Available", "Unavailable", "Maintenance"].includes(availabilityStatus) ? availabilityStatus : "Available",
+        image: image ? String(image) : null,
+    };
+}
+
 function addCrud(router, path, resource) {
     const whereActive = resource.softDelete === false ? "" : " WHERE deleted_at IS NULL";
     const readMiddleware = path === "packages" ? [] : [requireAuth];
@@ -45,5 +65,100 @@ function addCrud(router, path, resource) {
 }
 
 const router = express.Router();
+
+router.get("/vehicles", async (req, res, next) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM vehicle WHERE deleted_at IS NULL ORDER BY vehicle_id DESC");
+        res.json(rows);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.get("/vehicles/:id", async (req, res, next) => {
+    try {
+        const [rows] = await db.execute("SELECT * FROM vehicle WHERE vehicle_id = ? AND deleted_at IS NULL", [req.params.id]);
+        if (!rows[0]) return res.status(404).json({ message: "Vehicle not found." });
+        res.json(rows[0]);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post("/vehicles", requireAuth, allowRoles("Admin"), async (req, res, next) => {
+    try {
+        const payload = normalizeVehiclePayload(req.body);
+        if (!payload.vehicle_name || !payload.plate_number) {
+            return res.status(400).json({ message: "Vehicle name and plate number are required." });
+        }
+
+        const [result] = await db.execute(
+            "INSERT INTO vehicle (vehicle_name, vehicle_type, plate_number, capacity, daily_rate, image, availability_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [payload.vehicle_name, payload.vehicle_type, payload.plate_number, payload.capacity, payload.daily_rate, payload.image, payload.availability_status]
+        );
+
+        const [rows] = await db.execute("SELECT * FROM vehicle WHERE vehicle_id = ?", [result.insertId]);
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ message: "A vehicle with that plate number already exists." });
+        }
+        next(error);
+    }
+});
+
+router.patch("/vehicles/:id", requireAuth, allowRoles("Admin"), async (req, res, next) => {
+    try {
+        const payload = normalizeVehiclePayload(req.body);
+        const fields = [];
+        const values = [];
+
+        if (Object.prototype.hasOwnProperty.call(req.body, "vehicle_name") || Object.prototype.hasOwnProperty.call(req.body, "vehicleName")) {
+            fields.push("vehicle_name = ?"); values.push(payload.vehicle_name);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "vehicle_type") || Object.prototype.hasOwnProperty.call(req.body, "vehicleType")) {
+            fields.push("vehicle_type = ?"); values.push(payload.vehicle_type);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "plate_number") || Object.prototype.hasOwnProperty.call(req.body, "plateNumber")) {
+            fields.push("plate_number = ?"); values.push(payload.plate_number);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "capacity") || Object.prototype.hasOwnProperty.call(req.body, "seatingCapacity")) {
+            fields.push("capacity = ?"); values.push(payload.capacity);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "daily_rate") || Object.prototype.hasOwnProperty.call(req.body, "dailyRate")) {
+            fields.push("daily_rate = ?"); values.push(payload.daily_rate);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "availability_status") || Object.prototype.hasOwnProperty.call(req.body, "availabilityStatus")) {
+            fields.push("availability_status = ?"); values.push(payload.availability_status);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "image") || Object.prototype.hasOwnProperty.call(req.body, "vehicleImage")) {
+            fields.push("image = ?"); values.push(payload.image);
+        }
+
+        if (!fields.length) return res.status(400).json({ message: "No valid vehicle fields supplied." });
+
+        const [result] = await db.execute(`UPDATE vehicle SET ${fields.join(", ")} WHERE vehicle_id = ? AND deleted_at IS NULL`, [...values, req.params.id]);
+        if (!result.affectedRows) return res.status(404).json({ message: "Vehicle not found." });
+
+        const [rows] = await db.execute("SELECT * FROM vehicle WHERE vehicle_id = ?", [req.params.id]);
+        res.json(rows[0]);
+    } catch (error) {
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ message: "A vehicle with that plate number already exists." });
+        }
+        next(error);
+    }
+});
+
+router.delete("/vehicles/:id", requireAuth, allowRoles("Admin"), async (req, res, next) => {
+    try {
+        const [result] = await db.execute("UPDATE vehicle SET deleted_at = NOW() WHERE vehicle_id = ? AND deleted_at IS NULL", [req.params.id]);
+        if (!result.affectedRows) return res.status(404).json({ message: "Vehicle not found." });
+        res.status(204).end();
+    } catch (error) {
+        next(error);
+    }
+});
+
 Object.entries(resources).forEach(([path, resource]) => addCrud(router, path, resource));
 module.exports = router;

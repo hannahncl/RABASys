@@ -29,9 +29,17 @@ const Home = () => {
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch = pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pkg.destination.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
+    const matchesTag = selectedTag === 'All' || pkg.tags?.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
+
+  const showcaseImages = [
+    { id: 'albay', title: 'Albay', image: '/ALBAY.jpg' },
+    { id: 'calaguas', title: 'Calaguas', image: '/CALAGUAS.jpg' },
+    { id: 'caramoan', title: 'Caramoan', image: '/CARAMOAN.jpg' },
+    { id: 'matnog', title: 'Matnog', image: '/MATNOG.jpg' },
+    { id: 'sorsogon', title: 'Sorsogon', image: '/SORSOGON.jpg' }
+  ];
 
   const allTags = ['All', 'Beach', 'Adventure', 'Cultural', 'Nature', 'Premium'];
 
@@ -48,23 +56,34 @@ const Home = () => {
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl text-center space-y-8 px-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider animate-bounce">
-            <Sparkles className="h-3.5 w-3.5" />
-            Explore the Gems of the Philippines
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight leading-none font-display">
-            EXPLORE BICOL, THE <br />
-            <span className="text-cyan-400 text-glow-cyan">
-              RABAS WAY
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-100 tracking-tight leading-[0.95] font-display whitespace-nowrap mt-2 mb-6">
+            Explore Bicol the
+            <span className="ml-2 text-cyan-400 text-glow-cyan">
+              RABAS Way
             </span>
           </h1>
 
-          <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-            Experience premium curated island hopping, culture tours, and outdoor wonders. Instant GCash checkout, real-time forecasts, and live tour reports.
-          </p>
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="flex justify-center items-stretch gap-3 px-1 pb-2">
+              {showcaseImages.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative flex-[0_0_calc(100%/5-0.75rem)] min-w-[190px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <p className="text-sm font-semibold">{item.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          {/* Search Form */}
           <form
             onSubmit={handleSearchSubmit}
             className="flex flex-col sm:flex-row items-center gap-3 max-w-2xl mx-auto bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-xl"

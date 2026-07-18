@@ -4,7 +4,7 @@ import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceService } from '../services/serviceService';
 import { bookingService } from '../services/bookingService';
-import { Loader, ArrowLeft } from 'lucide-react';
+import { Loader, ArrowLeft, Calendar, ShieldCheck } from 'lucide-react';
 
 const CarBooking = () => {
   const { id } = useParams();
@@ -19,6 +19,11 @@ const CarBooking = () => {
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('gcash');
+  const [gcashRef, setGcashRef] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -48,25 +53,40 @@ const CarBooking = () => {
       showNotification('Please fill in all booking details', 'error');
       return;
     }
-    
+
     const start = new Date(pickupDate);
     const end = new Date(returnDate);
-    
     if (end <= start) {
       showNotification('Return date must be after pickup date', 'error');
       return;
     }
 
+    if (paymentMethod === 'gcash') {
+      if (!gcashRef.trim()) {
+        showNotification('Please enter your GCash reference number.', 'warning');
+        return;
+      }
+    } else if (!cardNumber || !expiryDate || !cvv) {
+      showNotification('Please fill in the card details.', 'warning');
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const referenceNumber = paymentMethod === 'gcash'
+        ? gcashRef.trim()
+        : `CARD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
       await bookingService.createRental({
         vehicleId: id,
         pickupDate,
         returnDate,
-        pickupLocation
+        pickupLocation,
+        paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
+        paymentRef: referenceNumber,
       });
-      showNotification('Car booked successfully!', 'success');
-      navigate('/history'); // Navigate to booking history or account dashboard
+      showNotification('Car booking submitted successfully and is pending admin approval.', 'success');
+      navigate('/history');
     } catch (error) {
       showNotification(error.response?.data?.message || 'Failed to book car', 'error');
     } finally {
@@ -206,6 +226,73 @@ const CarBooking = () => {
                   </div>
                 </div>
               )}
+
+              <div className="bg-[#F8F9FA] rounded-xl p-6 space-y-5">
+                <h3 className="text-sm font-semibold text-gray-600">Payment</h3>
+                <label className="flex items-center gap-4 cursor-pointer py-2">
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                    {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
+                  </div>
+                  <span className="text-sm font-semibold text-black">GCash</span>
+                  <input type="radio" className="hidden" checked={paymentMethod === 'gcash'} onChange={() => setPaymentMethod('gcash')} />
+                </label>
+
+                {paymentMethod === 'gcash' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.
+                    </p>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-600 mb-2">GCash Reference Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1234 5678 9012"
+                        value={gcashRef}
+                        onChange={(e) => setGcashRef(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="h-px bg-slate-100 my-4 w-full"></div>
+
+                <label className="flex items-center justify-between cursor-pointer py-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                      {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
+                    </div>
+                    <span className="text-sm font-semibold text-black">Credit/ Debit Card</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[#1A1F71] font-bold italic text-sm">VISA</div>
+                    <div className="w-6 h-6 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-[#EB001B] relative left-1 z-10"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#F79E1B] relative right-1"></div>
+                    </div>
+                  </div>
+                  <input type="radio" className="hidden" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
+                </label>
+
+                {paymentMethod === 'card' && (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-600 mb-2">Card number</label>
+                      <input type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="w-[260px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all" />
+                    </div>
+                    <div className="flex gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Expiration date</label>
+                        <input type="text" placeholder="MM/YYYY" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Security Code</label>
+                        <input type="text" value={cvv} onChange={(e) => setCvv(e.target.value)} className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Submit Button */}
               <div className="flex justify-end pt-2">

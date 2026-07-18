@@ -61,11 +61,13 @@ export const bookingService = {
   })),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {
     method: 'POST',
-    body: JSON.stringify({ 
-      vehicle_id: item.vehicleId, 
-      pickup_date: item.pickupDate, 
+    body: JSON.stringify({
+      vehicle_id: item.vehicleId,
+      pickup_date: item.pickupDate,
       return_date: item.returnDate,
-      pickup_location: item.pickupLocation 
+      pickup_location: item.pickupLocation,
+      payment_method: item.paymentMethod || 'GCash',
+      payment_reference: item.paymentRef || null,
     }),
   })),
   updateStatus: async (id, status, type = 'Tour Packages') => {
