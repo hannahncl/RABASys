@@ -611,25 +611,26 @@ const Booking = () => {
 
           {/* Right Column - Booking Details Card */}
           <div className="lg:col-span-5 relative">
-            <div className="bg-white border border-slate-200 shadow-xl rounded-sm p-6 sticky top-24">
-              <h3 className="font-extrabold text-black border-b border-slate-200 pb-4 mb-4">Booking Details</h3>
+            <div className="max-w-sm rounded-3xl border border-slate-300 bg-white p-5 shadow-sm sticky top-24 text-black">
+              <h3 className="text-lg font-semibold text-black mb-5">Booking Details</h3>
               
               <div className="space-y-4 mb-6">
                 <div>
-                  <h4 className="font-bold text-black text-lg">{pkg.title}</h4>
-                  <div className="flex items-center gap-1.5 text-xs text-black font-medium mt-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Strictly No Cancellation
+                  <h4 className="font-bold text-black text-xl">{pkg.title}</h4>
+                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium mt-2">
+                    <ShieldCheck className="w-4 h-4 text-black" />
+                    <span>Strictly No Cancellation</span>
                   </div>
                 </div>
                 
-                <div className="border-t border-slate-100 pt-4 space-y-4">
-                  <div className="flex justify-between text-xs font-semibold text-black">
+                <div className="border-t border-slate-200 pt-4 space-y-3 text-sm text-slate-700">
+                  <div className="flex justify-between font-medium text-black">
                     <span>Date</span>
-                    <span className="text-black">{tourDate ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '---'}</span>
+                    <span>{tourDate ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '---'}</span>
                   </div>
-                  <div className="flex justify-between text-xs font-semibold text-black">
+                  <div className="flex justify-between font-medium text-black">
                     <span>Quantity</span>
-                    <span className="text-black">
+                    <span>
                       {adultsCount > 0 && `Adult x ${adultsCount}`}
                       {adultsCount > 0 && childrenCount > 0 && ', '}
                       {childrenCount > 0 && `Child x ${childrenCount}`}
@@ -637,9 +638,9 @@ const Booking = () => {
                   </div>
                 </div>
                 
-                <div className="border-t border-slate-200 pt-4 flex justify-between items-center text-xs font-semibold text-black">
+                <div className="border-t border-slate-200 pt-4 flex justify-between items-center text-sm font-semibold text-black">
                   <span>Total</span>
-                  <span className="text-base font-black text-black">₱{totalPrice.toLocaleString()}</span>
+                  <span className="text-base font-black">₱{totalPrice.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -648,7 +649,7 @@ const Booking = () => {
                   type="submit"
                   form="booking-form"
                   disabled={submitting}
-                  className="w-full py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all disabled:opacity-50 text-sm mt-8 cursor-pointer"
+                  className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50 mt-5"
                 >
                   Proceed to Pay
                 </button>

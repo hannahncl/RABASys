@@ -53,10 +53,11 @@ const Register = () => {
   };
 
   return (
-    <div className="w-full text-slate-700">
-      <div className="mb-8 text-center">
-        <h2 className="mb-1 text-2xl font-bold uppercase tracking-widest text-[#3b3a36]">Create Account</h2>
-        <p className="text-sm font-medium text-slate-500">
+    <div className="w-full">
+      <div className="rounded-3xl bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-200">
+        <div className="mb-8 text-center">
+          <h2 className="mb-1 text-2xl font-bold uppercase tracking-widest text-[#3b3a36]">Create Account</h2>
+          <p className="text-sm font-medium text-slate-500">
           Already have an account?{' '}
           <Link to="/login" className="font-semibold text-yellow-600 transition-colors hover:text-yellow-750 hover:underline">
             Back to Log In
@@ -79,8 +80,10 @@ const Register = () => {
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' })); }}
             className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-            placeholder=""
+            placeholder="Enter your email"
+            autoComplete="email"
           />
+          <p className="mt-2 text-xs text-slate-500">Enter a valid email address.</p>
           {fieldErrors.email && <p className="mt-2 text-sm text-rose-600">{fieldErrors.email}</p>}
         </div>
 
@@ -95,6 +98,7 @@ const Register = () => {
             autoComplete="new-password"
             placeholder="At least 8 characters"
           />
+          <p className="mt-2 text-xs text-slate-500">Use at least 8 characters, including one uppercase letter and one number.</p>
           {fieldErrors.password && <p className="mt-2 text-sm text-rose-600">{fieldErrors.password}</p>}
         </div>
 
@@ -126,13 +130,15 @@ const Register = () => {
         <div>
           <label className="mb-2 block text-sm font-semibold text-gray-600">Contact Number</label>
           <input
-            type="text"
+            type="tel"
             autoComplete="tel"
+            inputMode="tel"
             value={contactNumber}
             onChange={(e) => { setContactNumber(e.target.value); if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' })); }}
             className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.contactNumber ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-            placeholder=""
+            placeholder="e.g. +639171234567"
           />
+          <p className="mt-2 text-xs text-slate-500">Use a valid phone number.</p>
           {fieldErrors.contactNumber && <p className="mt-2 text-sm text-rose-600">{fieldErrors.contactNumber}</p>}
         </div>
 
@@ -144,6 +150,7 @@ const Register = () => {
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Sign Up'}
         </button>
       </form>
+      </div>
     </div>
   );
 };
