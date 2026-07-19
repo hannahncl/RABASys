@@ -114,14 +114,11 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
-<<<<<<< HEAD
-        const passwordMatches = account && (await bcrypt.compare(req.body.password, account.password_hash));
-        if (!account || account.account_status !== "Active" || (!passwordMatches && !isBootstrapAdminLogin(account, req.body.password))) {
-            return res.status(401).json({ message: "Invalid email or password." });
-=======
-        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
+        const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
+        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
+
+        if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
->>>>>>> d507c83e6ab77110a7fd590ea552e6f7e500b63d
         }
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken);
