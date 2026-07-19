@@ -16,6 +16,21 @@ const normalizeRole = (role) => {
     if (["staff", "tour guide", "tour-guide", "tourguide", "guide"].includes(normalized)) return "Tour Guide";
     return "Customer";
 };
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const isActiveAccount = (account) => String(account?.account_status || "").trim().toLowerCase() === "active";
+const verifyPassword = async (inputPassword, storedHash) => {
+    if (!storedHash) return false;
+    const password = String(inputPassword || "");
+
+    try {
+        if (await bcrypt.compare(password, storedHash)) return true;
+    } catch {
+        // Ignore bcrypt comparison errors and fall back to legacy checks.
+    }
+
+    const legacyHash = String(storedHash).trim();
+    return password === legacyHash || password === legacyHash.replace(/^\s+|\s+$/g, "");
+};
 
 const publicAccount = (account) => ({
     id: account.account_id,
@@ -89,13 +104,24 @@ router.post("/register", [
     } catch (error) { next(error); }
 });
 
-router.post("/login", [body("email").isEmail().normalizeEmail(), body("password").notEmpty()], validate, async (req, res, next) => {
+router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email or phone is required."), body("password").notEmpty()], validate, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`SELECT ${accountFields}, password_hash FROM account WHERE email = ? AND deleted_at IS NULL`, [req.body.email]);
+        const identifier = String(req.body.identifier || "").trim();
+        const normalizedEmail = normalizeEmail(identifier);
+        const normalizedPhone = identifier.replace(/\D/g, '');
+        const [rows] = await db.execute(
+            `SELECT ${accountFields}, password_hash FROM account WHERE deleted_at IS NULL AND (email = ? OR REPLACE(REPLACE(REPLACE(contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
+            [normalizedEmail, normalizedPhone]
+        );
         const account = rows[0];
+<<<<<<< HEAD
         const passwordMatches = account && (await bcrypt.compare(req.body.password, account.password_hash));
         if (!account || account.account_status !== "Active" || (!passwordMatches && !isBootstrapAdminLogin(account, req.body.password))) {
             return res.status(401).json({ message: "Invalid email or password." });
+=======
+        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
+            return res.status(401).json({ message: "Invalid email/phone or password." });
+>>>>>>> d507c83e6ab77110a7fd590ea552e6f7e500b63d
         }
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken);

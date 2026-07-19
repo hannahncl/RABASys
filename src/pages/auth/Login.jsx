@@ -2,11 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { validateEmail, validateRequired } from '../../utils/validation';
+import { validateEmailOrPhone, validateRequired } from '../../utils/validation';
 
 const Login = () => {
   const { login, user } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -28,12 +28,12 @@ const Login = () => {
     e.preventDefault();
 
     const nextErrors = {
-      email: validateEmail(email),
+      identifier: validateEmailOrPhone(identifier),
       password: validateRequired(password, 'Password'),
     };
     setFieldErrors(nextErrors);
 
-    if (nextErrors.email || nextErrors.password) {
+    if (nextErrors.identifier || nextErrors.password) {
       setError('Please fix the highlighted fields.');
       return;
     }
@@ -42,7 +42,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(identifier.trim(), password);
       if (!result.success) {
         setError(result.error || 'Unable to sign in right now.');
       }
@@ -54,9 +54,10 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full text-slate-700">
-      <h2 className="mb-2 text-3xl font-bold uppercase tracking-wide text-black">Welcome Back!</h2>
-      <p className="mb-8 text-sm text-slate-500">
+    <div className="w-full">
+      <div className="rounded-3xl bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-200">
+        <h2 className="mb-2 text-3xl font-bold uppercase tracking-wide text-black">Welcome Back!</h2>
+        <p className="mb-8 text-sm text-slate-500">
         Don't have an account?{' '}
         <Link to="/register" className="font-semibold text-yellow-600 transition-colors hover:text-yellow-750 hover:underline">
           Sign up
@@ -72,16 +73,16 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-600">Email</label>
+          <label className="mb-2 block text-sm font-semibold text-gray-600">Email or Phone</label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' })); }}
-            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-            placeholder="you@example.com"
-            autoComplete="email"
+            type="text"
+            value={identifier}
+            onChange={(e) => { setIdentifier(e.target.value); if (fieldErrors.identifier) setFieldErrors(prev => ({ ...prev, identifier: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.identifier ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
+            placeholder="Enter your email"
+            autoComplete="username"
           />
-          {fieldErrors.email && <p className="mt-2 text-sm text-rose-600">{fieldErrors.email}</p>}
+          {fieldErrors.identifier && <p className="mt-2 text-sm text-rose-600">{fieldErrors.identifier}</p>}
         </div>
 
         <div>
@@ -100,7 +101,7 @@ const Login = () => {
         <div className="flex justify-end">
           <Link
             to="/forgot-password"
-            state={{ email: email.trim() }}
+            state={{ email: identifier.trim() }}
             className="text-sm font-semibold text-yellow-700 transition-colors hover:text-yellow-800 hover:underline"
           >
             Forgot password?
@@ -115,6 +116,7 @@ const Login = () => {
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Log In'}
         </button>
       </form>
+      </div>
     </div>
   );
 };
