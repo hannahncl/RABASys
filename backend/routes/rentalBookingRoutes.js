@@ -40,34 +40,34 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 router.post("/", requireAuth, async (req, res, next) => {
     try {
         const { vehicle_id, pickup_date, return_date, pickup_location, payment_method, payment_reference } = req.body;
-        
+
         if (!vehicle_id || !pickup_date || !return_date || !pickup_location) {
             return res.status(422).json({ message: "vehicle_id, pickup_date, return_date, and pickup_location are required." });
         }
 
         const [vehicles] = await db.execute(
-            "SELECT daily_rate FROM vehicle WHERE vehicle_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", 
+            "SELECT daily_rate FROM vehicle WHERE vehicle_id = ? AND availability_status = 'Available' AND deleted_at IS NULL",
             [vehicle_id]
         );
-        
+
         const vehicle = vehicles[0];
         if (!vehicle) return res.status(404).json({ message: "Available vehicle not found." });
 
         const start = new Date(pickup_date);
         const end = new Date(return_date);
         if (end <= start) return res.status(422).json({ message: "Return date must be after pickup date." });
-        
+
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const totalAmount = Number(vehicle.daily_rate) * diffDays;
         const reference = payment_reference?.trim() || `RBC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         const paymentMethod = payment_method?.trim() || 'GCash';
-        
+
         const [result] = await db.execute(
             "INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, 'Pending', ?)",
             [req.user.accountId, vehicle_id, reference, pickup_date, return_date, pickup_location, totalAmount, paymentMethod]
         );
-        
+
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [result.insertId]);
         res.status(201).json(rows[0]);
     } catch (e) {
@@ -79,14 +79,14 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
     try {
         const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed", "Cancelled"];
         if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." });
-        
+
         const [result] = await db.execute(
-            "UPDATE car_rental_booking SET booking_status = ? WHERE rental_booking_id = ? AND deleted_at IS NULL", 
+            "UPDATE car_rental_booking SET booking_status = ? WHERE rental_booking_id = ? AND deleted_at IS NULL",
             [req.body.booking_status, req.params.id]
         );
-        
+
         if (!result.affectedRows) return res.status(404).json({ message: "Booking not found." });
-        
+
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [req.params.id]);
         res.json(rows[0]);
     } catch (e) {

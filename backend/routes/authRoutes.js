@@ -6,6 +6,7 @@ const { body, validationResult } = require("express-validator");
 const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
 const { sendPasswordResetOtp } = require("../config/mailer");
+const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
 const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, created_at, updated_at";
@@ -121,6 +122,7 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
         const session = await createSession(account, signedToken);
         const refreshedToken = tokenFor(account, session.sessionId);
         await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await logAudit({ accountId: account.account_id, action: "LOGIN", tableName: "account", recordId: account.account_id });
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
@@ -167,6 +169,7 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
 router.post("/logout", requireAuth, async (req, res, next) => {
     try {
         await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = ? AND account_id = ?", [req.user.sessionId, req.user.accountId]);
+        await logAudit({ accountId: req.user.accountId, action: "LOGOUT", tableName: "account", recordId: req.user.accountId });
         res.json({ message: "Signed out successfully." });
     } catch (error) { next(error); }
 });
