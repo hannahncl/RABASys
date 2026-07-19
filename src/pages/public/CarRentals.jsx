@@ -1,142 +1,41 @@
-import React, { useState } from 'react';
-import { Heart, Star, MapPin, Gauge, Settings2, Fuel, Users, SlidersHorizontal, Zap, Tag, Square } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DualRangeSlider from '../../components/ui/DualRangeSlider';
+import { serviceService } from '../services/serviceService';
 
 const CarRentals = () => {
   // Filter States
   const [capacity, setCapacity] = useState(4);
-  const [selectedColor, setSelectedColor] = useState('White');
-  const [priceRange, setPriceRange] = useState([0, 3000]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [allCars, setAllCars] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for the bars in the price range chart
-  const priceBars = [
-    3, 5, 4, 7, 5, 8, 12, 10, 15, 20, 16, 25, 22, 18, 14, 10, 16, 12, 8, 6, 4, 3, 5, 4, 2, 3, 2, 1
-  ];
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const data = await serviceService.getByCategory('car');
+        // Only show available cars
+        const availableCars = data.filter(car => car.availabilityStatus === 'Available');
+        setAllCars(availableCars);
+      } catch (error) {
+        console.error('Failed to fetch cars:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCars();
+  }, []);
 
-  const allCars = [
-    {
-      id: 1,
-      name: 'Audi e-tron GT',
-      location: 'Manchester, England',
-      image: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Electric',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'ARI 3435',
-      vehicleType: 'Electrified',
-      price: '1,000',
-      priceNum: 1000
-    },
-    {
-      id: 2,
-      name: 'Lexus RX 350',
-      location: 'London, England',
-      image: 'https://images.unsplash.com/photo-1619682817481-e994891cd1f5?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'LEX 5678',
-      vehicleType: 'Petrol',
-      price: '1,500',
-      priceNum: 1500
-    },
-    {
-      id: 3,
-      name: 'Chevrolet Corvette',
-      location: 'Birmingham, England',
-      image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 2,
-      color: 'Gray',
-      plateNumber: 'COR 9012',
-      vehicleType: 'Petrol',
-      price: '1,800',
-      priceNum: 1800
-    },
-    {
-      id: 4,
-      name: 'BMW M4 Competition',
-      location: 'Manchester, England',
-      image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 4,
-      color: 'White',
-      plateNumber: 'BMW 3456',
-      vehicleType: 'Petrol',
-      price: '1,200',
-      priceNum: 1200
-    },
-    {
-      id: 5,
-      name: 'Audi A7 Sportback',
-      location: 'Liverpool, England',
-      image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Hybrid',
-      seats: 4,
-      color: 'Gray',
-      plateNumber: 'A7 7890',
-      vehicleType: 'Hybrid',
-      price: '1,600',
-      priceNum: 1600
-    },
-    {
-      id: 6,
-      name: 'Porsche 911 Carrera',
-      location: 'Leeds, England',
-      image: 'https://images.unsplash.com/photo-1503376712341-ea78262f3a61?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Petrol',
-      seats: 2,
-      color: 'Black',
-      plateNumber: 'POR 2345',
-      vehicleType: 'Petrol',
-      price: '1,400',
-      priceNum: 1400
-    },
-    {
-      id: 7,
-      name: 'Range Rover Velar',
-      location: 'Bristol, England',
-      image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600',
-      rating: 4.96,
-      reviews: 672,
-      miles: '25,100',
-      transmission: 'Automatic',
-      fuel: 'Diesel',
-      seats: 6,
-      color: 'Black',
-      plateNumber: 'RAN 6789',
-      vehicleType: 'Diesel',
-      price: '2,000',
-      priceNum: 2000
-    }
-  ];
-
-  const cars = allCars.filter(car => car.seats === capacity && car.color === selectedColor && car.priceNum >= priceRange[0] && car.priceNum <= priceRange[1]);
+  // Filter the fetched cars
+  const cars = allCars.filter(car => {
+    // If car.capacity is undefined or null, we might default to showing it or filtering out. 
+    // Let's ensure a loose match if they didn't specify exactly, but here we require exact or greater capacity.
+    const carSeats = parseInt(car.capacity, 10) || 4;
+    const carPrice = car.price || 0;
+    
+    return carSeats >= capacity && carPrice >= priceRange[0] && carPrice <= priceRange[1];
+  });
 
   return (
     <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">
@@ -151,11 +50,11 @@ const CarRentals = () => {
             </h3>
             
             <div className="border-t border-slate-100 pt-6 mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-6">Price range</h4>
+              <h4 className="text-xs font-extrabold text-black mb-6">Price range (PHP)</h4>
               <DualRangeSlider 
                 min={0} 
-                max={3000} 
-                step={100} 
+                max={15000} 
+                step={500} 
                 value={priceRange} 
                 onChange={setPriceRange} 
               />
@@ -163,9 +62,9 @@ const CarRentals = () => {
             
             {/* Siting Capacity */}
             <div className="border-t border-slate-100 pt-6 mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-5">Siting Capacity</h4>
+              <h4 className="text-xs font-extrabold text-black mb-5">Minimum Seating Capacity</h4>
               <div className="flex gap-2">
-                {[2, 4, 6, 8].map(cap => (
+                {[2, 4, 6, 8, 12, 15].map(cap => (
                   <button 
                     key={cap}
                     onClick={() => setCapacity(cap)}
@@ -179,68 +78,48 @@ const CarRentals = () => {
                 ))}
               </div>
             </div>
-            
-            {/* Colors */}
-            <div className="border-t border-slate-100 pt-6">
-              <div className="flex justify-between items-center mb-5">
-                <h4 className="text-xs font-extrabold text-black">Colors</h4>
-                <span className="text-[9px] font-bold text-black cursor-pointer hover:text-black transition-colors">See All</span>
-              </div>
-              <div className="flex gap-5">
-                <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('White')}>
-                  <div className={`w-4 h-4 rounded-full border ${selectedColor === 'White' ? 'border-yellow-350 bg-yellow-100' : 'border-slate-200 bg-white group-hover:border-slate-300'} transition-colors`}></div>
-                  <span className="text-[11px] font-medium text-black">White</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('Gray')}>
-                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Gray' ? 'ring-yellow-300 bg-slate-400' : 'bg-slate-300 ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
-                  <span className="text-[11px] font-medium text-black">Gray</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer group" onClick={() => setSelectedColor('Black')}>
-                  <div className={`w-4 h-4 rounded-full ring-2 ${selectedColor === 'Black' ? 'ring-yellow-300 bg-black' : 'bg-black ring-transparent group-hover:ring-slate-200'} transition-all`}></div>
-                  <span className="text-[11px] font-medium text-black">Black</span>
-                </label>
-              </div>
-            </div>
           </div>
           
           {/* Main Content Grid */}
           <div className="flex-1">
-            {cars.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader className="w-8 h-8 animate-spin text-yellow-500" />
+              </div>
+            ) : cars.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {cars.map((car, idx) => (
+                {cars.map((car) => (
                   <div key={car.id} className="bg-white rounded-3xl border border-gray-300 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow overflow-hidden flex flex-col relative group">
 
                     {/* Image Area - Clean White Background */}
-                    <div className="h-[220px] bg-white relative flex items-center justify-center p-4">
+                    <div className="h-[220px] bg-slate-50 relative flex items-center justify-center p-0 overflow-hidden">
                       <img 
-                        src={car.image} 
-                        alt={car.name} 
-                        className="max-h-full max-w-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        src={car.image || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600'} 
+                        alt={car.vehicleName} 
+                        className="min-h-full min-w-full object-cover group-hover:scale-105 transition-transform duration-500" 
                       />
                     </div>
                     
                     {/* Card Content */}
-                    <div className="px-6 pb-6 pt-2 flex-1 flex flex-col border-t border-slate-50">
+                    <div className="px-6 pb-6 pt-4 flex-1 flex flex-col border-t border-slate-50">
 
-                      <h3 className="font-extrabold text-black text-base mb-1.5 leading-tight">{car.name}</h3>
-                      {idx > 2 && (
-                        <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
-                          <MapPin className="w-3 h-3" /> {car.location}
-                        </p>
-                      )}
+                      <h3 className="font-extrabold text-black text-base mb-1.5 leading-tight">{car.vehicleName}</h3>
+                      <p className="text-[11px] font-medium text-black flex items-center gap-1.5 mb-6">
+                        <MapPin className="w-3 h-3" /> Bicol Region
+                      </p>
                       
                       {/* Specs Grid */}
-                      <div className={`grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 ${idx > 2 ? 'border-t border-slate-100' : ''}`}>
-                        <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /> <span className="font-medium">{car.vehicleType || car.fuel}</span></div>
+                      <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[11px] font-bold text-black mb-6 mt-auto pt-5 border-t border-slate-100">
+                        <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /> <span className="font-medium">{car.vehicleType || 'Car'}</span></div>
                         <div className="flex items-center gap-2"><Tag className="w-3.5 h-3.5" /> <span className="font-medium">{car.plateNumber || 'N/A'}</span></div>
-                        <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-black" /> {car.seats} seats</div>
-                        <div className="flex items-center gap-2"><Square className="w-3.5 h-3.5" /> <span className="font-medium">{car.color}</span></div>
+                        <div className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-black" /> {car.capacity || 4} seats</div>
+                        <div className="flex items-center gap-2"><Square className="w-3.5 h-3.5" /> <span className="font-medium">Standard</span></div>
                       </div>
                       
                       {/* Price & Action */}
                       <div className="flex items-center justify-between pt-1">
                         <div className="text-[10px] text-black font-medium">
-                          from <span className="text-lg font-black text-black ml-0.5">₱{car.price}</span>
+                          from <span className="text-lg font-black text-black ml-0.5">₱{Number(car.price).toLocaleString()}</span> / day
                         </div>
                         <Link 
                           to={`/car-rentals/${car.id}`}
@@ -256,7 +135,7 @@ const CarRentals = () => {
             ) : (
               <div className="h-64 flex flex-col items-center justify-center bg-slate-50 border border-slate-100 rounded-3xl">
                 <h3 className="text-black font-bold mb-2">No cars match your filters</h3>
-                <p className="text-black text-sm">Try changing the capacity or color.</p>
+                <p className="text-black text-sm">Try changing the capacity or price range.</p>
               </div>
             )}
           </div>

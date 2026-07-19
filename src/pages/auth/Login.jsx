@@ -2,12 +2,14 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { validateEmail, validateRequired } from '../../utils/validation';
 
 const Login = () => {
   const { login, user } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -24,8 +26,15 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all fields.');
+
+    const nextErrors = {
+      email: validateEmail(email),
+      password: validateRequired(password, 'Password'),
+    };
+    setFieldErrors(nextErrors);
+
+    if (nextErrors.email || nextErrors.password) {
+      setError('Please fix the highlighted fields.');
       return;
     }
 
@@ -67,11 +76,12 @@ const Login = () => {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             placeholder="you@example.com"
             autoComplete="email"
           />
+          {fieldErrors.email && <p className="mt-2 text-sm text-rose-600">{fieldErrors.email}</p>}
         </div>
 
         <div>
@@ -79,11 +89,22 @@ const Login = () => {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.password ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             placeholder="Enter your password"
             autoComplete="current-password"
           />
+          {fieldErrors.password && <p className="mt-2 text-sm text-rose-600">{fieldErrors.password}</p>}
+        </div>
+
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            state={{ email: email.trim() }}
+            className="text-sm font-semibold text-yellow-700 transition-colors hover:text-yellow-800 hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
         <button

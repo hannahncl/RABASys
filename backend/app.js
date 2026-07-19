@@ -6,6 +6,8 @@ const authRoutes = require("./routes/authRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const rentalBookingRoutes = require("./routes/rentalBookingRoutes");
+const tourGuideRoutes = require("./routes/tourGuideRoutes");
 
 const app = express();
 
@@ -27,8 +29,8 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Default Route
 app.get("/", (req, res) => {
@@ -39,11 +41,16 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/rental-bookings", rentalBookingRoutes);
+app.use("/api/tour-guides", tourGuideRoutes);
 app.use("/api", resourceRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 app.use((error, req, res, next) => {
     console.error(error);
+    if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
+        return res.status(400).json({ message: "Invalid JSON body." });
+    }
     if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A record with that unique value already exists." });
     if (error.code === "ER_NO_REFERENCED_ROW_2") return res.status(422).json({ message: "A referenced record does not exist." });
     res.status(500).json({ message: "An unexpected server error occurred." });

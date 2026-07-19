@@ -8,66 +8,69 @@ import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 >>>>>>> ad862ad748519c2d2ee7f9516014e8fcffc906e6
 import { useNotification } from '../../hooks/useNotification';
+import { validateNumber, validatePlateNumber, validateRequired } from '../../utils/validation';
 
 const AddCarRentalPage = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const [formData, setFormData] = useState({
-    vehicleName: '',
-    vehicleType: '',
-    plateNumber: '',
-    seatingCapacity: '',
-    dailyRate: '',
-    vehicleImage: ''
+    vehicle_name: '',
+    vehicle_type: '',
+    plate_number: '',
+    capacity: '',
+    daily_rate: '',
+    availability_status: 'Available',
+    image: '',
   });
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
-    if (name === 'vehicleImage' && files && files[0]) {
+    if (name === 'image' && files && files[0]) {
       const file = files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        setFormData(prev => ({ ...prev, vehicleImage: reader.result }));
+        setFormData(prev => ({ ...prev, image: reader.result }));
       };
       reader.readAsDataURL(file);
       return;
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSave = async () => {
-    const required = ['vehicleName', 'vehicleType', 'plateNumber', 'seatingCapacity', 'dailyRate', 'vehicleImage'];
-    const missing = required.filter(field => !String(formData[field]).trim());
+    const nextErrors = {
+      vehicle_name: validateRequired(formData.vehicle_name, 'Vehicle name'),
+      vehicle_type: validateRequired(formData.vehicle_type, 'Vehicle type'),
+      plate_number: validatePlateNumber(formData.plate_number),
+      capacity: validateNumber(formData.capacity, 'Capacity', { min: 1, max: 100 }),
+      daily_rate: validateNumber(formData.daily_rate, 'Daily rate', { min: 0 }),
+    };
+    setErrors(nextErrors);
 
-    if (missing.length > 0) {
-      showNotification('Please complete all fields before saving.', 'error');
+    if (Object.values(nextErrors).some(Boolean)) {
+      showNotification('Please fix the highlighted fields before saving.', 'error');
       return;
     }
 
     try {
-      const payload = {
+      await serviceService.create({
         category: 'car',
-        title: formData.vehicleName.trim(),
-        vehicleName: formData.vehicleName.trim(),
-        vehicleType: formData.vehicleType.trim(),
-        plateNumber: formData.plateNumber.trim(),
-        capacity: formData.seatingCapacity.trim(),
-        price: Number(formData.dailyRate),
-        image: formData.vehicleImage.trim(),
-        description: `${formData.vehicleName.trim()} available for daily rental.`,
-        destination: 'Bicol Region',
-        duration: 'Per Day',
-        tags: ['Car Rental', formData.vehicleType.trim()],
-        details: `Plate Number: ${formData.plateNumber.trim()}`
-      };
-
-      await serviceService.create({ ...payload, id: Date.now().toString() });
+        vehicleName: formData.vehicle_name.trim(),
+        vehicleType: formData.vehicle_type.trim(),
+        plateNumber: formData.plate_number.trim(),
+        seatingCapacity: formData.capacity,
+        dailyRate: Number(formData.daily_rate),
+        availabilityStatus: formData.availability_status,
+        vehicleImage: formData.image || null,
+      });
       showNotification('Car rental created successfully', 'success');
       navigate('/admin/services');
     } catch (error) {
-      showNotification('Failed to create car rental', 'error');
+      showNotification(error.message || 'Failed to create car rental', 'error');
     }
   };
 
@@ -88,29 +91,51 @@ const AddCarRentalPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Name</label>
-            <input name="vehicleName" value={formData.vehicleName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="vehicle_name" value={formData.vehicle_name} onChange={handleChange} placeholder="e.g. Toyota HiAce" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.vehicle_name ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.vehicle_name && <p className="mt-1 text-xs text-rose-400">{errors.vehicle_name}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Type</label>
-            <input name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <select name="vehicle_type" value={formData.vehicle_type} onChange={handleChange} className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.vehicle_type ? 'border-rose-500' : 'border-slate-700'}`}>
+              <option value="">Select type...</option>
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Van">Van</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="Bus">Bus</option>
+              <option value="Other">Other</option>
+            </select>
+            {errors.vehicle_type && <p className="mt-1 text-xs text-rose-400">{errors.vehicle_type}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Plate Number</label>
-            <input name="plateNumber" value={formData.plateNumber} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="plate_number" value={formData.plate_number} onChange={handleChange} placeholder="e.g. ABC 1234" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.plate_number ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.plate_number && <p className="mt-1 text-xs text-rose-400">{errors.plate_number}</p>}
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Seating Capacity</label>
-            <input name="seatingCapacity" type="number" value={formData.seatingCapacity} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Capacity (Passengers)</label>
+            <input name="capacity" type="number" min="1" value={formData.capacity} onChange={handleChange} placeholder="e.g. 7" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.capacity ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.capacity && <p className="mt-1 text-xs text-rose-400">{errors.capacity}</p>}
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Daily Rate</label>
-            <input name="dailyRate" type="number" value={formData.dailyRate} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Daily Rate (PHP)</label>
+            <input name="daily_rate" type="number" min="0" step="0.01" value={formData.daily_rate} onChange={handleChange} placeholder="e.g. 3500" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.daily_rate ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.daily_rate && <p className="mt-1 text-xs text-rose-400">{errors.daily_rate}</p>}
           </div>
           <div>
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Availability Status</label>
+            <select name="availability_status" value={formData.availability_status} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none">
+              <option value="Available">Available</option>
+              <option value="Unavailable">Unavailable</option>
+              <option value="Maintenance">Under Maintenance</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Image</label>
-            <input name="vehicleImage" type="file" accept="image/*" onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30" />
-            {formData.vehicleImage && (
-              <img src={formData.vehicleImage} alt="Vehicle preview" className="mt-3 h-32 w-full rounded-lg object-cover border border-slate-800" />
+            <input name="image" type="file" accept="image/*" onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30" />
+            {formData.image && (
+              <img src={formData.image} alt="Vehicle preview" className="mt-3 h-32 w-full rounded-lg object-cover border border-slate-800" />
             )}
           </div>
         </div>
