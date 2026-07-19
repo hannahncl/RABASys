@@ -53,12 +53,23 @@ async function ensureSchema() {
         meeting_location VARCHAR(255) NULL,
         itinerary JSON NULL,
         availability_status VARCHAR(50) NOT NULL DEFAULT 'Available',
-        image VARCHAR(500) NULL,
+        package_type VARCHAR(50) NOT NULL DEFAULT 'tour',
+        image TEXT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (package_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    const [packageTypeColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'package_type'`);
+    if (!packageTypeColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN package_type VARCHAR(50) NOT NULL DEFAULT 'tour'`);
+    }
+
+    const [imageColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'image'`);
+    if (!imageColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN image TEXT NULL`);
+    }
 
     await db.query(`CREATE TABLE IF NOT EXISTS vehicle (
         vehicle_id INT UNSIGNED NOT NULL AUTO_INCREMENT,

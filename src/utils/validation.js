@@ -1,9 +1,22 @@
 export const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export function normalizePhone(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
 export function validateEmail(value) {
   if (!value?.trim()) return 'Email is required.';
   if (!emailRegex.test(value.trim())) return 'Please enter a valid email address.';
   return '';
+}
+
+export function validateEmailOrPhone(value) {
+  if (!value?.trim()) return 'Email or phone is required.';
+  const trimmed = value.trim();
+  if (emailRegex.test(trimmed)) return '';
+  const normalizedPhone = normalizePhone(trimmed);
+  if (normalizedPhone.length >= 10 && normalizedPhone.length <= 13) return '';
+  return 'Please enter a valid email address or phone number.';
 }
 
 export function validatePassword(value) {

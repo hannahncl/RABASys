@@ -53,14 +53,14 @@ export const AuthProvider = ({ children }) => {
     return sessionUser;
   };
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     setLoading(true);
     try {
       return {
         success: true,
         user: saveSession(await api('/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ identifier, password }),
         })),
       };
     } catch (error) {
