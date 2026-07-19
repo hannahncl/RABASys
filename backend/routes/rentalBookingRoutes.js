@@ -39,7 +39,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 
 router.post("/", requireAuth, async (req, res, next) => {
     try {
-        const { vehicle_id, pickup_date, return_date, pickup_location } = req.body;
+        const { vehicle_id, pickup_date, return_date, pickup_location, payment_method, payment_reference } = req.body;
         
         if (!vehicle_id || !pickup_date || !return_date || !pickup_location) {
             return res.status(422).json({ message: "vehicle_id, pickup_date, return_date, and pickup_location are required." });
@@ -53,7 +53,6 @@ router.post("/", requireAuth, async (req, res, next) => {
         const vehicle = vehicles[0];
         if (!vehicle) return res.status(404).json({ message: "Available vehicle not found." });
 
-        // Calculate days
         const start = new Date(pickup_date);
         const end = new Date(return_date);
         if (end <= start) return res.status(422).json({ message: "Return date must be after pickup date." });
@@ -61,12 +60,12 @@ router.post("/", requireAuth, async (req, res, next) => {
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const totalAmount = Number(vehicle.daily_rate) * diffDays;
-
-        const reference = `RBC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+        const reference = payment_reference?.trim() || `RBC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+        const paymentMethod = payment_method?.trim() || 'GCash';
         
         const [result] = await db.execute(
-            "INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)",
-            [req.user.accountId, vehicle_id, reference, pickup_date, return_date, pickup_location, totalAmount]
+            "INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, 'Pending', ?)",
+            [req.user.accountId, vehicle_id, reference, pickup_date, return_date, pickup_location, totalAmount, paymentMethod]
         );
         
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [result.insertId]);

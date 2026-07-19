@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { validateNumber, validatePlateNumber, validateRequired } from '../../utils/validation';
 
 const AddCarRentalPage = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const AddCarRentalPage = () => {
     availability_status: 'Available',
     image: '',
   });
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -31,14 +33,21 @@ const AddCarRentalPage = () => {
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSave = async () => {
-    const required = ['vehicle_name', 'vehicle_type', 'plate_number', 'capacity', 'daily_rate'];
-    const missing = required.filter(field => !String(formData[field]).trim());
+    const nextErrors = {
+      vehicle_name: validateRequired(formData.vehicle_name, 'Vehicle name'),
+      vehicle_type: validateRequired(formData.vehicle_type, 'Vehicle type'),
+      plate_number: validatePlateNumber(formData.plate_number),
+      capacity: validateNumber(formData.capacity, 'Capacity', { min: 1, max: 100 }),
+      daily_rate: validateNumber(formData.daily_rate, 'Daily rate', { min: 0 }),
+    };
+    setErrors(nextErrors);
 
-    if (missing.length > 0) {
-      showNotification('Please complete all fields before saving.', 'error');
+    if (Object.values(nextErrors).some(Boolean)) {
+      showNotification('Please fix the highlighted fields before saving.', 'error');
       return;
     }
 
@@ -77,11 +86,12 @@ const AddCarRentalPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Name</label>
-            <input name="vehicle_name" value={formData.vehicle_name} onChange={handleChange} placeholder="e.g. Toyota HiAce" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="vehicle_name" value={formData.vehicle_name} onChange={handleChange} placeholder="e.g. Toyota HiAce" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.vehicle_name ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.vehicle_name && <p className="mt-1 text-xs text-rose-400">{errors.vehicle_name}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Type</label>
-            <select name="vehicle_type" value={formData.vehicle_type} onChange={handleChange} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none">
+            <select name="vehicle_type" value={formData.vehicle_type} onChange={handleChange} className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.vehicle_type ? 'border-rose-500' : 'border-slate-700'}`}>
               <option value="">Select type...</option>
               <option value="Sedan">Sedan</option>
               <option value="SUV">SUV</option>
@@ -91,18 +101,22 @@ const AddCarRentalPage = () => {
               <option value="Bus">Bus</option>
               <option value="Other">Other</option>
             </select>
+            {errors.vehicle_type && <p className="mt-1 text-xs text-rose-400">{errors.vehicle_type}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Plate Number</label>
-            <input name="plate_number" value={formData.plate_number} onChange={handleChange} placeholder="e.g. ABC 1234" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="plate_number" value={formData.plate_number} onChange={handleChange} placeholder="e.g. ABC 1234" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.plate_number ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.plate_number && <p className="mt-1 text-xs text-rose-400">{errors.plate_number}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Capacity (Passengers)</label>
-            <input name="capacity" type="number" min="1" value={formData.capacity} onChange={handleChange} placeholder="e.g. 7" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="capacity" type="number" min="1" value={formData.capacity} onChange={handleChange} placeholder="e.g. 7" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.capacity ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.capacity && <p className="mt-1 text-xs text-rose-400">{errors.capacity}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Daily Rate (PHP)</label>
-            <input name="daily_rate" type="number" min="0" step="0.01" value={formData.daily_rate} onChange={handleChange} placeholder="e.g. 3500" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <input name="daily_rate" type="number" min="0" step="0.01" value={formData.daily_rate} onChange={handleChange} placeholder="e.g. 3500" className={`w-full bg-slate-950 border rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none ${errors.daily_rate ? 'border-rose-500' : 'border-slate-700'}`} />
+            {errors.daily_rate && <p className="mt-1 text-xs text-rose-400">{errors.daily_rate}</p>}
           </div>
           <div>
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Availability Status</label>

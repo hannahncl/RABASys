@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
 
 const Register = () => {
   const { register } = useContext(AuthContext);
@@ -12,18 +13,25 @@ const Register = () => {
   const [contactNumber, setContactNumber] = useState('');
 
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password || !firstName || !lastName || !contactNumber) {
-      setError('Please fill in all fields.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must contain at least 8 characters.');
+
+    const nextErrors = {
+      email: validateEmail(email),
+      password: validatePassword(password),
+      firstName: validateName(firstName, 'First name'),
+      lastName: validateName(lastName, 'Last name'),
+      contactNumber: validatePhone(contactNumber),
+    };
+    setFieldErrors(nextErrors);
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setError('Please fix the highlighted fields.');
       return;
     }
 
@@ -69,10 +77,11 @@ const Register = () => {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             placeholder=""
           />
+          {fieldErrors.email && <p className="mt-2 text-sm text-rose-600">{fieldErrors.email}</p>}
         </div>
 
         <div>
@@ -80,12 +89,13 @@ const Register = () => {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.password ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             minLength="8"
             autoComplete="new-password"
             placeholder="At least 8 characters"
           />
+          {fieldErrors.password && <p className="mt-2 text-sm text-rose-600">{fieldErrors.password}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -94,20 +104,22 @@ const Register = () => {
             <input
               type="text"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none"
+              onChange={(e) => { setFirstName(e.target.value); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
+              className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none ${fieldErrors.firstName ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
               placeholder=""
             />
+            {fieldErrors.firstName && <p className="mt-2 text-sm text-rose-600">{fieldErrors.firstName}</p>}
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-600">Last Name</label>
             <input
               type="text"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none"
+              onChange={(e) => { setLastName(e.target.value); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
+              className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none ${fieldErrors.lastName ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
               placeholder=""
             />
+            {fieldErrors.lastName && <p className="mt-2 text-sm text-rose-600">{fieldErrors.lastName}</p>}
           </div>
         </div>
 
@@ -117,10 +129,11 @@ const Register = () => {
             type="text"
             autoComplete="tel"
             value={contactNumber}
-            onChange={(e) => setContactNumber(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none"
+            onChange={(e) => { setContactNumber(e.target.value); if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' })); }}
+            className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.contactNumber ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             placeholder=""
           />
+          {fieldErrors.contactNumber && <p className="mt-2 text-sm text-rose-600">{fieldErrors.contactNumber}</p>}
         </div>
 
         <button
