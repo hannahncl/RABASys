@@ -22,35 +22,75 @@ const frontendUser = (user, token) => {
   };
 };
 
+const clearStoredAuth = () => {
+  localStorage.removeItem('rabas_auth_token');
+  localStorage.removeItem('rabas_current_user');
+  localStorage.removeItem('rabas_session_id');
+  localStorage.removeItem('rabas_session_expires_at');
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const persistSession = (token, currentUser, sessionMeta = {}) => {
+    if (!token || !currentUser) {
+      clearStoredAuth();
+      setUser(null);
+      return null;
+    }
+
+    const sessionUser = frontendUser(currentUser, token);
+    localStorage.setItem('rabas_auth_token', token);
+    localStorage.setItem('rabas_current_user', JSON.stringify(sessionUser));
+
+    if (sessionMeta.sessionId) {
+      localStorage.setItem('rabas_session_id', String(sessionMeta.sessionId));
+    }
+    if (sessionMeta.expiresAt) {
+      localStorage.setItem('rabas_session_expires_at', sessionMeta.expiresAt);
+    }
+
+    setUser(sessionUser);
+    return sessionUser;
+  };
+
   useEffect(() => {
     const restore = async () => {
       const token = localStorage.getItem('rabas_auth_token');
+      const sessionExpiresAt = localStorage.getItem('rabas_session_expires_at');
       if (!token) return setLoading(false);
+      if (sessionExpiresAt && new Date(sessionExpiresAt).getTime() <= Date.now()) {
+        clearStoredAuth();
+        return setLoading(false);
+      }
+
       try {
-        const { user: databaseUser } = await api('/auth/me');
-        const sessionUser = frontendUser(databaseUser, token);
-        setUser(sessionUser);
-        localStorage.setItem('rabas_current_user', JSON.stringify(sessionUser));
+        const { user: databaseUser, session } = await api('/auth/me');
+        persistSession(token, databaseUser, session);
       } catch {
-        localStorage.removeItem('rabas_auth_token');
-        localStorage.removeItem('rabas_current_user');
+        clearStoredAuth();
       } finally {
         setLoading(false);
       }
     };
+
+    const handleSessionInvalidation = () => {
+      clearStoredAuth();
+      setUser(null);
+    };
+
+    window.addEventListener('rabas-auth-invalidated', handleSessionInvalidation);
     restore();
+
+    return () => window.removeEventListener('rabas-auth-invalidated', handleSessionInvalidation);
   }, []);
 
   const saveSession = (data) => {
-    localStorage.setItem('rabas_auth_token', data.token);
-    const sessionUser = frontendUser(data.user, data.token);
-    localStorage.setItem('rabas_current_user', JSON.stringify(sessionUser));
-    setUser(sessionUser);
-    return sessionUser;
+    return persistSession(data.token, data.user, {
+      sessionId: data.sessionId,
+      expiresAt: data.expiresAt,
+    });
   };
 
   const login = async (email, password) => {
@@ -87,10 +127,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const token = localStorage.getItem('rabas_auth_token');
+    if (token) {
+      try {
+        await api('/auth/logout', { method: 'POST' });
+      } catch {
+        // Ignore network or auth errors and clear the client state anyway.
+      }
+    }
+
+    clearStoredAuth();
     setUser(null);
-    localStorage.removeItem('rabas_auth_token');
-    localStorage.removeItem('rabas_current_user');
   };
 
   const updateUserSession = (updatedFields) => {
