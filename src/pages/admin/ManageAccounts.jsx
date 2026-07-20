@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { accountService } from '../../services/accountService';
 import { Plus, Edit, Save, X, Loader, UserCheck, UserX, Search } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { validatePassword } from '../../utils/validation';
 
 const ManageAccounts = () => {
   const [accounts, setAccounts] = useState([]);
@@ -89,6 +90,7 @@ const ManageAccounts = () => {
       firstName: '',
       lastName: '',
       email: '',
+      password: '',
       phone: '',
       sex: '',
       birthDate: '',
@@ -119,6 +121,14 @@ const ManageAccounts = () => {
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       showNotification('Please fill in all required fields', 'error');
       return;
+    }
+
+    if (editingId === 'new') {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        showNotification(passwordError, 'error');
+        return;
+      }
     }
 
     try {
@@ -293,12 +303,29 @@ const ManageAccounts = () => {
             <div>
               <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Email Address</label>
               <input
+                type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
               />
             </div>
+            {editingId === 'new' && (
+              <div>
+                <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  minLength="8"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-slate-500">Use at least 8 characters, including one uppercase letter and one number.</p>
+              </div>
+            )}
             <div>
               <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Contact Number</label>
               <input

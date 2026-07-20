@@ -1,10 +1,13 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const crypto = require("crypto");
 const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
+const hasValidPassword = (password) => typeof password === "string"
+    && password.length >= 8
+    && /[A-Z]/.test(password)
+    && /[0-9]/.test(password);
 
 // Full JOIN query to get both account + tour_guide data
 const guideSelect = `
@@ -61,17 +64,22 @@ router.post("/", requireAuth, allowRoles("Admin"), async (req, res, next) => {
     try {
         await conn.beginTransaction();
 
-        const { firstName, lastName, email, contactNumber, sex, birthDate, yearsExperience, description, languageSpoken } = req.body;
+        const { firstName, lastName, email, password, contactNumber, sex, birthDate, yearsExperience, description, languageSpoken } = req.body;
 
-        if (!firstName || !lastName || !email || !contactNumber) {
+        if (!firstName || !lastName || !email || !password || !contactNumber) {
             await conn.rollback();
             conn.release();
-            return res.status(422).json({ message: "firstName, lastName, email, and contactNumber are required." });
+            return res.status(422).json({ message: "firstName, lastName, email, password, and contactNumber are required." });
         }
 
         // Generate a temporary password — admin should inform the guide to reset it
-        const tempPassword = crypto.randomBytes(8).toString('hex');
-        const passwordHash = await bcrypt.hash(tempPassword, 12);
+        if (!hasValidPassword(password)) {
+            await conn.rollback();
+            conn.release();
+            return res.status(422).json({ message: "Password must be at least 8 characters and include one uppercase letter and one number." });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
 
         const [accountResult] = await conn.execute(
             "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role, account_status) VALUES (?, ?, ?, ?, ?, 'Tour Guide', 'Active')",
@@ -91,7 +99,7 @@ router.post("/", requireAuth, allowRoles("Admin"), async (req, res, next) => {
 
         const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "tour_guide", recordId: accountId, newValues: rows[0], req });
-        res.status(201).json({ ...formatGuide(rows[0]), tempPassword });
+        res.status(201).json(formatGuide(rows[0]));
     } catch (e) {
         await conn.rollback();
         conn.release();

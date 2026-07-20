@@ -53,6 +53,7 @@ export const accountService = {
         firstName: item.firstName,
         lastName: item.lastName,
         email: item.email,
+        password: item.password,
         contactNumber: item.phone || item.contactNumber,
         sex: item.sex || 'Male',
         birthDate: item.birthDate || null,
