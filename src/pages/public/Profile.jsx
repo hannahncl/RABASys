@@ -58,12 +58,14 @@ const Profile = () => {
   const [accountRecord, setAccountRecord] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
 
   // Edit fields  — match Register.jsx fields exactly
   const [firstName, setFirstName]         = useState('');
   const [lastName, setLastName]           = useState('');
   const [email, setEmail]                 = useState('');
   const [contactNumber, setContactNumber] = useState('');
+  const [address, setAddress]             = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
   // ── Load account & bookings on mount ──
@@ -78,7 +80,10 @@ const Profile = () => {
             id: String(match.id), name: match.name, email: match.email,
             phone: match.contactNumber, contactNumber: match.contactNumber,
           };
-          setAccountRecord(account);
+          setAccountRecord({
+            ...account,
+            twoFactorEnabled: Boolean(match.twoFactorEnabled),
+          });
           const parts = (match.name || user.name || '').split(' ');
           setFirstName(parts[0] || '');
           setLastName(parts.slice(1).join(' ') || '');
@@ -139,7 +144,15 @@ const Profile = () => {
           method: 'PATCH',
           body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), contactNumber: contactNumber.trim() }),
         });
-        setAccountRecord({ id: String(updated.id), name: updated.name, email: updated.email, phone: updated.contactNumber, contactNumber: updated.contactNumber });
+        setAccountRecord(prev => ({
+          ...(prev || {}),
+          id: String(updated.id),
+          name: updated.name,
+          email: updated.email,
+          phone: updated.contactNumber,
+          contactNumber: updated.contactNumber,
+          twoFactorEnabled: Boolean(prev?.twoFactorEnabled ?? updated.twoFactorEnabled),
+        }));
       }
       updateUserSession({
         name: fullName,
@@ -162,6 +175,27 @@ const Profile = () => {
     setContactNumber(accountRecord?.phone || user?.contactNumber || '');
     setSelectedAvatar(accountRecord?.avatar || AVATARS[0]);
     setEditing(false);
+  };
+
+  const handleTwoFactorToggle = async () => {
+    if (!accountRecord) return;
+    setTwoFactorSaving(true);
+    try {
+      const { user: updated } = await api('/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ twoFactorEnabled: !accountRecord.twoFactorEnabled }),
+      });
+      const refreshed = {
+        ...accountRecord,
+        twoFactorEnabled: Boolean(updated.twoFactorEnabled),
+      };
+      setAccountRecord(refreshed);
+      updateUserSession({ twoFactorEnabled: Boolean(updated.twoFactorEnabled) });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTwoFactorSaving(false);
+    }
   };
 
   // ── Counts for tab badges ──
@@ -209,6 +243,23 @@ const Profile = () => {
 
                 <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
                 <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Two-factor authentication</p>
+                      <p className="text-xs text-slate-500">Receive a 6-digit code by email when you sign in.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTwoFactorToggle}
+                      disabled={twoFactorSaving}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${accountRecord?.twoFactorEnabled ? 'bg-yellow-500' : 'bg-slate-300'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-all ${accountRecord?.twoFactorEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   onClick={() => setEditing(true)}
