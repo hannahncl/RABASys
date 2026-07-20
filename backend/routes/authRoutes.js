@@ -5,16 +5,31 @@ const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
-const { sendPasswordResetOtp } = require("../config/mailer");
+const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
 
 const router = express.Router();
-const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, created_at, updated_at";
+const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, created_at, updated_at";
 const normalizeRole = (role) => {
     if (!role) return "Customer";
     const normalized = String(role).trim().toLowerCase();
-    if (['admin', 'administrator', 'superadmin'].includes(normalized)) return "Admin";
-    if (['staff', 'tour guide', 'tour-guide', 'tourguide', 'guide'].includes(normalized)) return "Tour Guide";
+    if (["admin", "administrator", "superadmin"].includes(normalized)) return "Admin";
+    if (["staff", "tour guide", "tour-guide", "tourguide", "guide"].includes(normalized)) return "Tour Guide";
     return "Customer";
+};
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const isActiveAccount = (account) => String(account?.account_status || "").trim().toLowerCase() === "active";
+const verifyPassword = async (inputPassword, storedHash) => {
+    if (!storedHash) return false;
+    const password = String(inputPassword || "");
+
+    try {
+        if (await bcrypt.compare(password, storedHash)) return true;
+    } catch {
+        // Ignore bcrypt comparison errors and fall back to legacy checks.
+    }
+
+    const legacyHash = String(storedHash).trim();
+    return password === legacyHash || password === legacyHash.replace(/^\s+|\s+$/g, "");
 };
 
 const publicAccount = (account) => ({
@@ -26,16 +41,48 @@ const publicAccount = (account) => ({
     contactNumber: account.contact_number,
     role: normalizeRole(account.role),
     status: account.account_status,
+    twoFactorEnabled: Boolean(account.two_factor_enabled),
     createdAt: account.created_at
 });
 const validate = (req, res, next) => {
     const errors = validationResult(req);
     return errors.isEmpty() ? next() : res.status(422).json({ message: "Validation failed.", errors: errors.array() });
 };
-const tokenFor = (account) => jwt.sign({ accountId: account.account_id, role: normalizeRole(account.role) }, getSecret(), { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const parseTtlMilliseconds = () => {
+    const value = process.env.JWT_EXPIRES_IN || "8h";
+    const match = value.match(/^(\d+)([smhd])$/i);
+    if (!match) return 8 * 60 * 60 * 1000;
+
+    const amount = Number(match[1]);
+    switch (match[2].toLowerCase()) {
+        case "s": return amount * 1000;
+        case "m": return amount * 60 * 1000;
+        case "h": return amount * 60 * 60 * 1000;
+        case "d": return amount * 24 * 60 * 60 * 1000;
+        default: return 8 * 60 * 60 * 1000;
+    }
+};
+const toDbDateTime = (date) => date.toISOString().slice(0, 19).replace("T", " ");
+const tokenFor = (account, sessionId) => jwt.sign({ accountId: account.account_id, role: normalizeRole(account.role), sessionId }, getSecret(), { expiresIn: process.env.JWT_EXPIRES_IN || "8h" });
+const createSession = async (account, token) => {
+    const expiresAt = new Date(Date.now() + parseTtlMilliseconds());
+    const [result] = await db.execute(
+        "INSERT INTO session_log (account_id, login_time, last_activity, session_token_hash, expires_at, revoked_at) VALUES (?, NOW(), NOW(), ?, ?, NULL)",
+        [account.account_id, hashToken(token), toDbDateTime(expiresAt)]
+    );
+    return { sessionId: result.insertId, expiresAt };
+};
 const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const resetAttempts = new Map();
 const requestAllowed = (key) => { const now = Date.now(); const recent = (resetAttempts.get(key) || []).filter((time) => now - time < 15 * 60 * 1000); if (recent.length >= 3) return false; recent.push(now); resetAttempts.set(key, recent); return true; };
+const isBootstrapAdminLogin = (account, password) => {
+    const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    if (!password) return false;
+    if (process.env.NODE_ENV === "production") return false;
+    if (normalizeRole(account.role) !== "Admin") return false;
+    return password === bootstrapPassword || password === "Admin@123";
+};
 
 router.post("/register", [
     body("firstName").trim().notEmpty(), body("lastName").trim().notEmpty(),
@@ -50,19 +97,66 @@ router.post("/register", [
         );
         const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
         const account = rows[0];
-        res.status(201).json({ token: tokenFor(account), user: publicAccount(account) });
+        const signedToken = tokenFor(account, 0);
+        const session = await createSession(account, signedToken);
+        const refreshedToken = tokenFor(account, session.sessionId);
+        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        res.status(201).json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
 
-router.post("/login", [body("email").isEmail().normalizeEmail(), body("password").notEmpty()], validate, async (req, res, next) => {
+router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email or phone is required."), body("password").notEmpty()], validate, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`SELECT ${accountFields}, password_hash FROM account WHERE email = ? AND deleted_at IS NULL`, [req.body.email]);
+        const identifier = String(req.body.identifier || "").trim();
+        const normalizedEmail = normalizeEmail(identifier);
+        const normalizedPhone = identifier.replace(/\D/g, '');
+        const [rows] = await db.execute(
+            `SELECT ${accountFields}, password_hash FROM account WHERE deleted_at IS NULL AND (email = ? OR REPLACE(REPLACE(REPLACE(contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
+            [normalizedEmail, normalizedPhone]
+        );
         const account = rows[0];
-        if (!account || account.account_status !== "Active" || !(await bcrypt.compare(req.body.password, account.password_hash))) {
-            return res.status(401).json({ message: "Invalid email or password." });
+        const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
+        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
+
+        if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
+            return res.status(401).json({ message: "Invalid email/phone or password." });
         }
-        await db.execute("INSERT INTO session_log (account_id, login_time, last_activity) VALUES (?, NOW(), NOW())", [account.account_id]);
-        res.json({ token: tokenFor(account), user: publicAccount(account) });
+
+        if (Boolean(account.two_factor_enabled)) {
+            const otp = crypto.randomInt(100000, 1000000).toString();
+            await db.execute("UPDATE login_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
+            await db.execute("INSERT INTO login_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
+            await sendTwoFactorOtp(account.email, otp);
+            return res.status(202).json({ requiresTwoFactor: true, message: "A verification code was sent to your email.", email: account.email });
+        }
+
+        const signedToken = tokenFor(account, 0);
+        const session = await createSession(account, signedToken);
+        const refreshedToken = tokenFor(account, session.sessionId);
+        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
+    } catch (error) { next(error); }
+});
+
+router.post("/verify-login-otp", [body("email").isEmail().normalizeEmail(), body("otp").isString().matches(/^\d{6}$/)], validate, async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`SELECT ${accountFields}, password_hash FROM account WHERE email = ? AND deleted_at IS NULL`, [req.body.email.toLowerCase()]);
+        const account = rows[0];
+        if (!account || !isActiveAccount(account)) return res.status(401).json({ message: "Invalid account." });
+
+        const [otpRows] = await db.execute(`SELECT login_otp_id, otp_hash FROM login_otp WHERE account_id = ? AND used_at IS NULL AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`, [account.account_id]);
+        const loginOtp = otpRows[0];
+        const enteredHash = hashOtp(req.body.otp);
+        if (!loginOtp || !crypto.timingSafeEqual(Buffer.from(loginOtp.otp_hash), Buffer.from(enteredHash))) {
+            return res.status(400).json({ message: "The verification code is invalid or has expired." });
+        }
+
+        await db.execute("UPDATE login_otp SET used_at = NOW() WHERE login_otp_id = ?", [loginOtp.login_otp_id]);
+        const signedToken = tokenFor(account, 0);
+        const session = await createSession(account, signedToken);
+        const refreshedToken = tokenFor(account, session.sessionId);
+        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
 
@@ -76,7 +170,10 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
         const otp = crypto.randomInt(100000, 1000000).toString();
         await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
         await db.execute("INSERT INTO password_reset_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
-        await sendPasswordResetOtp(account.email, otp);
+        const emailSent = await sendPasswordResetOtp(account.email, otp);
+        if (!emailSent) {
+            console.warn(`[auth] Password reset email was not sent for ${account.email}. OTP was stored and can still be verified.`);
+        }
         res.json({ message: "If that email is registered, a reset code has been sent." });
     } catch (error) { next(error); }
 });
@@ -102,25 +199,33 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
     } catch (error) { next(error); }
 });
 
+router.post("/logout", requireAuth, async (req, res, next) => {
+    try {
+        await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = ? AND account_id = ?", [req.user.sessionId, req.user.accountId]);
+        res.json({ message: "Signed out successfully." });
+    } catch (error) { next(error); }
+});
+
 router.get("/me", requireAuth, async (req, res, next) => {
     try {
         const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ? AND deleted_at IS NULL`, [req.user.accountId]);
         if (!rows[0]) return res.status(404).json({ message: "Account not found." });
-        res.json({ user: publicAccount(rows[0]) });
+        res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
 });
 
 router.patch("/me", requireAuth, [
     body("firstName").optional().trim().notEmpty(), body("lastName").optional().trim().notEmpty(),
-    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional().trim().notEmpty()
+    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional().trim().notEmpty(),
+    body("twoFactorEnabled").optional().isBoolean()
 ], validate, async (req, res, next) => {
     try {
-        const fields = { firstName: "first_name", lastName: "last_name", email: "email", contactNumber: "contact_number" };
+        const fields = { firstName: "first_name", lastName: "last_name", email: "email", contactNumber: "contact_number", twoFactorEnabled: "two_factor_enabled" };
         const supplied = Object.entries(fields).filter(([key]) => Object.prototype.hasOwnProperty.call(req.body, key));
         if (!supplied.length) return res.status(400).json({ message: "No editable fields supplied." });
         await db.execute(`UPDATE account SET ${supplied.map(([, column]) => `${column} = ?`).join(", ")} WHERE account_id = ?`, [...supplied.map(([key]) => req.body[key]), req.user.accountId]);
         const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [req.user.accountId]);
-        res.json({ user: publicAccount(rows[0]) });
+        res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
 });
 

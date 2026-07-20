@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { tripUploadService } from '../../services/tripUploadService';
+import { api } from '../../services/api';
 import { Compass, Search, Star, MapPin, Sparkles, Activity, Clock, Users } from 'lucide-react';
 
 const Home = () => {
   const [packages, setPackages] = useState([]);
   const [liveUpdates, setLiveUpdates] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
   const navigate = useNavigate();
@@ -17,6 +19,12 @@ const Home = () => {
       setPackages(allPkgs);
       const updates = await tripUploadService.getAll();
       setLiveUpdates(updates.slice(0, 3)); // show top 3 updates
+      try {
+        const reviewData = await api('/reviews');
+        setReviews(reviewData);
+      } catch (err) {
+        console.error('Failed to load reviews', err);
+      }
     };
     loadData();
   }, []);
@@ -29,9 +37,17 @@ const Home = () => {
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch = pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pkg.destination.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
+    const matchesTag = selectedTag === 'All' || pkg.tags?.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
+
+  const showcaseImages = [
+    { id: 'albay', title: 'Albay', image: '/ALBAY.jpg' },
+    { id: 'calaguas', title: 'Calaguas', image: '/CALAGUAS.jpg' },
+    { id: 'caramoan', title: 'Caramoan', image: '/CARAMOAN.jpg' },
+    { id: 'matnog', title: 'Matnog', image: '/MATNOG.jpg' },
+    { id: 'sorsogon', title: 'Sorsogon', image: '/SORSOGON.jpg' }
+  ];
 
   const allTags = ['All', 'Beach', 'Adventure', 'Cultural', 'Nature', 'Premium'];
 
@@ -42,29 +58,39 @@ const Home = () => {
         {/* Background Image Overlay */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
-          style={{ backgroundImage: "url('https://scontent.fmnl13-1.fna.fbcdn.net/v/t39.30808-6/605142635_122106586599161293_6988448289106656481_n.jpg?stp=dst-jpg_tt6&cstp=mx1277x473&ctp=s1277x473&_nc_cat=100&ccb=1-7&_nc_sid=cc71e4&_nc_eui2=AeF_uc_b11_NcM23MgjPh0PlHhAWfN3qtJUeEBZ83eq0lZnLGtXHozxjVVKGRQSpWNbLuCKeebfcJBXW6x1077Y6&_nc_ohc=1svVWawJR_oQ7kNvwEEVMeR&_nc_oc=AdqrE3UQuC4aUqK2srM-GDlt_Fw3lizs8v7IcUlIQIk5QEa3JXRxxytSx8O0bx3e5GI&_nc_zt=23&_nc_ht=scontent.fmnl13-1.fna&_nc_gid=xK7bydNzO4HVPoJBLOGQdg&_nc_ss=7b2a8&oh=00_AQA7DGhGqLr6m1aXaTvGdEpn4YhJDMazxZdsLNVf8H0U1g&oe=6A5C2F01')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950" />
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl text-center space-y-8 px-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider animate-bounce">
-            <Sparkles className="h-3.5 w-3.5" />
-            Explore the Gems of the Philippines
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight leading-none font-display">
-            EXPLORE BICOL, THE <br />
-            <span className="text-cyan-400 text-glow-cyan">
-              RABAS WAY
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-100 tracking-tight leading-[0.95] font-display whitespace-nowrap mt-2 mb-6">
+            Explore Bicol the
+            <span className="ml-2 text-cyan-400 text-glow-cyan">
+              RABAS Way
             </span>
           </h1>
 
-          <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-            Experience premium curated island hopping, culture tours, and outdoor wonders. Instant GCash checkout, real-time forecasts, and live tour reports.
-          </p>
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="flex justify-center items-stretch gap-3 px-1 pb-2">
+              {showcaseImages.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative flex-[0_0_calc(100%/5-0.75rem)] min-w-[190px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <p className="text-sm font-semibold">{item.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          {/* Search Form */}
           <form
             onSubmit={handleSearchSubmit}
             className="flex flex-col sm:flex-row items-center gap-3 max-w-2xl mx-auto bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-xl"
@@ -314,19 +340,17 @@ const Home = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <h2 className="text-3xl font-extrabold font-display text-slate-100 text-center">What Tourists Say About Rabas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { name: 'Alden Richards', text: 'El Nido Premium island hopping was seamless! The GCash checkout took 20 seconds, and our tour guide sent weather updates every morning.', rating: 5 },
-            { name: 'Sarah Geronimo', text: 'Loved the Siargao Surf Package. Suggested spots were perfect, and having the weather integration saved our itinerary when it rained on Day 4.', rating: 5 },
-            { name: 'Catriona Gray', text: 'Excellent service. Batanes was a dream, and the cultural guides were incredibly helpful. Highly recommend Rabas for hassle-free booking.', rating: 5 }
-          ].map((item, index) => (
-            <div key={index} className="glass-panel p-6 rounded-2xl border-slate-800 space-y-4">
+          {reviews.length > 0 ? reviews.map((item, index) => (
+            <div key={item.review_id || index} className="glass-panel p-6 rounded-2xl border-slate-800 space-y-4 flex flex-col">
               <div className="flex gap-1 text-amber-400">
                 {[...Array(item.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
               </div>
-              <p className="text-slate-300 text-sm italic leading-relaxed">"{item.text}"</p>
-              <h4 className="text-slate-400 font-semibold text-xs tracking-wider uppercase">— {item.name}</h4>
+              <p className="text-slate-300 text-sm italic leading-relaxed flex-grow">"{item.comment || 'Great experience!'}"</p>
+              <h4 className="text-slate-400 font-semibold text-xs tracking-wider uppercase">— {item.first_name} {item.last_name}</h4>
             </div>
-          ))}
+          )) : (
+            <p className="text-center col-span-1 md:col-span-2 lg:col-span-3 text-slate-500 text-sm py-4">No reviews available yet.</p>
+          )}
         </div>
       </section>
     </div>

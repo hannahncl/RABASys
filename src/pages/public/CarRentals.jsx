@@ -3,6 +3,7 @@ import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader } from 'luci
 import { Link } from 'react-router-dom';
 import DualRangeSlider from '../../components/ui/DualRangeSlider';
 import { serviceService } from '../services/serviceService';
+import { filterCars } from './carRentalsFilters';
 
 const CarRentals = () => {
   // Filter States
@@ -15,11 +16,10 @@ const CarRentals = () => {
     const fetchCars = async () => {
       try {
         const data = await serviceService.getByCategory('car');
-        // Only show available cars
-        const availableCars = data.filter(car => car.availabilityStatus === 'Available');
-        setAllCars(availableCars);
+        setAllCars(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch cars:', error);
+        setAllCars([]);
       } finally {
         setLoading(false);
       }
@@ -27,15 +27,7 @@ const CarRentals = () => {
     fetchCars();
   }, []);
 
-  // Filter the fetched cars
-  const cars = allCars.filter(car => {
-    // If car.capacity is undefined or null, we might default to showing it or filtering out. 
-    // Let's ensure a loose match if they didn't specify exactly, but here we require exact or greater capacity.
-    const carSeats = parseInt(car.capacity, 10) || 4;
-    const carPrice = car.price || 0;
-    
-    return carSeats >= capacity && carPrice >= priceRange[0] && carPrice <= priceRange[1];
-  });
+  const cars = filterCars(allCars, { capacity, priceRange });
 
   return (
     <div className="bg-white min-h-screen pt-8 pb-24 font-sans text-black">

@@ -41,6 +41,36 @@ const PackageDetail = () => {
     loadDetails();
   }, [id, user]);
 
+  const parseItinerary = (data) => {
+    if (!data) return [];
+    if (typeof data === 'string') {
+      return data.split('\n').filter(line => line.trim()).map(line => typeof line === 'string' ? line : String(line));
+    }
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object' && item.title) return item.title;
+        if (typeof item === 'object' && item.desc) return item.desc;
+        return String(item);
+      });
+    }
+    return [];
+  };
+
+  const parseInclusions = (data) => {
+    if (!data) return [];
+    if (typeof data === 'string') {
+      return data.split('\n').filter(line => line.trim()).map(line => typeof line === 'string' ? line : String(line));
+    }
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        if (typeof item === 'string') return item;
+        return String(item);
+      });
+    }
+    return [];
+  };
+
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -121,231 +151,186 @@ const PackageDetail = () => {
 
   return (
     <div className="bg-white min-h-screen text-black font-sans pb-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-4">
+      {/* Back Button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-slate-600 hover:text-black transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
           {/* Left Column (Content) */}
-          <div className="lg:col-span-7 space-y-10">
+          <div className="lg:col-span-7 space-y-12">
             
-            {/* Tabs */}
-            <div className="flex gap-8 text-sm font-semibold text-black pb-[11px]">
-              <button onClick={() => scrollToSection('overview')} className="text-black border-b-2 border-yellow-350 pb-[9px] -mb-[12px]">Overview</button>
-              <button onClick={() => scrollToSection('package-details')} className="hover:text-black transition-colors pb-[9px]">Package Details</button>
-              <button onClick={() => scrollToSection('reviews')} className="hover:text-black transition-colors pb-[9px]">Reviews</button>
-            </div>
-
-            {/* Banner Image */}
-            <div id="overview" className="w-full h-[400px] rounded-xl overflow-hidden shadow-sm scroll-mt-6">
+            {/* Package Image */}
+            <div className="w-full h-[320px] rounded-lg bg-slate-50 relative overflow-hidden">
               <img 
-                src={pkg.image} 
+                src={pkg.image || '/CAGSAWA.jpg'} 
                 alt={pkg.title} 
-                className="w-full h-full object-cover"
+                className="min-h-full min-w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/CAGSAWA.jpg';
+                }}
               />
             </div>
 
-            {/* Package Details Heading */}
-            <div id="package-details" className="flex items-center gap-3 scroll-mt-6">
-              <div className="w-6 h-1.5 bg-yellow-350"></div>
-              <h2 className="text-xl font-extrabold text-black">Package Details</h2>
+            {/* Tabs Navigation - Minimalist */}
+            <div className="flex gap-12 border-b border-slate-200 pb-6">
+              <button onClick={() => scrollToSection('overview')} className="text-sm font-medium text-black border-b-2 border-black pb-6 -mb-6">Overview</button>
+              <button onClick={() => scrollToSection('itinerary')} className="text-sm font-medium text-slate-400 hover:text-black transition-colors">Itinerary</button>
+              <button onClick={() => scrollToSection('inclusions')} className="text-sm font-medium text-slate-400 hover:text-black transition-colors">Inclusions</button>
             </div>
 
-            {/* Tour Itinerary */}
-            <div className="space-y-6">
-              <h3 className="text-[15px] font-semibold text-black">Tour Itinerary</h3>
-              <div className="space-y-8 pl-1">
-                {pkg.itinerary.map((day, index) => (
-                  <div key={day.day} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold z-10 shrink-0">
+            {/* Overview Section */}
+            <div id="overview" className="space-y-8 scroll-mt-6">
+              <p className="text-base text-slate-700 leading-relaxed">
+                {pkg.description}
+              </p>
+              
+              {/* Key Details - Clean Grid */}
+              <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <p className="text-xs text-slate-500 mb-2">Duration</p>
+                  <p className="text-sm font-medium text-black">{pkg.duration}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-2">Group Size</p>
+                  <p className="text-sm font-medium text-black">Up to {pkg.maximumCapacity}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-2">Destination</p>
+                  <p className="text-sm font-medium text-black">{pkg.destination}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-2">Meeting Point</p>
+                  <p className="text-sm font-medium text-black">{pkg.meetingLocation || 'TBA'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Itinerary Section */}
+            <div id="itinerary" className="space-y-8 scroll-mt-6 pt-12 border-t border-slate-100">
+              <h2 className="text-lg font-medium text-black">Tour Itinerary</h2>
+              
+              <div className="space-y-6">
+                {parseItinerary(pkg.itinerary).map((line, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="flex flex-col items-center flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-slate-300 text-black flex items-center justify-center text-xs font-medium">
                         {index + 1}
                       </div>
-                      {index !== pkg.itinerary.length - 1 && (
-                        <div className="w-px h-full bg-slate-200 mt-2"></div>
+                      {index < (parseItinerary(pkg.itinerary).length - 1) && (
+                        <div className="w-px h-14 bg-slate-200 mt-1"></div>
                       )}
                     </div>
-                    <div className="pb-2">
-                      <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wide mb-2 mt-0.5">DAY {day.day}</h4>
-                      <p className="text-xs text-black font-medium leading-relaxed mb-3">
-                        {day.title}
-                      </p>
-                      <p className="text-xs text-black font-medium leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-black">
-                        {day.desc}
-                      </p>
+                    <div className="pt-1 pb-2">
+                      <p className="text-sm text-slate-700 leading-relaxed">{line}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Inclusions */}
-            <div className="space-y-4">
-              <h3 className="text-[15px] font-semibold text-black">Inclusions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs text-black font-medium">
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> Admission to attractions</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> Environmental fees</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> English / Filipino-speaking guide</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> Tour guide fee</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> Lunch and Dinner</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-black" /> Private air-conditioned room</div>
+            {/* Inclusions Section */}
+            <div id="inclusions" className="space-y-8 scroll-mt-6 pt-12 border-t border-slate-100">
+              <h2 className="text-lg font-medium text-black">What's Included</h2>
+              
+              <div className="space-y-3">
+                {parseInclusions(pkg.inclusions).map((inclusion, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                    <p className="text-sm text-slate-700">{inclusion}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Terms & Conditions */}
-            <div className="space-y-4 pt-2">
-              <h3 className="text-[15px] font-semibold text-black">Terms & Conditions</h3>
-              <div className="space-y-4 text-xs text-black font-medium">
+            <div className="space-y-6 pt-12 border-t border-slate-100">
+              <h2 className="text-lg font-medium text-black">Terms & Conditions</h2>
+              <div className="space-y-4 text-sm text-slate-700">
                 <div>
-                  <p className="text-black mb-1.5">Confirmation</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>You'll get confirmation within minutes. If you don't see any confirmation, reach out to our customer support.</li>
-                  </ul>
+                  <p className="font-medium text-black mb-2">Confirmation</p>
+                  <p>You'll receive confirmation within minutes. If you don't see confirmation, contact our customer support.</p>
                 </div>
                 <div>
-                  <p className="text-black mb-1.5">Cancellation</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>No cancellation policy, only rescheduling is allowed</li>
-                  </ul>
+                  <p className="font-medium text-black mb-2">Cancellation & Rescheduling</p>
+                  <p>No cancellation policy - only rescheduling is allowed based on availability.</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Reviews Heading */}
-            <div id="reviews" className="flex items-center gap-3 pt-8 scroll-mt-6">
-              <div className="w-6 h-1.5 bg-yellow-350"></div>
-              <h2 className="text-xl font-extrabold text-black">Reviews</h2>
-            </div>
-            
-            {/* Mocked Reviews Summary */}
-            <div className="space-y-6">
-              <div className="flex items-end gap-3">
-                <div className="text-2xl font-extrabold text-yellow-500 leading-none">4.1 / 5</div>
-                <div className="text-xs text-black font-medium mb-0.5">
-                  <span className="block text-black">Good</span>
-                  (125 Reviews)
-                </div>
-              </div>
-              <div className="flex items-center gap-3 text-[10px] font-semibold text-black">
-                <span>Filter by:</span>
-                <button className="px-4 py-1.5 border border-slate-200 rounded-full text-black hover:text-black">All</button>
-                <button className="px-4 py-1.5 border border-slate-200 rounded-full text-black hover:text-black">With Pictures</button>
-              </div>
-              
-              <div className="flex items-center justify-between text-xs font-bold text-black">
-                <div className="flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
-                  5.0 Reviews (125)
-                </div>
-                <button className="text-[10px] text-black font-semibold hover:text-black">View All</button>
-              </div>
-
-              {/* Review Items */}
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <div key={i} className="border border-slate-200 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-200 shrink-0"></div>
-                        <span className="text-xs font-bold text-black">Luke</span>
-                      </div>
-                      <span className="text-[10px] text-black font-medium">Today</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((s) => <Star key={s} className="w-3 h-3 text-yellow-400 fill-current" />)}
-                    </div>
-                    <p className="text-[10px] text-black font-medium leading-relaxed">
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                    </p>
-                  </div>
-                ))}
               </div>
             </div>
 
           </div>
 
-          {/* Right Column (Sidebar) */}
-          <div className="lg:col-span-5 space-y-8">
-            <div>
-              <h1 className="text-2xl font-extrabold text-black uppercase tracking-tight mb-4">
-                {pkg.title}
-              </h1>
+          {/* Right Column (Sidebar) - Sticky & Compact Monochrome */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-32 space-y-6">
               
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-black font-semibold mb-6">
-                <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {pkg.duration}</span>
-                <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {pkg.destination}</span>
-              </div>
-              
-              <p className="text-xs text-black font-medium leading-relaxed mb-6">
-                {pkg.description}
-              </p>
-              
-              <div className="space-y-3 text-[11px] text-black font-semibold mb-8">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-black" /> Secure Payments
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-black" /> Flexible Dates & Rescheduling
-                </div>
-              </div>
-              
-              <div className="text-3xl font-black text-black mb-6">
-                ₱{pkg.price.toLocaleString()}
-              </div>
-              
-              {/* Booking Button */}
-              <button 
-                onClick={() => navigate(`/booking/${pkg.id}`)} 
-                className="w-full py-3.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold rounded-xl transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-[0.98] cursor-pointer"
-              >
-                Book This Package
-              </button>
-            </div>
+              {/* Booking Card - Compact */}
+              <div className="max-w-sm rounded-3xl border border-slate-300 bg-white p-5 shadow-sm text-black">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{pkg.destination || 'Tour Package'}</p>
+                    <h1 className="mt-2 text-2xl font-semibold text-black leading-tight">{pkg.title}</h1>
+                  </div>
 
-            {/* Map Placeholder */}
-            <div className="w-full h-64 bg-cyan-50 rounded-[20px] overflow-hidden relative shadow-sm border border-slate-100">
-              {/* Mock map background image */}
-              <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=800" alt="Map View" className="w-full h-full object-cover opacity-20 mix-blend-multiply" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-black bg-white/90 px-3 py-1 rounded-full shadow-sm">
-                    <MapPin className="w-3 h-3 text-yellow-400" /> Map View Available Soon
-                 </div>
-              </div>
-            </div>
+                  <div>
+                    <p className="mt-2 text-3xl font-bold text-black">₱{pkg.price.toLocaleString()}</p>
+                  </div>
 
-            {/* Pick-up Info */}
-            <div className="space-y-5">
-              <h3 className="text-xs font-semibold text-black">Pick-up & meet-up information</h3>
-              <div className="space-y-5">
-                <div>
-                  <p className="text-xs font-bold text-black mb-3 pl-[30px]">Departure</p>
-                  <div className="flex items-start gap-3.5 text-[11px] text-black font-medium">
-                    <Clock className="w-4 h-4 shrink-0 mt-0.5 text-black" />
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Clock className="w-4 h-4 text-black" />
+                    <span>{pkg.duration || 'Duration TBA'}</span>
+                  </div>
+
+                  <div className="grid gap-2 border-t border-slate-200 pt-4 text-sm text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-black" />
+                      <span>Max {pkg.maximumCapacity || 1} guests</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-black" />
+                      <span>{pkg.destination || 'Destination TBA'}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate(`/booking/${pkg.id}`)}
+                    className="mt-5 w-full rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+                  >
+                    Book This Package
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-3 border-t border-slate-200 pt-4 text-sm text-slate-700">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-black mt-1" />
                     <div>
-                      <p className="font-bold text-black text-xs mb-0.5">08:30 am</p>
-                      <p>RABAS Travel and Tours Office</p>
+                      <p className="font-semibold text-black">Secure Payment</p>
+                      <p className="text-slate-600">GCash payment with confirmation.</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3.5 text-[11px] text-black font-medium mt-3.5">
-                    <div className="w-4 h-4 shrink-0 mt-0.5 border-2 border-slate-400 rounded-full flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                    </div>
-                    <p>Please arrive at the location 15 mins before the departure time</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-black mb-3 pl-[30px]">Return</p>
-                  <div className="flex items-start gap-3.5 text-[11px] text-black font-medium">
-                    <Clock className="w-4 h-4 shrink-0 mt-0.5 text-black" />
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-black mt-1" />
                     <div>
-                      <p className="font-bold text-black text-xs mb-0.5">09:30 am</p>
-                      <p>RABAS Travel and Tours Office</p>
+                      <p className="font-semibold text-black">Flexible Rescheduling</p>
+                      <p className="text-slate-600">Change your date if needed.</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
+              {/* Additional Meeting Info */}
+              <div className="max-w-sm rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Meeting Point</p>
+                <p className="mt-2 text-base font-medium text-black">{pkg.meetingLocation || 'TBA'}</p>
+                <p className="mt-2 text-xs text-slate-500">Please arrive 15 minutes before departure.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
