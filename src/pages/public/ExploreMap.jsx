@@ -270,15 +270,14 @@ const ExploreMap = () => {
   });
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-16">
-      {/* Page Header */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-extrabold text-black font-display">Spot Gallery & Travel Map</h1>
-        </div>
-      </div>
+        <div className="bg-white min-h-screen pb-24 pt-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div className="mb-10 border-b border-slate-100 pb-8">
+          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Spot Gallery & Explore Map</h1>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"></div>
 
 
 

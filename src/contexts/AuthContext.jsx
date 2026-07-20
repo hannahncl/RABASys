@@ -102,6 +102,25 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify({ identifier, password }),
       });
+      if (authResponse.requiresTwoFactor) {
+        return { success: true, requiresTwoFactor: true, email: authResponse.email, message: authResponse.message };
+      }
+      const sessionUser = saveSession(authResponse);
+      return { success: true, user: sessionUser };
+    } catch (error) {
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyLoginOtp = async (email, otp) => {
+    setLoading(true);
+    try {
+      const authResponse = await api('/auth/verify-login-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp }),
+      });
       const sessionUser = saveSession(authResponse);
       return { success: true, user: sessionUser };
     } catch (error) {
@@ -149,7 +168,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUserSession }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyLoginOtp, register, logout, updateUserSession }}>
       {children}
     </AuthContext.Provider>
   );

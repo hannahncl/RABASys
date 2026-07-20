@@ -25,9 +25,9 @@ const AVATARS = [
    Status badge helper
 ──────────────────────────────── */
 const StatusBadge = ({ status }) => {
-  if (status === 'Confirmed') return (
+  if (status === 'Confirmed' || status === 'Completed') return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
-      <CheckCircle2 className="h-3.5 w-3.5" /> Confirmed
+      <CheckCircle2 className="h-3.5 w-3.5" /> {status}
     </span>
   );
   if (status === 'Cancelled') return (
@@ -53,17 +53,21 @@ const Profile = () => {
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   // Profile state
   const [accountRecord, setAccountRecord] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
 
   // Edit fields  — match Register.jsx fields exactly
   const [firstName, setFirstName]         = useState('');
   const [lastName, setLastName]           = useState('');
   const [email, setEmail]                 = useState('');
   const [contactNumber, setContactNumber] = useState('');
+  const [address, setAddress]             = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
   // ── Load account & bookings on mount ──
@@ -78,7 +82,10 @@ const Profile = () => {
             id: String(match.id), name: match.name, email: match.email,
             phone: match.contactNumber, contactNumber: match.contactNumber,
           };
-          setAccountRecord(account);
+          setAccountRecord({
+            ...account,
+            twoFactorEnabled: Boolean(match.twoFactorEnabled),
+          });
           const parts = (match.name || user.name || '').split(' ');
           setFirstName(parts[0] || '');
           setLastName(parts.slice(1).join(' ') || '');
@@ -120,11 +127,25 @@ const Profile = () => {
   }, [user]);
 
   // ── Filter bookings by tab ──
-  const tabs = ['All', 'Pending Verification', 'Confirmed', 'Cancelled'];
+  const tabs = ['All', 'Pending Verification', 'Confirmed', 'To Review', 'Cancelled'];
 
   const filteredBookings = activeTab === 'All'
     ? allBookings
-    : allBookings.filter(b => b.status === activeTab);
+    : activeTab === 'To Review'
+      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed)
+      : allBookings.filter(b => b.status === activeTab);
+
+  // ── Reset to page 1 when tab changes ──
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  // ── Pagination calculations ──
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
 
   // ── Save profile edits ──
   const handleSave = async (e) => {
@@ -139,7 +160,15 @@ const Profile = () => {
           method: 'PATCH',
           body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), contactNumber: contactNumber.trim() }),
         });
-        setAccountRecord({ id: String(updated.id), name: updated.name, email: updated.email, phone: updated.contactNumber, contactNumber: updated.contactNumber });
+        setAccountRecord(prev => ({
+          ...(prev || {}),
+          id: String(updated.id),
+          name: updated.name,
+          email: updated.email,
+          phone: updated.contactNumber,
+          contactNumber: updated.contactNumber,
+          twoFactorEnabled: Boolean(prev?.twoFactorEnabled ?? updated.twoFactorEnabled),
+        }));
       }
       updateUserSession({
         name: fullName,
@@ -164,20 +193,40 @@ const Profile = () => {
     setEditing(false);
   };
 
+  const handleTwoFactorToggle = async () => {
+    if (!accountRecord) return;
+    setTwoFactorSaving(true);
+    try {
+      const { user: updated } = await api('/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ twoFactorEnabled: !accountRecord.twoFactorEnabled }),
+      });
+      const refreshed = {
+        ...accountRecord,
+        twoFactorEnabled: Boolean(updated.twoFactorEnabled),
+      };
+      setAccountRecord(refreshed);
+      updateUserSession({ twoFactorEnabled: Boolean(updated.twoFactorEnabled) });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTwoFactorSaving(false);
+    }
+  };
+
   // ── Counts for tab badges ──
   const countFor = (tab) => tab === 'All'
     ? allBookings.length
-    : allBookings.filter(b => b.status === tab).length;
+    : tab === 'To Review'
+      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed).length
+      : allBookings.filter(b => b.status === tab).length;
 
   return (
     <div className="bg-white min-h-screen pb-24 pt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="mb-10 border-b border-slate-100 pb-8">
-          <p className="text-xs text-slate-400 tracking-widest uppercase mb-1">My Account</p>
-          <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">
-            Profile Dashboard
-          </h1>
+          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">My Account</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -209,6 +258,23 @@ const Profile = () => {
 
                 <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
                 <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Two-factor authentication</p>
+                      <p className="text-xs text-slate-500">Receive a 6-digit code by email when you sign in.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTwoFactorToggle}
+                      disabled={twoFactorSaving}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${accountRecord?.twoFactorEnabled ? 'bg-yellow-500' : 'bg-slate-300'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-all ${accountRecord?.twoFactorEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   onClick={() => setEditing(true)}
@@ -332,7 +398,7 @@ const Profile = () => {
                 {tabs.map(tab => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => handleTabChange(tab)}
                     className={`flex items-center gap-1.5 whitespace-nowrap text-xs px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                       activeTab === tab
                         ? 'bg-yellow-50 text-yellow-700 border border-yellow-200 font-medium'
@@ -363,6 +429,8 @@ const Profile = () => {
                     <p className="text-xs text-slate-300 mt-1 text-center max-w-[240px]">
                       {activeTab === 'All'
                         ? "You haven't made any bookings yet."
+                        : activeTab === 'To Review'
+                        ? "All caught up! You've reviewed all your trips."
                         : `No ${activeTab.toLowerCase()} trips.`}
                     </p>
                     {activeTab === 'All' && (
@@ -374,6 +442,70 @@ const Profile = () => {
                       </Link>
                     )}
                   </div>
+                ) : activeTab === 'To Review' ? (
+                  /* Pending Reviews Card View */
+                  <div>
+                    <div className="space-y-3">
+                      {paginatedBookings.map(booking => (
+                        <Link
+                          key={booking.id}
+                          to={`/review/${booking.id}`}
+                          className="block p-4 rounded-lg border border-yellow-100 bg-yellow-50/40 hover:bg-yellow-50 transition-all group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-700 group-hover:text-yellow-700 truncate">
+                                {booking.packageName}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Completed on {new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-yellow-600 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Pagination for To Review */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   /* Timeline-style log */
                   <div className="relative">
@@ -381,18 +513,18 @@ const Profile = () => {
                     <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-100" />
 
                     <div className="space-y-0">
-                      {filteredBookings.map((booking, idx) => (
+                      {paginatedBookings.map((booking, idx) => (
                         <div key={booking.id} className="relative flex gap-5 items-start py-5">
 
                           {/* Timeline dot */}
                           <div className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                            booking.status === 'Confirmed'
+                            (booking.status === 'Confirmed' || booking.status === 'Completed')
                               ? 'bg-green-50 ring-1 ring-green-200'
                               : booking.status === 'Cancelled'
                                 ? 'bg-red-50 ring-1 ring-red-200'
                                 : 'bg-yellow-50 ring-1 ring-yellow-200'
                           }`}>
-                            {booking.status === 'Confirmed'
+                            {(booking.status === 'Confirmed' || booking.status === 'Completed')
                               ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                               : booking.status === 'Cancelled'
                                 ? <XCircle className="h-3.5 w-3.5 text-red-400" />
@@ -452,21 +584,49 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
-                                {booking.status === 'Confirmed' && !booking.hasReviewed && booking.type === 'Tour Packages' && (
-                                  <Link
-                                    to={`/review/${booking.id}`}
-                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-600 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all cursor-pointer"
-                                  >
-                                    <Star className="h-3.5 w-3.5" />
-                                    Review
-                                  </Link>
-                                )}
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -558,6 +718,43 @@ const Profile = () => {
                 <span className="text-yellow-600 text-base">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
               </div>
             </div>
+
+            {/* Review Section */}
+            {viewingBooking.hasReviewed && viewingBooking.review && (
+              <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Your Review</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= viewingBooking.review.rating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'fill-gray-200 text-gray-200'
+                        }`}
+                      />
+                    ))}
+                    <span className="text-xs font-bold text-slate-700 ml-2">
+                      {viewingBooking.review.rating}/5
+                    </span>
+                  </div>
+                  {viewingBooking.review.comment && (
+                    <p className="text-xs text-slate-700 italic border-l-2 border-blue-200 pl-3">
+                      "{viewingBooking.review.comment}"
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-400">
+                    Reviewed on {new Date(viewingBooking.review.createdAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => setViewingBooking(null)}

@@ -5,11 +5,11 @@ const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
-const { sendPasswordResetOtp } = require("../config/mailer");
+const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
 const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
-const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, created_at, updated_at";
+const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, created_at, updated_at";
 const normalizeRole = (role) => {
     if (!role) return "Customer";
     const normalized = String(role).trim().toLowerCase();
@@ -38,6 +38,7 @@ const publicAccount = (account) => ({
     contactNumber: account.contact_number,
     role: normalizeRole(account.role),
     status: account.account_status,
+    twoFactorEnabled: Boolean(account.two_factor_enabled),
     createdAt: account.created_at
 });
 const validate = (req, res, next) => {
@@ -115,6 +116,37 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
         if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
         }
+
+        if (Boolean(account.two_factor_enabled)) {
+            const otp = crypto.randomInt(100000, 1000000).toString();
+            await db.execute("UPDATE login_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
+            await db.execute("INSERT INTO login_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
+            await sendTwoFactorOtp(account.email, otp);
+            return res.status(202).json({ requiresTwoFactor: true, message: "A verification code was sent to your email.", email: account.email });
+        }
+
+        const signedToken = tokenFor(account, 0);
+        const session = await createSession(account, signedToken);
+        const refreshedToken = tokenFor(account, session.sessionId);
+        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
+    } catch (error) { next(error); }
+});
+
+router.post("/verify-login-otp", [body("email").isEmail().normalizeEmail(), body("otp").isString().matches(/^\d{6}$/)], validate, async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`SELECT ${accountFields}, password_hash FROM account WHERE email = ? AND deleted_at IS NULL`, [req.body.email.toLowerCase()]);
+        const account = rows[0];
+        if (!account || !isActiveAccount(account)) return res.status(401).json({ message: "Invalid account." });
+
+        const [otpRows] = await db.execute(`SELECT login_otp_id, otp_hash FROM login_otp WHERE account_id = ? AND used_at IS NULL AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`, [account.account_id]);
+        const loginOtp = otpRows[0];
+        const enteredHash = hashOtp(req.body.otp);
+        if (!loginOtp || !crypto.timingSafeEqual(Buffer.from(loginOtp.otp_hash), Buffer.from(enteredHash))) {
+            return res.status(400).json({ message: "The verification code is invalid or has expired." });
+        }
+
+        await db.execute("UPDATE login_otp SET used_at = NOW() WHERE login_otp_id = ?", [loginOtp.login_otp_id]);
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
@@ -220,10 +252,11 @@ router.post("/logout-all", requireAuth, async (req, res, next) => {
 
 router.patch("/me", requireAuth, [
     body("firstName").optional().trim().notEmpty(), body("lastName").optional().trim().notEmpty(),
-    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional().trim().notEmpty()
+    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional().trim().notEmpty(),
+    body("twoFactorEnabled").optional().isBoolean()
 ], validate, async (req, res, next) => {
     try {
-        const fields = { firstName: "first_name", lastName: "last_name", email: "email", contactNumber: "contact_number" };
+        const fields = { firstName: "first_name", lastName: "last_name", email: "email", contactNumber: "contact_number", twoFactorEnabled: "two_factor_enabled" };
         const supplied = Object.entries(fields).filter(([key]) => Object.prototype.hasOwnProperty.call(req.body, key));
         if (!supplied.length) return res.status(400).json({ message: "No editable fields supplied." });
         const [before] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [req.user.accountId]);
