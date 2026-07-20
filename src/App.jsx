@@ -42,6 +42,7 @@ import AdminAnalytics from './pages/admin/Analytics';
 import AdminSchedule from './pages/admin/Schedule';
 import AdminBookings from './pages/admin/Bookings';
 import ManageServices from './pages/admin/ManageServices';
+import ServiceDetailPage from './pages/admin/ServiceDetailPage';
 import ManageTourPackages from './pages/admin/ManageTourPackages';
 import ManageTuktripPackages from './pages/admin/ManageTuktripPackages';
 import ManageCarRentals from './pages/admin/ManageCarRentals';
@@ -133,6 +134,7 @@ function App() {
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="services" element={<ManageServices />} />
+              <Route path="services/:category/:id" element={<ServiceDetailPage />} />
               <Route path="tour-packages" element={<ManageTourPackages />} />
               <Route path="tour-packages/add" element={<AddTourPackagePage />} />
               <Route path="tour-packages/edit/:id" element={<EditTourPackagePage />} />

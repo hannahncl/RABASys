@@ -115,6 +115,7 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
         );
         const account = rows[0];
 <<<<<<< HEAD
+<<<<<<< HEAD
         const passwordMatches = account && (await bcrypt.compare(req.body.password, account.password_hash));
         if (!account || account.account_status !== "Active" || (!passwordMatches && !isBootstrapAdminLogin(account, req.body.password))) {
             return res.status(401).json({ message: "Invalid email or password." });
@@ -122,6 +123,13 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
         if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
 >>>>>>> 883019e231a5efd4387074eefe774d499501243b
+=======
+        const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
+        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
+
+        if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
+            return res.status(401).json({ message: "Invalid email/phone or password." });
+>>>>>>> 2012ceef8d31fb078cf7a95ceae1579b5ae9113a
         }
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken);

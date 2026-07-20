@@ -169,9 +169,12 @@ const PackageDetail = () => {
             {/* Package Image */}
             <div className="w-full h-[320px] rounded-lg bg-slate-50 relative overflow-hidden">
               <img 
-                src={pkg.image} 
+                src={pkg.image || '/CAGSAWA.jpg'} 
                 alt={pkg.title} 
                 className="min-h-full min-w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/CAGSAWA.jpg';
+                }}
               />
             </div>
 
