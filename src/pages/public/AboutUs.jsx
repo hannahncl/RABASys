@@ -40,42 +40,6 @@ const AboutUs = () => {
       email: 'adamgates@const.com',
       image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     },
-    {
-      id: 5,
-      name: 'Chris Evans',
-      role: 'Senior Field Guide',
-      location: 'Virac, Catanduanes',
-      phone: '0995-123-8888',
-      email: 'chrisevans@const.com',
-      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 6,
-      name: 'Sarah Santos',
-      role: 'Customer Support Lead',
-      location: 'Masbate City',
-      phone: '0916-555-4321',
-      email: 'sarah@rabastravel.com',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 7,
-      name: 'Mark Anthony',
-      role: 'Logistics Coordinator',
-      location: 'Legazpi, Albay',
-      phone: '0922-888-9999',
-      email: 'mark@rabastravel.com',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 8,
-      name: 'Maria Clara',
-      role: 'Booking Specialist',
-      location: 'Naga, Camarines Sur',
-      phone: '0905-111-2222',
-      email: 'mariaclara@rabastravel.com',
-      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
-    },
   ];
 
   return (
@@ -87,22 +51,29 @@ const AboutUs = () => {
           {/* Left Column: text content */}
           <div className="lg:col-span-5 space-y-6">
             <div className="space-y-1">
-              <span className="text-xs font-bold text-red-500 uppercase tracking-[0.3em] block">
-                A BIT
+              <span className="text-3xl font-bold text-cyan-500 uppercase tracking-[0.3em] block">
+                RABAS TRAVEL AND TOUR SERVICES
               </span>
-              <h1 className="text-4xl md:text-5xl font-serif font-black text-slate-900 tracking-wide uppercase">
-                ABOUT US
-              </h1>
             </div>
 
+            <span className="text-slate-600 text-sm md:text-base leading-relaxed font-light">
+              Rabas – Travel and Tours Services is a Bicol-based travel and tourism company
+                headquartered in Albay, Philippines, specializing in personalized and premium travel
+                experiences for both domestic and international travelers.
+            </span>
+            <p></p>
             <p className="text-slate-600 text-sm md:text-base leading-relaxed font-light">
-              From they fine john he give of rich he. They age and draw mrs like. Improving end distrusts may instantly was household applauded incommode. Why kept very ever home mrs. Considered sympathize ten uncommonly occasional assistance sufficient not.
-            </p>
+              We provide travel and tour services, professional tour guiding, and customized tour
+                package design, focusing on creating tailor-made itineraries that match each
+                traveler’s preferences, pace, and purpose. Our services cater to solo travelers,
+                joiners, families, and small to large groups, ensuring a high standard of quality,
+                safety, and care across every journey</p>
+        
 
             <div className="pt-2">
               <Link
                 to="/packages"
-                className="bg-[#2aa6d1] hover:bg-[#208eb4] text-white text-xs font-extrabold uppercase tracking-widest px-7 py-3.5 rounded-lg shadow-md transition-all inline-block hover:scale-[1.02] cursor-pointer"
+                className="bg-cyan-500 hover:bg-[#208eb4] text-white text-xs font-extrabold uppercase tracking-widest px-7 py-3.5 rounded-lg shadow-md transition-all inline-block hover:scale-[1.02] cursor-pointer"
               >
                 EXPLORE MORE
               </Link>
@@ -111,39 +82,14 @@ const AboutUs = () => {
 
           {/* Right Column: Montage matching mockup structure */}
           <div className="lg:col-span-7 flex justify-center items-center">
-            <div className="relative w-full max-w-[500px] h-[440px]">
-
-              {/* Top Photo (hiker looking at mountains) */}
-              <div className="absolute top-0 right-0 w-[320px] h-[130px] rounded-3xl overflow-hidden shadow-md">
-                <img
-                  src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800"
-                  alt="Mountain Hiker"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="relative w-full max-w-[600px] h-[540px]">
 
               {/* Middle Right Photo (coastal village cliffs) */}
-              <div className="absolute top-[150px] right-0 w-[300px] h-[190px] rounded-3xl overflow-hidden shadow-md">
+              <div className="absolute top-[50px] right-0 w-[500px] h-[390px] rounded-3xl overflow-hidden shadow-md">
                 <img
-                  src="https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800"
-                  alt="Coastal View"
+                  src="https://scontent.fmnl33-2.fna.fbcdn.net/v/t39.30808-6/602335986_122106580341161293_4013693818088048221_n.jpg?stp=dst-jpg_tt6&cstp=mx1620x1620&ctp=s1620x1620&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeFQx5FfSVou41zWMREJCZYMVgQjFAPdNVxWBCMUA901XJzrV0ve-LNL-EkbdLkGFx8ldHqgk1ONu329iIAbnyqO&_nc_ohc=8wsAbzvqYvQQ7kNvwH1-1Xt&_nc_oc=AdoHPoto2yL7OE2O4lytnKvJga11L7l4iLDK9yG2dfAiuZOF08GKsQIhEXEyFRAa6fhZGZMP_sACtFWBnOi6SjJl&_nc_zt=23&_nc_ht=scontent.fmnl33-2.fna&_nc_gid=QMPvExXPvJXz3nFx4RrzCA&_nc_ss=7b2a8&oh=00_AQBtx_vPqwDf7DxdHrXH6HzcBotXyi_JXC7sGFEzbd7a1Q&oe=6A63BF52"
                   className="w-full h-full object-cover"
                 />
-              </div>
-
-              {/* Bottom Left Photo (two hikers hiking up) */}
-              <div className="absolute top-[210px] left-[10px] w-[200px] h-[180px] rounded-3xl overflow-hidden border-8 border-white shadow-xl z-10">
-                <img
-                  src="https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80&w=800"
-                  alt="Hiking Team"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Badge (10+ Places) */}
-              <div className="absolute bottom-[40px] right-[100px] bg-[#2aa6d1] text-white w-[110px] h-[75px] rounded-2xl flex flex-col justify-center items-center font-bold shadow-lg z-20 text-center select-none">
-                <span className="text-2xl font-black tracking-tight leading-none">10+</span>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider mt-0.5">Places</span>
               </div>
 
             </div>
@@ -153,16 +99,21 @@ const AboutUs = () => {
       </section>
 
       {/* ── BOTTOM SECTION: MEET OUR TEAM ── */}
-      <section className="bg-[#FFFCEE] border-t border-slate-100 py-20 lg:py-28">
+      <section className="bg-white border-t border-slate-100 py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
 
           {/* Header */}
           <div className="text-center max-w-2xl mx-auto space-y-4">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight font-display">
-              Meet our Team
-            </h2>
-            <p className="text-slate-500 text-sm leading-relaxed max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              <span className="text-3xl font-bold text-cyan-500 uppercase tracking-[0.3em] block">
+                MEET OUR TEAM
+              </span>
+
+          
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed font-light justify-center items-center">
+              At Rabas – Travel and Tours Services, our strength lies in our people. Our team is composed of DOT-accredited
+                  regional tour guides, experienced local community guides, and dedicated travel professionals who share
+                  the same passion for tourism, culture, and service excellence.
+
             </p>
           </div>
 

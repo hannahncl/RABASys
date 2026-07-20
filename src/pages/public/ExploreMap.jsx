@@ -262,10 +262,11 @@ const ExploreMap = () => {
   };
 
   const filteredSpots = spots.filter(spot => {
+    const hasImage = Boolean(spot.featuredImage?.trim());
     const matchCat = selectedCategory === 'All' || spot.category === selectedCategory;
     const matchSearch = spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spot.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchSearch;
+    return hasImage && matchCat && matchSearch;
   });
 
   return (

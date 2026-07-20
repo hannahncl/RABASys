@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
   Plus, Edit, Trash2, Save, X, Loader, Search,
-  MapPin, Clock, Users, Car, Navigation, Package
+  MapPin, Clock, Users, Car, Package
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 
@@ -29,28 +29,6 @@ const CATEGORIES = [
       { name: 'maximumCapacity',  label: 'Maximum Capacity',     type: 'number',   placeholder: 'e.g. 12' },
       { name: 'meetingLocation',  label: 'Meeting Location',     type: 'text',     placeholder: 'e.g. Legazpi Airport' },
       { name: 'itinerary',        label: 'Itinerary',            type: 'textarea', placeholder: 'Day 1: Arrival and welcome dinner\nDay 2: Adventure activity' },
-    ]
-  },
-  {
-    key: 'tuktrip',
-    label: 'Tuktrip',
-    singular: 'Tuktrip',
-    icon: Navigation,
-    color: 'cyan',
-    accent: 'text-cyan-400',
-    border: 'border-cyan-500/30',
-    bg: 'bg-cyan-500/10',
-    activeBg: 'bg-cyan-500',
-    fields: [
-      { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. City Heritage Tuktrip' },
-      { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tuktrip experience...' },
-      { name: 'destination',      label: 'Destination',          type: 'text',     placeholder: 'e.g. Legazpi City, Albay' },
-      { name: 'price',            label: 'Price (PHP)',          type: 'number',   placeholder: 'e.g. 1800' },
-      { name: 'duration',         label: 'Duration',             type: 'text',     placeholder: 'e.g. 4 Hours' },
-      { name: 'inclusions',       label: 'Inclusions',           type: 'textarea', placeholder: 'Driver, fuel, route stops' },
-      { name: 'maximumCapacity',  label: 'Maximum Capacity',     type: 'number',   placeholder: 'e.g. 4' },
-      { name: 'meetingLocation',  label: 'Meeting Location',     type: 'text',     placeholder: 'e.g. Legazpi City Hall' },
-      { name: 'itinerary',        label: 'Itinerary',            type: 'textarea', placeholder: 'Day 1: Start at city hall\nDay 2: Visit local landmarks' },
     ]
   },
   {
@@ -142,9 +120,14 @@ const deserializeForm = (item, fields) => {
 
 // ─── ServiceCard ─────────────────────────────────────────────────────────────
 
-const ServiceCard = ({ item, catConfig, onEdit, onDelete }) => {
+const ServiceCard = ({ item, catConfig, onEdit, onDelete, onView }) => {
+  const Icon = catConfig.icon;
+
   return (
-    <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group">
+    <div
+      onClick={() => onView?.(item)}
+      className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group cursor-pointer"
+    >
       {/* Image */}
       <div className="relative h-44 overflow-hidden bg-slate-800">
         {item.image ? (
@@ -159,21 +142,23 @@ const ServiceCard = ({ item, catConfig, onEdit, onDelete }) => {
             <Icon className={`h-12 w-12 ${catConfig.accent} opacity-40`} />
           </div>
         )}
-        {/* Badge */}
-        <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${catConfig.bg} ${catConfig.accent} border ${catConfig.border} backdrop-blur-sm`}>
-          {catConfig.label}
-        </div>
         {/* Actions */}
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => onEdit(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(item);
+            }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90`}
           >
             <Edit className="h-4 w-4" />
             Edit
           </button>
           <button
-            onClick={() => onDelete(item.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
             className="p-1.5 bg-slate-900/90 hover:bg-rose-500 text-white rounded-lg cursor-pointer backdrop-blur-sm transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -320,11 +305,6 @@ const ManageServices = () => {
       return;
     }
 
-    if (activeTab === 'tuktrip') {
-      navigate(`/admin/services/edit-tuktrip/${item.id}`);
-      return;
-    }
-
     if (activeTab === 'car') {
       navigate(`/admin/services/edit-car-rental/${item.id}`);
       return;
@@ -337,11 +317,6 @@ const ManageServices = () => {
   const handleAddNew = () => {
     if (activeTab === 'tour') {
       navigate('/admin/services/add-tour-package');
-      return;
-    }
-
-    if (activeTab === 'tuktrip') {
-      navigate('/admin/services/add-tuktrip');
       return;
     }
 
@@ -392,6 +367,11 @@ const ManageServices = () => {
         showNotification('Failed to delete service', 'error');
       }
     }
+  };
+
+  const handleView = (item) => {
+    const category = activeTab === 'car' ? 'car' : 'tour';
+    navigate(`/admin/services/${category}/${item.id}`);
   };
 
   const filteredServices = services.filter(item => {
@@ -477,6 +457,7 @@ const ManageServices = () => {
                 catConfig={catConfig}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onView={handleView}
               />
             )
           )}
@@ -508,6 +489,7 @@ const ManageServices = () => {
           )}
         </div>
       )}
+
     </div>
   );
 };

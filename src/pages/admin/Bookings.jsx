@@ -77,7 +77,6 @@ const Bookings = () => {
 
   const tabCounts = useMemo(() => ({
     'Tour Packages': bookings.filter(b => (b.type || 'Tour Packages') === 'Tour Packages').length,
-    'TukTrip': bookings.filter(b => b.type === 'TukTrip').length,
     'Car Rental': bookings.filter(b => b.type === 'Car Rental').length,
   }), [bookings]);
 
@@ -127,21 +126,19 @@ const Bookings = () => {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="w-full lg:w-auto">
           <div className="flex flex-wrap gap-2">
-            {['Tour Packages', 'TukTrip', 'Car Rental'].map(type => (
+            {['Tour Packages', 'Car Rental'].map(type => (
               <button
                 key={type}
                 onClick={() => setBookingType(type)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
-                  bookingType === type 
-                    ? 'bg-cyan-500 text-slate-950' 
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${bookingType === type
+                    ? 'bg-cyan-500 text-slate-950'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 {type}
                 {tabCounts[type] > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-extrabold ${
-                    bookingType === type ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-700 text-slate-300'
-                  }`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-extrabold ${bookingType === type ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-700 text-slate-300'
+                    }`}>
                     {tabCounts[type]}
                   </span>
                 )}
@@ -172,11 +169,10 @@ const Bookings = () => {
           <button
             key={filter.key}
             onClick={() => setActiveFilter(filter.key)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
-              activeFilter === filter.key
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${activeFilter === filter.key
                 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
                 : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-            }`}
+              }`}
           >
             {filter.label}
           </button>

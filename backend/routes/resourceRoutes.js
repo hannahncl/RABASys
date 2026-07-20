@@ -25,6 +25,13 @@ function selected(resource, input) {
     return resource.fields.filter((field) => Object.prototype.hasOwnProperty.call(input, field));
 }
 
+function normalizeImageValue(value) {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed;
+}
+
 function normalizeVehiclePayload(input = {}) {
     const vehicleName = input.vehicle_name || input.vehicleName || input.name || "";
     const vehicleType = input.vehicle_type || input.vehicleType || "Car";
@@ -32,7 +39,7 @@ function normalizeVehiclePayload(input = {}) {
     const capacity = Number(input.capacity ?? input.seatingCapacity ?? input.seating_capacity ?? 1);
     const dailyRate = Number(input.daily_rate ?? input.dailyRate ?? input.price ?? 0);
     const availabilityStatus = input.availability_status || input.availabilityStatus || "Available";
-    const image = input.image || input.vehicleImage || input.vehicle_image || null;
+    const image = normalizeImageValue(input.image || input.vehicleImage || input.vehicle_image || null);
 
     return {
         vehicle_name: String(vehicleName).trim(),
@@ -45,17 +52,26 @@ function normalizeVehiclePayload(input = {}) {
     };
 }
 
+<<<<<<< HEAD
 function approvalAction(resource, values) {
     if (resource.table !== "reschedule_request") return "UPDATE";
     const status = String(values.request_status || "").trim().toLowerCase();
     if (status === "approved") return "APPROVE";
     if (status === "rejected") return "REJECT";
     return "UPDATE";
+=======
+function prepareResourcePayload(resource, input = {}) {
+    const payload = { ...input };
+    if (Object.prototype.hasOwnProperty.call(payload, "image") && payload.image !== undefined && payload.image !== null) {
+        payload.image = normalizeImageValue(payload.image);
+    }
+    return payload;
+>>>>>>> 53d266af00670ca6c639ef16273f8a01ed4017ee
 }
 
 function addCrud(router, path, resource) {
     const whereActive = resource.softDelete === false ? "" : " WHERE deleted_at IS NULL";
-    const readMiddleware = path === "packages" ? [] : [requireAuth];
+    const readMiddleware = path === "packages" || path === "vehicles" ? [] : [requireAuth];
     router.get(`/${path}`, ...readMiddleware, async (req, res, next) => {
         try { const [rows] = await db.query(`SELECT * FROM \`${resource.table}\`${whereActive} ORDER BY \`${resource.id}\` DESC`); res.json(rows); } catch (e) { next(e); }
     });
@@ -63,10 +79,32 @@ function addCrud(router, path, resource) {
         try { const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); if (!rows[0]) return res.status(404).json({ message: "Record not found." }); res.json(rows[0]); } catch (e) { next(e); }
     });
     router.post(`/${path}`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
+<<<<<<< HEAD
         try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => req.body[f])); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]); await logAudit({ accountId: req.user.accountId, action: "INSERT", tableName: resource.table, recordId: result.insertId, newValues: req.body }); res.status(201).json(rows[0]); } catch (e) { next(e); }
     });
     router.patch(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
         try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [existingRows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); const oldValues = existingRows[0]; if (!oldValues) return res.status(404).json({ message: "Record not found." }); const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => req.body[f]), req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]); await logAudit({ accountId: req.user.accountId, action: approvalAction(resource, req.body), tableName: resource.table, recordId: Number(req.params.id), oldValues, newValues: req.body }); res.json(rows[0]); } catch (e) { next(e); }
+=======
+        try {
+            const payload = prepareResourcePayload(resource, req.body);
+            const fields = selected(resource, payload);
+            if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => payload[f]));
+            const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]);
+            res.status(201).json(rows[0]);
+        } catch (e) { next(e); }
+    });
+    router.patch(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
+        try {
+            const payload = prepareResourcePayload(resource, req.body);
+            const fields = selected(resource, payload);
+            if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
+            if (!result.affectedRows) return res.status(404).json({ message: "Record not found." });
+            const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]);
+            res.json(rows[0]);
+        } catch (e) { next(e); }
+>>>>>>> 53d266af00670ca6c639ef16273f8a01ed4017ee
     });
     router.delete(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
         try { const [existingRows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); const oldValues = existingRows[0]; if (!oldValues) return res.status(404).json({ message: "Record not found." }); const sql = resource.softDelete === false ? `DELETE FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?` : `UPDATE \`${resource.table}\` SET deleted_at = NOW() WHERE \`${resource.id}\` = ? AND deleted_at IS NULL`; const [result] = await db.execute(sql, [req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); await logAudit({ accountId: req.user.accountId, action: "DELETE", tableName: resource.table, recordId: Number(req.params.id), oldValues }); res.status(204).end(); } catch (e) { next(e); }
