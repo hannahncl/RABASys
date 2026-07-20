@@ -19,7 +19,6 @@ const CATEGORIES = [
     border: 'border-cyan-500/30',
     bg: 'bg-cyan-500/10',
     activeBg: 'bg-cyan-500',
-    description: 'Guided tour itineraries and multi-day travel packages',
     fields: [
       { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. Bicol Adventure Escape' },
       { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tour experience...' },
@@ -37,12 +36,11 @@ const CATEGORIES = [
     label: 'Tuktrip',
     singular: 'Tuktrip',
     icon: Navigation,
-    color: 'amber',
-    accent: 'text-amber-400',
-    border: 'border-amber-500/30',
-    bg: 'bg-amber-500/10',
-    activeBg: 'bg-amber-500',
-    description: 'Tuk-tuk city rides, local tours, and guided sightseeing routes',
+    color: 'cyan',
+    accent: 'text-cyan-400',
+    border: 'border-cyan-500/30',
+    bg: 'bg-cyan-500/10',
+    activeBg: 'bg-cyan-500',
     fields: [
       { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. City Heritage Tuktrip' },
       { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tuktrip experience...' },
@@ -60,12 +58,11 @@ const CATEGORIES = [
     label: 'Car Rentals',
     singular: 'Car Rental',
     icon: Car,
-    color: 'violet',
-    accent: 'text-violet-400',
-    border: 'border-violet-500/30',
-    bg: 'bg-violet-500/10',
-    activeBg: 'bg-violet-500',
-    description: 'Vehicle rental services with driver - sedans, SUVs, and vans',
+    color: 'cyan',
+    accent: 'text-cyan-400',
+    border: 'border-cyan-500/30',
+    bg: 'bg-cyan-500/10',
+    activeBg: 'bg-cyan-500',
     fields: [
       { name: 'title',        label: 'Vehicle Name / Model',    type: 'text',   placeholder: 'e.g. Toyota Fortuner - Premium SUV' },
       { name: 'destination',  label: 'Service Area',             type: 'text',   placeholder: 'e.g. Bicol Region' },
@@ -146,7 +143,6 @@ const deserializeForm = (item, fields) => {
 // ─── ServiceCard ─────────────────────────────────────────────────────────────
 
 const ServiceCard = ({ item, catConfig, onEdit, onDelete }) => {
-  const Icon = catConfig.icon;
   return (
     <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group">
       {/* Image */}

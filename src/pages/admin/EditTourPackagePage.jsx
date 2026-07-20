@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const EditTourPackagePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
@@ -17,7 +19,8 @@ const EditTourPackagePage = () => {
     inclusions: '',
     maximumCapacity: '',
     meetingLocation: '',
-    itinerary: ''
+    itinerary: '',
+    image: ''
   });
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +43,8 @@ const EditTourPackagePage = () => {
           inclusions: Array.isArray(item.inclusions) ? item.inclusions.join(', ') : (item.inclusions || ''),
           maximumCapacity: item.maximumCapacity != null ? String(item.maximumCapacity) : '',
           meetingLocation: item.meetingLocation || '',
-          itinerary: Array.isArray(item.itinerary) ? item.itinerary.map(entry => entry.title || entry.desc || '').join('\n') : (item.itinerary || '')
+          itinerary: Array.isArray(item.itinerary) ? item.itinerary.map(entry => entry.title || entry.desc || '').join('\n') : (item.itinerary || ''),
+          image: item.image || ''
         });
       } catch {
         showNotification('Failed to load tour package details.', 'error');
@@ -58,6 +62,22 @@ const EditTourPackagePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageSelection = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingImage(true);
+    try {
+      const image = await compressPackageImage(file);
+      setFormData(prev => ({ ...prev, image }));
+    } catch (error) {
+      e.target.value = '';
+      showNotification(error.message || 'Failed to process the image.', 'error');
+    } finally {
+      setIsCompressingImage(false);
+    }
+  };
+
   const handleSave = async () => {
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const missing = required.filter(field => !String(formData[field]).trim());
@@ -69,6 +89,7 @@ const EditTourPackagePage = () => {
     try {
       const payload = {
         category: 'tour',
+        packageType: 'tour',
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
@@ -83,6 +104,7 @@ const EditTourPackagePage = () => {
           .map(line => line.trim())
           .filter(Boolean)
           .map((line, index) => ({ day: index + 1, title: line, desc: line })),
+        image: formData.image || '/CAGSAWA.jpg',
         tags: [formData.destination.trim(), 'Tour Package']
       };
 
@@ -156,14 +178,22 @@ const EditTourPackagePage = () => {
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Itinerary</label>
             <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Package Image</label>
+            <input type="file" accept="image/*" onChange={handleImageSelection} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:bg-cyan-500 file:text-slate-950" />
+            <input name="image" value={formData.image} onChange={handleChange} placeholder="Or paste an image URL" className="w-full mt-2 bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            {formData.image && (
+              <img src={formData.image} alt="Preview" className="mt-3 h-32 w-full object-cover rounded-lg border border-slate-700" />
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
           <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
             <X className="h-4 w-4" /> Cancel
           </button>
-          <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
-            <Save className="h-4 w-4" /> Save Changes
+          <button disabled={isCompressingImage} onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
+            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : 'Save Changes'}
           </button>
         </div>
       </div>
