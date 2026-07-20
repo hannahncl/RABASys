@@ -4,11 +4,15 @@ import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 import { compressPackageImage } from '../../utils/compressPackageImage';
+import { useAuth } from '../../hooks/useAuth';
+import { normalizeFrontendRole } from '../../contexts/AuthContext';
 
 const AddTourPackagePage = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { user } = useAuth();
   const [isCompressingImage, setIsCompressingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
@@ -52,6 +56,19 @@ const AddTourPackagePage = () => {
       return;
     }
 
+    if (!user || normalizeFrontendRole(user.role) !== 'admin') {
+      showNotification('Please sign in as an admin before creating a package.', 'error');
+      return;
+    }
+
+    const storedToken = localStorage.getItem('rabas_auth_token') || JSON.parse(localStorage.getItem('rabas_current_user') || 'null')?.token;
+    if (!storedToken) {
+      showNotification('Your admin session has expired. Please sign in again.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       const payload = {
         category: 'tour',
@@ -78,7 +95,12 @@ const AddTourPackagePage = () => {
       showNotification('Tour package created successfully', 'success');
       navigate('/admin/services');
     } catch (error) {
-      showNotification('Failed to create tour package', 'error');
+      const message = error?.message || 'Failed to create tour package';
+      showNotification(message.includes('Authentication') || message.includes('permission')
+        ? 'Your admin session could not be verified. Please sign in again and try once more.'
+        : message, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,11 +168,11 @@ const AddTourPackagePage = () => {
         </div>
 
         <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-          <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
+          <button onClick={() => navigate('/admin/services')} disabled={isSubmitting} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
             <X className="h-4 w-4" /> Cancel
           </button>
-          <button disabled={isCompressingImage} onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
-            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : 'Save Package'}
+          <button disabled={isCompressingImage || isSubmitting} onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
+            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : isSubmitting ? 'Saving...' : 'Save Package'}
           </button>
         </div>
       </div>

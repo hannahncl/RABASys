@@ -22,10 +22,18 @@ async function ensureSchema() {
         account_id INT UNSIGNED NOT NULL,
         login_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         last_activity DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        session_token_hash CHAR(64) NULL DEFAULT NULL,
+        expires_at DATETIME NOT NULL,
+        revoked_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (session_id),
         KEY idx_session_account (account_id),
+        KEY idx_session_expires (expires_at),
         CONSTRAINT fk_session_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS session_token_hash CHAR(64) NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS expires_at DATETIME NOT NULL DEFAULT '2030-01-01 00:00:00'`);
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS revoked_at DATETIME NULL DEFAULT NULL`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS password_reset_otp (
         reset_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -54,7 +62,7 @@ async function ensureSchema() {
         itinerary JSON NULL,
         availability_status VARCHAR(50) NOT NULL DEFAULT 'Available',
         package_type VARCHAR(50) NOT NULL DEFAULT 'tour',
-        image TEXT NULL,
+        image LONGTEXT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,

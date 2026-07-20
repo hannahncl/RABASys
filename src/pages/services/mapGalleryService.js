@@ -3,14 +3,7 @@ const SPOTS_STORAGE_KEY = 'rabas_map_spots';
 const UPLOADS_STORAGE_KEY = 'rabas_map_uploads';
 
 const INITIAL_SPOTS = [
-  {
-    id: 'spot-mayon',
-    name: 'Daraga, Albay',
-    coords: [13.1517, 123.6872],
-    description: 'Home of the Cagsawa Ruins and the world-famous Mount Mayon, renowned for its majestic perfect cone shape.',
-    category: 'Volcanoes & Heritage',
-    featuredImage: 'https://images.unsplash.com/photo-1579621970795-87faff37f34d?auto=format&fit=crop&q=80&w=800'
-  },
+
   {
     id: 'spot-caramoan',
     name: 'Caramoan, Camarines Sur',
@@ -28,14 +21,6 @@ const INITIAL_SPOTS = [
     featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'
   },
   {
-    id: 'spot-donsol',
-    name: 'Donsol, Sorsogon',
-    coords: [12.9056, 123.5986],
-    description: 'A world-famous whale shark sanctuary where visitors can swim alongside gentle ocean giants (butanding) in a strictly eco-friendly, natural environment.',
-    category: 'Marine Wildlife',
-    featuredImage: 'https://images.unsplash.com/photo-1560275669-46c5a89d7a44?auto=format&fit=crop&q=80&w=800'
-  },
-  {
     id: 'spot-matnog',
     name: 'Matnog, Sorsogon',
     coords: [12.5852, 124.0853],
@@ -46,22 +31,6 @@ const INITIAL_SPOTS = [
 ];
 
 const INITIAL_UPLOADS = [
-  {
-    id: 'bu_1',
-    spotId: 'spot-mayon',
-    touristName: 'Miguel S.',
-    caption: 'Woke up early to catch Mount Mayon without any clouds. Absolute perfection!',
-    imageUrl: 'https://images.unsplash.com/photo-1579621970795-87faff37f34d?auto=format&fit=crop&q=80&w=800',
-    date: '2026-06-20T06:30:00.000Z'
-  },
-  {
-    id: 'bu_2',
-    spotId: 'spot-mayon',
-    touristName: 'Clara D.',
-    caption: 'The historic Cagsawa belfry ruins look amazing against the backdrop of Mayon Volcano.',
-    imageUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800',
-    date: '2026-06-22T14:45:00.000Z'
-  },
   {
     id: 'bu_3',
     spotId: 'spot-caramoan',
@@ -77,14 +46,6 @@ const INITIAL_UPLOADS = [
     caption: 'Mahabang Buhangin beach sand is so white and fine! Best camping trip ever in Camarines Norte.',
     imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800',
     date: '2026-06-23T08:15:00.000Z'
-  },
-  {
-    id: 'bu_5',
-    spotId: 'spot-donsol',
-    touristName: 'Rob T.',
-    caption: 'Swam with three different whale sharks today! What a humbling experience.',
-    imageUrl: 'https://images.unsplash.com/photo-1560275669-46c5a89d7a44?auto=format&fit=crop&q=80&w=800',
-    date: '2026-06-15T11:20:00.000Z'
   },
   {
     id: 'bu_6',
@@ -114,7 +75,11 @@ if (!localStorage.getItem(UPLOADS_STORAGE_KEY)) {
 export const mapGalleryService = {
   getSpots: async () => {
     await new Promise(resolve => setTimeout(resolve, 200));
-    return JSON.parse(localStorage.getItem(SPOTS_STORAGE_KEY)) || [];
+    const stored = JSON.parse(localStorage.getItem(SPOTS_STORAGE_KEY)) || [];
+    const validIds = new Set(INITIAL_SPOTS.map((spot) => spot.id));
+    const filtered = stored.filter((spot) => validIds.has(spot.id));
+    localStorage.setItem(SPOTS_STORAGE_KEY, JSON.stringify(filtered));
+    return filtered;
   },
 
   getUploads: async (spotId) => {

@@ -15,6 +15,7 @@ const bookingFromApi = (item) => ({
   status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
   createdAt: item.created_at,
   paymentRef: item.booking_reference,
+  hasReviewed: Boolean(item.has_reviewed),
 });
 
 const rentalBookingFromApi = (item) => ({
