@@ -46,7 +46,11 @@ async function sendPasswordResetOtp(email, otp) {
         });
         return true;
     } catch (error) {
-        console.error(`[mailer] Failed to send password reset email to ${email}:`, error.message);
+        console.error(
+            `[mailer] Failed to send password reset email to ${email}:`,
+            error.message
+        );
+
         return false;
     }
 }
