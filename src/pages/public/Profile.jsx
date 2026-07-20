@@ -452,7 +452,7 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
-                                {booking.status === 'Confirmed' && (
+                                {booking.status === 'Confirmed' && !booking.hasReviewed && booking.type === 'Tour Packages' && (
                                   <Link
                                     to={`/review/${booking.id}`}
                                     className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-600 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all cursor-pointer"

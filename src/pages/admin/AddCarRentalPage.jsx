@@ -4,6 +4,7 @@ import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 import { validateNumber, validatePlateNumber, validateRequired } from '../../utils/validation';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const AddCarRentalPage = () => {
   const navigate = useNavigate();
@@ -18,22 +19,29 @@ const AddCarRentalPage = () => {
     image: '',
   });
   const [errors, setErrors] = useState({});
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-
-    if (name === 'image' && files && files[0]) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFormData(prev => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
+    const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const handleImageSelection = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingImage(true);
+    try {
+      const image = await compressPackageImage(file);
+      setFormData(prev => ({ ...prev, image }));
+    } catch (error) {
+      e.target.value = '';
+      showNotification(error.message || 'Failed to process the image.', 'error');
+    } finally {
+      setIsCompressingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -51,6 +59,7 @@ const AddCarRentalPage = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await serviceService.create({
         category: 'car',
@@ -66,6 +75,8 @@ const AddCarRentalPage = () => {
       navigate('/admin/services');
     } catch (error) {
       showNotification(error.message || 'Failed to create car rental', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -128,7 +139,7 @@ const AddCarRentalPage = () => {
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Vehicle Image</label>
-            <input name="image" type="file" accept="image/*" onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30" />
+            <input type="file" accept="image/*" onChange={handleImageSelection} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-cyan-400 file:font-semibold hover:file:bg-cyan-500/30" />
             {formData.image && (
               <img src={formData.image} alt="Vehicle preview" className="mt-3 h-32 w-full rounded-lg object-cover border border-slate-800" />
             )}
@@ -136,11 +147,11 @@ const AddCarRentalPage = () => {
         </div>
 
         <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-          <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
+          <button onClick={() => navigate('/admin/services')} disabled={isSubmitting} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
             <X className="h-4 w-4" /> Cancel
           </button>
-          <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
-            <Save className="h-4 w-4" /> Save Vehicle
+          <button onClick={handleSave} disabled={isCompressingImage || isSubmitting} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
+            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : isSubmitting ? 'Saving...' : 'Save Vehicle'}
           </button>
         </div>
       </div>
