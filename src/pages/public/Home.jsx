@@ -50,7 +50,6 @@ const Home = () => {
         {/* Background Image Overlay */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity scale-105"
-          style={{ backgroundImage: "url('https://scontent.fmnl13-1.fna.fbcdn.net/v/t39.30808-6/605142635_122106586599161293_6988448289106656481_n.jpg?stp=dst-jpg_tt6&cstp=mx1277x473&ctp=s1277x473&_nc_cat=100&ccb=1-7&_nc_sid=cc71e4&_nc_eui2=AeF_uc_b11_NcM23MgjPh0PlHhAWfN3qtJUeEBZ83eq0lZnLGtXHozxjVVKGRQSpWNbLuCKeebfcJBXW6x1077Y6&_nc_ohc=1svVWawJR_oQ7kNvwEEVMeR&_nc_oc=AdqrE3UQuC4aUqK2srM-GDlt_Fw3lizs8v7IcUlIQIk5QEa3JXRxxytSx8O0bx3e5GI&_nc_zt=23&_nc_ht=scontent.fmnl13-1.fna&_nc_gid=xK7bydNzO4HVPoJBLOGQdg&_nc_ss=7b2a8&oh=00_AQA7DGhGqLr6m1aXaTvGdEpn4YhJDMazxZdsLNVf8H0U1g&oe=6A5C2F01')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950" />
 
