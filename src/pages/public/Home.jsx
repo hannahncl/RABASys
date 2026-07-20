@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { tripUploadService } from '../../services/tripUploadService';
+import { api } from '../../services/api';
 import { Compass, Search, Star, MapPin, Sparkles, Activity, Clock, Users } from 'lucide-react';
 
 const Home = () => {
   const [packages, setPackages] = useState([]);
   const [liveUpdates, setLiveUpdates] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
   const navigate = useNavigate();
@@ -17,6 +19,12 @@ const Home = () => {
       setPackages(allPkgs);
       const updates = await tripUploadService.getAll();
       setLiveUpdates(updates.slice(0, 3)); // show top 3 updates
+      try {
+        const reviewData = await api('/reviews');
+        setReviews(reviewData);
+      } catch (err) {
+        console.error('Failed to load reviews', err);
+      }
     };
     loadData();
   }, []);
@@ -332,19 +340,17 @@ const Home = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <h2 className="text-3xl font-extrabold font-display text-slate-100 text-center">What Tourists Say About Rabas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { name: 'Alden Richards', text: 'El Nido Premium island hopping was seamless! The GCash checkout took 20 seconds, and our tour guide sent weather updates every morning.', rating: 5 },
-            { name: 'Sarah Geronimo', text: 'Loved the Siargao Surf Package. Suggested spots were perfect, and having the weather integration saved our itinerary when it rained on Day 4.', rating: 5 },
-            { name: 'Catriona Gray', text: 'Excellent service. Batanes was a dream, and the cultural guides were incredibly helpful. Highly recommend Rabas for hassle-free booking.', rating: 5 }
-          ].map((item, index) => (
-            <div key={index} className="glass-panel p-6 rounded-2xl border-slate-800 space-y-4">
+          {reviews.length > 0 ? reviews.map((item, index) => (
+            <div key={item.review_id || index} className="glass-panel p-6 rounded-2xl border-slate-800 space-y-4 flex flex-col">
               <div className="flex gap-1 text-amber-400">
                 {[...Array(item.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
               </div>
-              <p className="text-slate-300 text-sm italic leading-relaxed">"{item.text}"</p>
-              <h4 className="text-slate-400 font-semibold text-xs tracking-wider uppercase">— {item.name}</h4>
+              <p className="text-slate-300 text-sm italic leading-relaxed flex-grow">"{item.comment || 'Great experience!'}"</p>
+              <h4 className="text-slate-400 font-semibold text-xs tracking-wider uppercase">— {item.first_name} {item.last_name}</h4>
             </div>
-          ))}
+          )) : (
+            <p className="text-center col-span-1 md:col-span-2 lg:col-span-3 text-slate-500 text-sm py-4">No reviews available yet.</p>
+          )}
         </div>
       </section>
     </div>

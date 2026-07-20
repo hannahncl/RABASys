@@ -25,9 +25,9 @@ const AVATARS = [
    Status badge helper
 ──────────────────────────────── */
 const StatusBadge = ({ status }) => {
-  if (status === 'Confirmed') return (
+  if (status === 'Confirmed' || status === 'Completed') return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
-      <CheckCircle2 className="h-3.5 w-3.5" /> Confirmed
+      <CheckCircle2 className="h-3.5 w-3.5" /> {status}
     </span>
   );
   if (status === 'Cancelled') return (
@@ -125,11 +125,13 @@ const Profile = () => {
   }, [user]);
 
   // ── Filter bookings by tab ──
-  const tabs = ['All', 'Pending Verification', 'Confirmed', 'Cancelled'];
+  const tabs = ['All', 'Pending Verification', 'Confirmed', 'To Review', 'Cancelled'];
 
   const filteredBookings = activeTab === 'All'
     ? allBookings
-    : allBookings.filter(b => b.status === activeTab);
+    : activeTab === 'To Review'
+      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed)
+      : allBookings.filter(b => b.status === activeTab);
 
   // ── Save profile edits ──
   const handleSave = async (e) => {
@@ -201,7 +203,9 @@ const Profile = () => {
   // ── Counts for tab badges ──
   const countFor = (tab) => tab === 'All'
     ? allBookings.length
-    : allBookings.filter(b => b.status === tab).length;
+    : tab === 'To Review'
+      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed).length
+      : allBookings.filter(b => b.status === tab).length;
 
   return (
     <div className="bg-white min-h-screen pb-24 pt-10">
@@ -437,13 +441,13 @@ const Profile = () => {
 
                           {/* Timeline dot */}
                           <div className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                            booking.status === 'Confirmed'
+                            (booking.status === 'Confirmed' || booking.status === 'Completed')
                               ? 'bg-green-50 ring-1 ring-green-200'
                               : booking.status === 'Cancelled'
                                 ? 'bg-red-50 ring-1 ring-red-200'
                                 : 'bg-yellow-50 ring-1 ring-yellow-200'
                           }`}>
-                            {booking.status === 'Confirmed'
+                            {(booking.status === 'Confirmed' || booking.status === 'Completed')
                               ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                               : booking.status === 'Cancelled'
                                 ? <XCircle className="h-3.5 w-3.5 text-red-400" />
