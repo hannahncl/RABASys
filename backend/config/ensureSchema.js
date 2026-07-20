@@ -10,12 +10,18 @@ async function ensureSchema() {
         contact_number VARCHAR(50) NOT NULL,
         role VARCHAR(50) NOT NULL DEFAULT 'Customer',
         account_status VARCHAR(50) NOT NULL DEFAULT 'Active',
+        two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (account_id),
         UNIQUE KEY uq_account_email (email)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    const [twoFactorColumns] = await db.query(`SHOW COLUMNS FROM account LIKE 'two_factor_enabled'`);
+    if (!twoFactorColumns.length) {
+        await db.query(`ALTER TABLE account ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0`);
+    }
 
     await db.query(`CREATE TABLE IF NOT EXISTS session_log (
         session_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -47,6 +53,20 @@ async function ensureSchema() {
         KEY idx_reset_account (account_id),
         KEY idx_reset_expires (expires_at),
         CONSTRAINT fk_password_reset_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    await db.query(`CREATE TABLE IF NOT EXISTS login_otp (
+        login_otp_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        account_id INT UNSIGNED NOT NULL,
+        otp_hash CHAR(64) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        used_at DATETIME NULL DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (login_otp_id),
+        KEY idx_login_otp_account (account_id),
+        KEY idx_login_otp_expires (expires_at),
+        CONSTRAINT fk_login_otp_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS tour_package (

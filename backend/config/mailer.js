@@ -1,16 +1,20 @@
 const nodemailer = require("nodemailer");
 
 function getMailer() {
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+        return null;
+    }
+
     return nodemailer.createTransport({
         service: "gmail",
         auth: {
             user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASSWORD
-        }
+            pass: process.env.GMAIL_APP_PASSWORD,
+        },
     });
 }
 
+// PASSWORD RESET OTP EMAIL
 async function sendPasswordResetOtp(email, otp) {
     const transporter = getMailer();
 
@@ -45,7 +49,11 @@ module.exports = { sendPasswordResetOtp };
         });
         return true;
     } catch (error) {
-        console.error(`[mailer] Failed to send password reset email to ${email}:`, error.message);
+        console.error(
+            `[mailer] Failed to send password reset email to ${email}:`,
+            error.message
+        );
+
         return false;
     }
 }
