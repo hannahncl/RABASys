@@ -64,7 +64,6 @@ const Profile = () => {
   const [lastName, setLastName]           = useState('');
   const [email, setEmail]                 = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [address, setAddress]             = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
   // ── Load account & bookings on mount ──
@@ -145,7 +144,6 @@ const Profile = () => {
       updateUserSession({
         name: fullName,
         email: email.trim(),
-        address: address.trim(),
         contactNumber: contactNumber.trim(),
       });
       setEditing(false);
@@ -162,7 +160,6 @@ const Profile = () => {
     setLastName(parts.slice(1).join(' ') || '');
     setEmail(accountRecord?.email || user?.email || '');
     setContactNumber(accountRecord?.phone || user?.contactNumber || '');
-    setAddress(accountRecord?.address || user?.address || '');
     setSelectedAvatar(accountRecord?.avatar || AVATARS[0]);
     setEditing(false);
   };
@@ -210,10 +207,8 @@ const Profile = () => {
             {!editing ? (
               <div className="space-y-4 pt-5">
 
-                <InfoRow icon={<User className="h-4 w-4" />} label="Username" value={user?.username} />
                 <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
                 <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
-                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Address" value={address || '—'} />
 
                 <button
                   onClick={() => setEditing(true)}
@@ -284,14 +279,6 @@ const Profile = () => {
                   onChange={setContactNumber}
                 />
 
-                {/* Address */}
-                <FormField
-                  label="Address"
-                  placeholder="e.g. Legazpi City, Albay"
-                  value={address}
-                  onChange={setAddress}
-                  capitalize
-                />
 
                 {/* Save / Cancel */}
                 <div className="flex gap-3 pt-2">
@@ -465,7 +452,7 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
-                                {booking.status === 'Confirmed' && (
+                                {booking.status === 'Confirmed' && !booking.hasReviewed && booking.type === 'Tour Packages' && (
                                   <Link
                                     to={`/review/${booking.id}`}
                                     className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-600 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all cursor-pointer"

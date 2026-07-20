@@ -91,7 +91,7 @@ async function ensureSchema() {
         itinerary JSON NULL,
         availability_status VARCHAR(50) NOT NULL DEFAULT 'Available',
         package_type VARCHAR(50) NOT NULL DEFAULT 'tour',
-        image TEXT NULL,
+        image LONGTEXT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,

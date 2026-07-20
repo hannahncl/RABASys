@@ -6,7 +6,8 @@ const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
 
 const bookingSelect = `SELECT b.*, p.package_name, p.destination, a.first_name, a.last_name, a.email, a.contact_number,
-    CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name
+    CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
+    EXISTS(SELECT 1 FROM review r WHERE r.booking_id = b.booking_id) AS has_reviewed
     FROM booking b JOIN account a ON a.account_id = b.account_id JOIN tour_package p ON p.package_id = b.package_id
     LEFT JOIN tour_guide g ON g.guide_id = b.guide_id LEFT JOIN account ga ON ga.account_id = g.account_id`;
 
