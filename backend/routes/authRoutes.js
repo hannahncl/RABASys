@@ -111,9 +111,8 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
         );
         const account = rows[0];
         const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
-        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
-
-        if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
+        
+        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
         }
         const signedToken = tokenFor(account, 0);
