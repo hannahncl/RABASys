@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const EditTourPackagePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
@@ -60,15 +62,20 @@ const EditTourPackagePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageSelection = (e) => {
+  const handleImageSelection = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({ ...prev, image: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    setIsCompressingImage(true);
+    try {
+      const image = await compressPackageImage(file);
+      setFormData(prev => ({ ...prev, image }));
+    } catch (error) {
+      e.target.value = '';
+      showNotification(error.message || 'Failed to process the image.', 'error');
+    } finally {
+      setIsCompressingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -185,8 +192,8 @@ const EditTourPackagePage = () => {
           <button onClick={() => navigate('/admin/services')} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1">
             <X className="h-4 w-4" /> Cancel
           </button>
-          <button onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
-            <Save className="h-4 w-4" /> Save Changes
+          <button disabled={isCompressingImage} onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
+            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : 'Save Changes'}
           </button>
         </div>
       </div>

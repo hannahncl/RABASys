@@ -4,6 +4,7 @@ import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 import { readImageAsDataUrl } from '../../utils/imageUtils';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 import { useAuth } from '../../hooks/useAuth';
 import { normalizeFrontendRole } from '../../contexts/AuthContext';
 
@@ -12,6 +13,7 @@ const AddTourPackagePage = () => {
   const { showNotification } = useNotification();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
@@ -34,11 +36,15 @@ const AddTourPackagePage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsCompressingImage(true);
     try {
-      const dataUrl = await readImageAsDataUrl(file);
-      setFormData(prev => ({ ...prev, image: dataUrl }));
+      const image = await compressPackageImage(file);
+      setFormData(prev => ({ ...prev, image }));
     } catch (error) {
-      showNotification('Unable to read the selected image.', 'error');
+      e.target.value = '';
+      showNotification(error.message || 'Failed to process the image.', 'error');
+    } finally {
+      setIsCompressingImage(false);
     }
   };
 
@@ -166,8 +172,8 @@ const AddTourPackagePage = () => {
           <button onClick={() => navigate('/admin/services')} disabled={isSubmitting} className="p-2 px-4 text-slate-400 hover:text-white bg-slate-800 rounded-lg cursor-pointer text-sm flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
             <X className="h-4 w-4" /> Cancel
           </button>
-          <button onClick={handleSave} disabled={isSubmitting} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
-            <Save className="h-4 w-4" /> {isSubmitting ? 'Saving...' : 'Save Package'}
+          <button disabled={isCompressingImage || isSubmitting} onClick={handleSave} className="p-2 px-4 text-slate-950 bg-cyan-400 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg cursor-pointer text-sm font-bold flex items-center gap-1">
+            <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : isSubmitting ? 'Saving...' : 'Save Package'}
           </button>
         </div>
       </div>

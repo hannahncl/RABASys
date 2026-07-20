@@ -61,7 +61,7 @@ function prepareResourcePayload(resource, input = {}) {
 
 function addCrud(router, path, resource) {
     const whereActive = resource.softDelete === false ? "" : " WHERE deleted_at IS NULL";
-    const readMiddleware = path === "packages" ? [] : [requireAuth];
+    const readMiddleware = path === "packages" || path === "vehicles" ? [] : [requireAuth];
     router.get(`/${path}`, ...readMiddleware, async (req, res, next) => {
         try { const [rows] = await db.query(`SELECT * FROM \`${resource.table}\`${whereActive} ORDER BY \`${resource.id}\` DESC`); res.json(rows); } catch (e) { next(e); }
     });
