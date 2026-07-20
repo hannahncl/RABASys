@@ -16,7 +16,9 @@ const frontendUser = (user, token) => {
   const role = normalizeFrontendRole(user?.role);
   return {
     ...user,
-    username: user.email,
+    id: user?.id ?? user?.account_id,
+    username: user?.email || user?.username || user?.emailAddress,
+    email: user?.email,
     role,
     token,
   };
@@ -96,13 +98,12 @@ export const AuthProvider = ({ children }) => {
   const login = async (identifier, password) => {
     setLoading(true);
     try {
-      return {
-        success: true,
-        user: saveSession(await api('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({ identifier, password }),
-        })),
-      };
+      const authResponse = await api('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ identifier, password }),
+      });
+      const sessionUser = saveSession(authResponse);
+      return { success: true, user: sessionUser };
     } catch (error) {
       return { success: false, error: error.message };
     } finally {
