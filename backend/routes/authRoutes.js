@@ -97,6 +97,7 @@ router.post("/register", [
         );
         const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
         const account = rows[0];
+        await logAudit({ accountId: account.account_id, action: "REGISTER", tableName: "account", recordId: account.account_id, newValues: req.body });
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken);
         const refreshedToken = tokenFor(account, session.sessionId);
@@ -150,6 +151,7 @@ router.post("/verify-reset-otp", [body("email").isEmail().normalizeEmail(), body
         const [rows] = await db.execute(`SELECT pr.reset_id, pr.account_id, pr.otp_hash FROM password_reset_otp pr JOIN account a ON a.account_id = pr.account_id WHERE a.email = ? AND pr.used_at IS NULL AND pr.expires_at > NOW() ORDER BY pr.created_at DESC LIMIT 1`, [req.body.email.toLowerCase()]);
         const reset = rows[0]; const enteredHash = hashOtp(req.body.otp);
         if (!reset || reset.attempts >= 5 || !crypto.timingSafeEqual(Buffer.from(reset.otp_hash), Buffer.from(enteredHash))) { if (reset) await db.execute("UPDATE password_reset_otp SET attempts = attempts + 1 WHERE reset_id = ?", [reset.reset_id]); return res.status(400).json({ message: "The code is invalid or has expired." }); }
+        await logAudit({ accountId: reset.account_id, action: "VERIFY_OTP", tableName: "password_reset_otp", recordId: reset.reset_id, newValues: { verified: true } });
         const resetToken = jwt.sign({ resetId: reset.reset_id, accountId: reset.account_id, purpose: "password-reset" }, getSecret(), { expiresIn: "10m" });
         res.json({ resetToken });
     } catch (error) { next(error); }
@@ -162,6 +164,7 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
         const [result] = await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE reset_id = ? AND account_id = ? AND used_at IS NULL AND expires_at > NOW()", [payload.resetId, payload.accountId]);
         if (!result.affectedRows) return res.status(400).json({ message: "This reset code has already been used or expired." });
         await db.execute("UPDATE account SET password_hash = ? WHERE account_id = ?", [await bcrypt.hash(req.body.newPassword, 12), payload.accountId]);
+        await logAudit({ accountId: payload.accountId, action: "PASSWORD_RESET", tableName: "account", recordId: payload.accountId, newValues: { passwordChanged: true } });
         res.json({ message: "Password updated. You can now log in." });
     } catch (error) { next(error); }
 });
