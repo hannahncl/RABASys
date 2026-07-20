@@ -24,6 +24,13 @@ function selected(resource, input) {
     return resource.fields.filter((field) => Object.prototype.hasOwnProperty.call(input, field));
 }
 
+function normalizeImageValue(value) {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed;
+}
+
 function normalizeVehiclePayload(input = {}) {
     const vehicleName = input.vehicle_name || input.vehicleName || input.name || "";
     const vehicleType = input.vehicle_type || input.vehicleType || "Car";
@@ -31,7 +38,7 @@ function normalizeVehiclePayload(input = {}) {
     const capacity = Number(input.capacity ?? input.seatingCapacity ?? input.seating_capacity ?? 1);
     const dailyRate = Number(input.daily_rate ?? input.dailyRate ?? input.price ?? 0);
     const availabilityStatus = input.availability_status || input.availabilityStatus || "Available";
-    const image = input.image || input.vehicleImage || input.vehicle_image || null;
+    const image = normalizeImageValue(input.image || input.vehicleImage || input.vehicle_image || null);
 
     return {
         vehicle_name: String(vehicleName).trim(),
@@ -44,6 +51,14 @@ function normalizeVehiclePayload(input = {}) {
     };
 }
 
+function prepareResourcePayload(resource, input = {}) {
+    const payload = { ...input };
+    if (Object.prototype.hasOwnProperty.call(payload, "image") && payload.image !== undefined && payload.image !== null) {
+        payload.image = normalizeImageValue(payload.image);
+    }
+    return payload;
+}
+
 function addCrud(router, path, resource) {
     const whereActive = resource.softDelete === false ? "" : " WHERE deleted_at IS NULL";
     const readMiddleware = path === "packages" ? [] : [requireAuth];
@@ -54,10 +69,25 @@ function addCrud(router, path, resource) {
         try { const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); if (!rows[0]) return res.status(404).json({ message: "Record not found." }); res.json(rows[0]); } catch (e) { next(e); }
     });
     router.post(`/${path}`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
-        try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => req.body[f])); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]); res.status(201).json(rows[0]); } catch (e) { next(e); }
+        try {
+            const payload = prepareResourcePayload(resource, req.body);
+            const fields = selected(resource, payload);
+            if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => payload[f]));
+            const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]);
+            res.status(201).json(rows[0]);
+        } catch (e) { next(e); }
     });
     router.patch(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
-        try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => req.body[f]), req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]); res.json(rows[0]); } catch (e) { next(e); }
+        try {
+            const payload = prepareResourcePayload(resource, req.body);
+            const fields = selected(resource, payload);
+            if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
+            if (!result.affectedRows) return res.status(404).json({ message: "Record not found." });
+            const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]);
+            res.json(rows[0]);
+        } catch (e) { next(e); }
     });
     router.delete(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
         try { const sql = resource.softDelete === false ? `DELETE FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?` : `UPDATE \`${resource.table}\` SET deleted_at = NOW() WHERE \`${resource.id}\` = ? AND deleted_at IS NULL`; const [result] = await db.execute(sql, [req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); res.status(204).end(); } catch (e) { next(e); }

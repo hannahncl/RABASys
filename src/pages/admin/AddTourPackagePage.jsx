@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { readImageAsDataUrl } from '../../utils/imageUtils';
 
 const AddTourPackagePage = () => {
   const navigate = useNavigate();
@@ -25,15 +26,16 @@ const AddTourPackagePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageSelection = (e) => {
+  const handleImageSelection = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({ ...prev, image: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await readImageAsDataUrl(file);
+      setFormData(prev => ({ ...prev, image: dataUrl }));
+    } catch (error) {
+      showNotification('Unable to read the selected image.', 'error');
+    }
   };
 
   const handleSave = async () => {
