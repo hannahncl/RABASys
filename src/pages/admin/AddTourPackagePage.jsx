@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
-<<<<<<<<< Temporary merge branch 1
 import { readImageAsDataUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { normalizeFrontendRole } from '../../contexts/AuthContext';
@@ -13,9 +12,8 @@ const AddTourPackagePage = () => {
   const { showNotification } = useNotification();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-=========
   const [isCompressingImage, setIsCompressingImage] = useState(false);
->>>>>>>>> Temporary merge branch 2
+  
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
