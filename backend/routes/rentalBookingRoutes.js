@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
+const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
 
 const bookingSelect = `SELECT b.*, 
@@ -69,6 +70,7 @@ router.post("/", requireAuth, async (req, res, next) => {
         );
 
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [result.insertId]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "car_rental_booking", recordId: result.insertId, newValues: rows[0], req });
         res.status(201).json(rows[0]);
     } catch (e) {
         next(e);
@@ -80,6 +82,7 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
         const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed", "Cancelled"];
         if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." });
 
+        const [before] = await db.execute("SELECT * FROM car_rental_booking WHERE rental_booking_id = ? AND deleted_at IS NULL", [req.params.id]);
         const [result] = await db.execute(
             "UPDATE car_rental_booking SET booking_status = ? WHERE rental_booking_id = ? AND deleted_at IS NULL",
             [req.body.booking_status, req.params.id]
@@ -88,6 +91,7 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
         if (!result.affectedRows) return res.status(404).json({ message: "Booking not found." });
 
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "car_rental_booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
         res.json(rows[0]);
     } catch (e) {
         next(e);

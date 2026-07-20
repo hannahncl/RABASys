@@ -21,10 +21,13 @@ async function ensureSchema() {
         session_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         account_id INT UNSIGNED NOT NULL,
         login_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        logout_time DATETIME NULL DEFAULT NULL,
         last_activity DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         session_token_hash CHAR(64) NULL DEFAULT NULL,
         expires_at DATETIME NOT NULL,
         revoked_at DATETIME NULL DEFAULT NULL,
+        ip_address VARCHAR(45) NULL DEFAULT NULL,
+        user_agent VARCHAR(512) NULL DEFAULT NULL,
         PRIMARY KEY (session_id),
         KEY idx_session_account (account_id),
         KEY idx_session_expires (expires_at),
@@ -32,8 +35,34 @@ async function ensureSchema() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS session_token_hash CHAR(64) NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS logout_time DATETIME NULL DEFAULT NULL`);
     await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS expires_at DATETIME NOT NULL DEFAULT '2030-01-01 00:00:00'`);
     await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS revoked_at DATETIME NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45) NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE session_log ADD COLUMN IF NOT EXISTS user_agent VARCHAR(512) NULL DEFAULT NULL`);
+
+    await db.query(`CREATE TABLE IF NOT EXISTS audit_log (
+        audit_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        account_id INT UNSIGNED NULL DEFAULT NULL,
+        session_id INT UNSIGNED NULL DEFAULT NULL,
+        action VARCHAR(100) NOT NULL,
+        table_name VARCHAR(100) NOT NULL,
+        record_id VARCHAR(100) NULL DEFAULT NULL,
+        old_values JSON NULL,
+        new_values JSON NULL,
+        ip_address VARCHAR(45) NULL DEFAULT NULL,
+        user_agent VARCHAR(512) NULL DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (audit_id),
+        KEY idx_audit_account_created (account_id, created_at),
+        KEY idx_audit_record (table_name, record_id),
+        KEY idx_audit_created (created_at),
+        CONSTRAINT fk_audit_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE SET NULL ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    // Safe upgrades for installations that already created audit_log before these fields existed.
+    await db.query(`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS session_id INT UNSIGNED NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45) NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS user_agent VARCHAR(512) NULL DEFAULT NULL`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS password_reset_otp (
         reset_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
