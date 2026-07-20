@@ -278,13 +278,14 @@ const CustomPlanner = () => {
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.container}>
-        {/* Header */}
-        <div style={{ marginBottom: '32px' }} id="customize-header">
-          <h1 style={S.h1}>Customize Trip</h1>
+            <div className="bg-white min-h-screen pb-24 pt-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div className="mb-10 border-b border-slate-100 pb-8">
+          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Customize Your Trip</h1>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"></div>
         {/* Main Layout Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '32px' }} className="main-layout-grid">
           

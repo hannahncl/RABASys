@@ -7,12 +7,11 @@ const router = express.Router();
 router.get("/", async (req, res, next) => {
     try {
         const [reviews] = await db.execute(`
-            SELECT r.review_id, r.rating, r.comment, a.first_name, a.last_name 
+            SELECT r.review_id, r.booking_id, r.package_id, r.rating, r.comment, r.created_at, a.first_name, a.last_name 
             FROM review r
             JOIN account a ON r.account_id = a.account_id
             WHERE r.deleted_at IS NULL
             ORDER BY r.created_at DESC
-            LIMIT 3
         `);
         res.json(reviews);
     } catch (error) { next(error); }
