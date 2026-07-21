@@ -3,45 +3,6 @@ import { Link } from 'react-router-dom';
 import { Star, MoreVertical } from 'lucide-react';
 
 const AboutUs = () => {
-  const teamMembers = [
-    {
-      id: 1,
-      name: 'Hannah Nicole',
-      role: 'Founder & Administrator',
-      location: 'Legazpi, Albay',
-      phone: '0917-123-4567',
-      email: 'hannah@rabastravel.com',
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 2,
-      name: 'Gail Escalora',
-      role: 'Chief Operations',
-      location: 'Naga, Camarines Sur',
-      phone: '0918-987-6543',
-      email: 'gail@rabastravel.com',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 3,
-      name: 'Alison Kiara',
-      role: 'Lead Tour Coordinator',
-      location: 'Daet, Camarines Norte',
-      phone: '0919-246-8102',
-      email: 'alisonkiara@const.com',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 4,
-      name: 'Adam Gates',
-      role: 'Travel Consultant',
-      location: 'Sorsogon City',
-      phone: '0920-135-7911',
-      email: 'adamgates@const.com',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    },
-  ];
-
   return (
     <div className="bg-white min-h-screen text-slate-800">
       {/* ── TOP SECTION: ABOUT US & MONTAGE ── */}
@@ -115,65 +76,6 @@ const AboutUs = () => {
                   the same passion for tourism, culture, and service excellence.
 
             </p>
-          </div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {teamMembers.map((member) => (
-              <div
-                key={member.id}
-                className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100/50 hover:shadow-md transition-all flex flex-col items-center text-center relative group hover:scale-[1.02] duration-300"
-              >
-                {/* Yellow star top-left */}
-                <div className="absolute top-5 left-5 text-yellow-500">
-                  <Star className="h-4 w-4 fill-yellow-500 stroke-yellow-500" />
-                </div>
-
-                {/* Options menu top-right */}
-                <div className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 cursor-pointer">
-                  <MoreVertical className="h-4 w-4" />
-                </div>
-
-                {/* Profile Photo */}
-                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 shadow-inner mt-4 mb-4">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                {/* Info */}
-                <div className="space-y-1 w-full">
-                  <h3 className="font-extrabold text-slate-800 text-base tracking-tight">
-                    {member.name}
-                  </h3>
-                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                    {member.role}
-                  </p>
-                  <p className="text-slate-400 text-[11px]">
-                    {member.location}
-                  </p>
-                </div>
-
-                {/* Divider */}
-                <div className="w-full border-t border-slate-100 my-4" />
-
-                {/* Contact info */}
-                <div className="space-y-1.5 w-full">
-                  <p className="text-slate-400 text-xs">
-                    {member.phone}
-                  </p>
-                  <a
-                    href={`mailto:${member.email}`}
-                    className="text-[#2aa6d1] hover:underline text-xs font-semibold block truncate"
-                  >
-                    {member.email}
-                  </a>
-                </div>
-
-              </div>
-            ))}
           </div>
 
         </div>

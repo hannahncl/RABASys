@@ -240,7 +240,7 @@ const MainLayout = () => {
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>Email: support@rabastravel.com</li>
                 <li>Phone: +63 917 123 4567</li>
-                <li>Address: Manila, Philippines</li>
+                <li>Address: Bicol, Philippines</li>
               </ul>
             </div>
           </div>
