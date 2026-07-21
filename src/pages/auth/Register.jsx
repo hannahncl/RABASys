@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
+import { sanitizeInput, validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
 
 const Register = () => {
   const { register } = useContext(AuthContext);
@@ -21,12 +21,18 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const cleanedEmail = sanitizeInput(email).toLowerCase();
+    const cleanedPassword = sanitizeInput(password);
+    const cleanedFirstName = sanitizeInput(firstName);
+    const cleanedLastName = sanitizeInput(lastName);
+    const cleanedContactNumber = sanitizeInput(contactNumber);
+
     const nextErrors = {
-      email: validateEmail(email),
-      password: validatePassword(password),
-      firstName: validateName(firstName, 'First name'),
-      lastName: validateName(lastName, 'Last name'),
-      contactNumber: validatePhone(contactNumber),
+      email: validateEmail(cleanedEmail),
+      password: validatePassword(cleanedPassword),
+      firstName: validateName(cleanedFirstName, 'First name'),
+      lastName: validateName(cleanedLastName, 'Last name'),
+      contactNumber: validatePhone(cleanedContactNumber),
     };
     setFieldErrors(nextErrors);
 
@@ -39,7 +45,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(firstName, lastName, email.trim(), password, contactNumber.trim());
+      const result = await register(cleanedFirstName, cleanedLastName, cleanedEmail, cleanedPassword, cleanedContactNumber);
       if (result.success) {
         navigate('/');
       } else {
@@ -83,8 +89,6 @@ const Register = () => {
             placeholder="Enter your email"
             autoComplete="email"
           />
-          <p className="mt-2 text-xs text-slate-500">Enter a valid email address.</p>
-          {fieldErrors.email && <p className="mt-2 text-sm text-rose-600">{fieldErrors.email}</p>}
         </div>
 
         <div>
@@ -96,10 +100,10 @@ const Register = () => {
             className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.password ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
             minLength="8"
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder="Enter your password"
           />
-          <p className="mt-2 text-xs text-slate-500">Use at least 8 characters, including one uppercase letter and one number.</p>
-          {fieldErrors.password && <p className="mt-2 text-sm text-rose-600">{fieldErrors.password}</p>}
+          <p className="mt-2 text-xs text-slate-500">Use at least 8 character including uppercase, lowercase, a number, and a special character.</p>
+          {fieldErrors.password && <p className="mt-2 text-sm text-rose-600">{fieldErrors.password}</p>}  
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -110,7 +114,7 @@ const Register = () => {
               value={firstName}
               onChange={(e) => { setFirstName(e.target.value); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
               className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none ${fieldErrors.firstName ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-              placeholder=""
+              placeholder="First name"
             />
             {fieldErrors.firstName && <p className="mt-2 text-sm text-rose-600">{fieldErrors.firstName}</p>}
           </div>
@@ -121,7 +125,7 @@ const Register = () => {
               value={lastName}
               onChange={(e) => { setLastName(e.target.value); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
               className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 capitalize transition-all focus:outline-none ${fieldErrors.lastName ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-              placeholder=""
+              placeholder="Last name"
             />
             {fieldErrors.lastName && <p className="mt-2 text-sm text-rose-600">{fieldErrors.lastName}</p>}
           </div>
@@ -134,12 +138,14 @@ const Register = () => {
             autoComplete="tel"
             inputMode="tel"
             value={contactNumber}
-            onChange={(e) => { setContactNumber(e.target.value); if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' })); }}
+            onChange={(e) => {
+              const nextValue = e.target.value.replace(/[^0-9+\-()\s]/g, '');
+              setContactNumber(nextValue);
+              if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
+            }}
             className={`w-full rounded-lg border px-4 py-3 text-[15px] text-gray-900 transition-all focus:outline-none ${fieldErrors.contactNumber ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white'}`}
-            placeholder="e.g. +639171234567"
+            placeholder="e.g. +63"
           />
-          <p className="mt-2 text-xs text-slate-500">Use a valid phone number.</p>
-          {fieldErrors.contactNumber && <p className="mt-2 text-sm text-rose-600">{fieldErrors.contactNumber}</p>}
         </div>
 
         <button

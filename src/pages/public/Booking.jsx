@@ -495,16 +495,17 @@ const Booking = () => {
             ) : (
               // STEP 2: Payment UI
               <>
-                <h2 className="text-[17px] font-extrabold text-black mb-8">Complete Payment</h2>
+                <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Complete Payment</h1>
                 <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-6">
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"></div>
                   
                   {/* GCash Option */}
                   <label className="flex items-center gap-4 cursor-pointer py-2">
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-yellow-400' : 'border-slate-300'}`}>
                       {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                     </div>
-                    <span className="text-sm font-semibold text-black">GCash</span>
-                    <input type="radio" className="hidden" checked={paymentMethod === 'gcash'} onChange={() => setPaymentMethod('gcash')} />
+                    <h1 className="text-xs text-slate-400 tracking-widest uppercase mb-1">Gcash</h1>
                   </label>
 
                   {/* GCash Reference Number Input */}
@@ -528,63 +529,6 @@ const Booking = () => {
 
                   <div className="h-px bg-slate-100 my-4 w-full"></div>
                   
-                  {/* Credit/Debit Option */}
-                  <label className="flex items-center justify-between cursor-pointer py-2">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-yellow-400' : 'border-slate-300'}`}>
-                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
-                      </div>
-                      <span className="text-sm font-semibold text-black">Credit/ Debit Card</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-[#1A1F71] font-bold italic text-sm">VISA</div>
-                      <div className="w-6 h-6 flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-[#EB001B] relative left-1 z-10"></div>
-                        <div className="w-3 h-3 rounded-full bg-[#F79E1B] relative right-1"></div>
-                      </div>
-                    </div>
-                    <input type="radio" className="hidden" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
-                  </label>
-
-                  {/* Credit Card Form (Visible if selected) */}
-                  {paymentMethod === 'card' && (
-                    <div className="bg-[#F8F9FA] rounded-xl p-6 mt-6 space-y-5">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">Card number</label>
-                        <input
-                          type="text"
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(e.target.value)}
-                          className="w-[260px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
-                        />
-                      </div>
-                      <div className="flex gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-600 mb-2">Expiration date</label>
-                          <input
-                            type="text"
-                            placeholder="MM/YYYY"
-                            value={expiryDate}
-                            onChange={(e) => setExpiryDate(e.target.value)}
-                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-600 mb-2">Security Code</label>
-                          <input
-                            type="text"
-                            value={cvv}
-                            onChange={(e) => setCvv(e.target.value)}
-                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
-                          />
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                        <input type="checkbox" className="w-3.5 h-3.5 border-slate-300 rounded text-yellow-400 focus:ring-yellow-400" />
-                        <span className="text-[11px] font-medium text-black">Save card details</span>
-                      </label>
-                    </div>
-                  )}
 
                   {/* Final T&C and Submit */}
                   <div className="flex items-center justify-between pt-12">

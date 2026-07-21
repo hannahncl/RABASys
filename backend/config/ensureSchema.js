@@ -98,6 +98,18 @@ async function ensureSchema() {
         CONSTRAINT fk_login_otp_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
+    await db.query(`CREATE TABLE IF NOT EXISTS audit_log (
+        audit_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        account_id INT UNSIGNED NULL,
+        action VARCHAR(100) NOT NULL,
+        detail TEXT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (audit_id),
+        KEY idx_audit_account (account_id),
+        KEY idx_audit_created_at (created_at),
+        CONSTRAINT fk_audit_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE SET NULL ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
     await db.query(`CREATE TABLE IF NOT EXISTS tour_package (
         package_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         package_name VARCHAR(255) NOT NULL,

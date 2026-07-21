@@ -45,6 +45,15 @@ const validate = (req, res, next) => {
     const errors = validationResult(req);
     return errors.isEmpty() ? next() : res.status(422).json({ message: "Validation failed.", errors: errors.array() });
 };
+const sanitizeText = (value) => String(value ?? "").trim().replace(/[\u0000-\u001F\u007F]/g, "").replace(/[<>]/g, "");
+const sanitizeEmail = (email) => sanitizeText(email).toLowerCase();
+const logAuditEvent = async (accountId, action, detail = "") => {
+    try {
+        await db.execute("INSERT INTO audit_log (account_id, action, detail) VALUES (?, ?, ?)", [accountId ?? null, action, detail]);
+    } catch (error) {
+        console.warn(`[auth] Audit logging failed for ${action}:`, error.message);
+    }
+};
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 const parseTtlMilliseconds = () => {
     const value = process.env.JWT_EXPIRES_IN || "8h";
@@ -80,12 +89,18 @@ const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const resetAttempts = new Map();
 const requestAllowed = (key) => { const now = Date.now(); const recent = (resetAttempts.get(key) || []).filter((time) => now - time < 15 * 60 * 1000); if (recent.length >= 3) return false; recent.push(now); resetAttempts.set(key, recent); return true; };
 router.post("/register", [
-    body("firstName").trim().notEmpty(), body("lastName").trim().notEmpty(),
-    body("email").isEmail().normalizeEmail(), body("password").isLength({ min: 8 }),
-    body("contactNumber").trim().notEmpty()
+    body("firstName").trim().isLength({ min: 1, max: 100 }).matches(/^[A-Za-z\s.'-]+$/),
+    body("lastName").trim().isLength({ min: 1, max: 100 }).matches(/^[A-Za-z\s.'-]+$/),
+    body("email").isEmail().normalizeEmail(),
+    body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/),
+    body("contactNumber").trim().isLength({ min: 10, max: 15 }).matches(/^[0-9+\-()\s]+$/)
 ], validate, async (req, res, next) => {
     try {
-        const { firstName, lastName, email, password, contactNumber } = req.body;
+        const firstName = sanitizeText(req.body.firstName);
+        const lastName = sanitizeText(req.body.lastName);
+        const email = sanitizeEmail(req.body.email);
+        const password = sanitizeText(req.body.password);
+        const contactNumber = sanitizeText(req.body.contactNumber);
         const [result] = await db.execute(
             "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, ?, 'Customer')",
             [firstName, lastName, email, await bcrypt.hash(password, 12), contactNumber]
@@ -101,9 +116,10 @@ router.post("/register", [
     } catch (error) { next(error); }
 });
 
-router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email or phone is required."), body("password").notEmpty()], validate, async (req, res, next) => {
+router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).withMessage("Email or phone is required."), body("password").isLength({ min: 1, max: 200 })], validate, async (req, res, next) => {
     try {
-        const identifier = String(req.body.identifier || "").trim();
+        const identifier = sanitizeText(req.body.identifier);
+        const password = sanitizeText(req.body.password);
         const normalizedEmail = normalizeEmail(identifier);
         const normalizedPhone = identifier.replace(/\D/g, '');
         const [rows] = await db.execute(
@@ -171,6 +187,7 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
         if (!emailSent) {
             console.warn(`[auth] Password reset email was not sent for ${account.email}. OTP was stored and can still be verified.`);
         }
+        await logAuditEvent(account.account_id, "password_reset_requested", `Password reset requested for ${account.email}`);
         res.json({ message: "If that email is registered, a reset code has been sent." });
     } catch (error) { next(error); }
 });
