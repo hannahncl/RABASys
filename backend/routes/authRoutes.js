@@ -48,6 +48,15 @@ const validate = (req, res, next) => {
     const errors = validationResult(req);
     return errors.isEmpty() ? next() : res.status(422).json({ message: "Validation failed.", errors: errors.array() });
 };
+const sanitizeText = (value) => String(value ?? "").trim().replace(/[\u0000-\u001F\u007F]/g, "").replace(/[<>]/g, "");
+const sanitizeEmail = (email) => sanitizeText(email).toLowerCase();
+const logAuditEvent = async (accountId, action, detail = "") => {
+    try {
+        await db.execute("INSERT INTO audit_log (account_id, action, detail) VALUES (?, ?, ?)", [accountId ?? null, action, detail]);
+    } catch (error) {
+        console.warn(`[auth] Audit logging failed for ${action}:`, error.message);
+    }
+};
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 const parseTtlMilliseconds = () => {
     const value = process.env.JWT_EXPIRES_IN || "8h";
@@ -85,12 +94,18 @@ const isBootstrapAdminLogin = (account, password) => {
 };
 
 router.post("/register", [
-    body("firstName").trim().notEmpty(), body("lastName").trim().notEmpty(),
-    body("email").isEmail().normalizeEmail(), body("password").isLength({ min: 8 }),
-    body("contactNumber").trim().notEmpty()
+    body("firstName").trim().isLength({ min: 1, max: 100 }).matches(/^[A-Za-z\s.'-]+$/),
+    body("lastName").trim().isLength({ min: 1, max: 100 }).matches(/^[A-Za-z\s.'-]+$/),
+    body("email").isEmail().normalizeEmail(),
+    body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/),
+    body("contactNumber").trim().isLength({ min: 10, max: 15 }).matches(/^[0-9+\-()\s]+$/)
 ], validate, async (req, res, next) => {
     try {
-        const { firstName, lastName, email, password, contactNumber } = req.body;
+        const firstName = sanitizeText(req.body.firstName);
+        const lastName = sanitizeText(req.body.lastName);
+        const email = sanitizeEmail(req.body.email);
+        const password = sanitizeText(req.body.password);
+        const contactNumber = sanitizeText(req.body.contactNumber);
         const [result] = await db.execute(
             "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, ?, 'Customer')",
             [firstName, lastName, email, await bcrypt.hash(password, 12), contactNumber]
@@ -101,13 +116,15 @@ router.post("/register", [
         const session = await createSession(account, signedToken);
         const refreshedToken = tokenFor(account, session.sessionId);
         await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await logAuditEvent(account.account_id, "register", "New account registered");
         res.status(201).json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
 
-router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email or phone is required."), body("password").notEmpty()], validate, async (req, res, next) => {
+router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).withMessage("Email or phone is required."), body("password").isLength({ min: 1, max: 200 })], validate, async (req, res, next) => {
     try {
-        const identifier = String(req.body.identifier || "").trim();
+        const identifier = sanitizeText(req.body.identifier);
+        const password = sanitizeText(req.body.password);
         const normalizedEmail = normalizeEmail(identifier);
         const normalizedPhone = identifier.replace(/\D/g, '');
         const [rows] = await db.execute(
@@ -115,10 +132,11 @@ router.post("/login", [body("identifier").trim().notEmpty().withMessage("Email o
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
-        const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
-        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
+        const passwordMatches = account && (await verifyPassword(password, account.password_hash));
+        const bootstrapAllowed = isBootstrapAdminLogin(account, password);
 
         if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
+            await logAuditEvent(account?.account_id || null, "login_failed", `Failed login attempt for ${identifier}`);
             return res.status(401).json({ message: "Invalid email/phone or password." });
         }
 
@@ -156,6 +174,7 @@ router.post("/verify-login-otp", [body("email").isEmail().normalizeEmail(), body
         const session = await createSession(account, signedToken);
         const refreshedToken = tokenFor(account, session.sessionId);
         await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await logAuditEvent(account.account_id, "login_otp_verified", `Two-factor login verified for ${account.email}`);
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
@@ -174,6 +193,7 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
         if (!emailSent) {
             console.warn(`[auth] Password reset email was not sent for ${account.email}. OTP was stored and can still be verified.`);
         }
+        await logAuditEvent(account.account_id, "password_reset_requested", `Password reset requested for ${account.email}`);
         res.json({ message: "If that email is registered, a reset code has been sent." });
     } catch (error) { next(error); }
 });
@@ -195,6 +215,7 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
         const [result] = await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE reset_id = ? AND account_id = ? AND used_at IS NULL AND expires_at > NOW()", [payload.resetId, payload.accountId]);
         if (!result.affectedRows) return res.status(400).json({ message: "This reset code has already been used or expired." });
         await db.execute("UPDATE account SET password_hash = ? WHERE account_id = ?", [await bcrypt.hash(req.body.newPassword, 12), payload.accountId]);
+        await logAuditEvent(payload.accountId, "password_reset_completed", "Password reset completed successfully");
         res.json({ message: "Password updated. You can now log in." });
     } catch (error) { next(error); }
 });
@@ -202,6 +223,7 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
 router.post("/logout", requireAuth, async (req, res, next) => {
     try {
         await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = ? AND account_id = ?", [req.user.sessionId, req.user.accountId]);
+        await logAuditEvent(req.user.accountId, "logout", "User logged out");
         res.json({ message: "Signed out successfully." });
     } catch (error) { next(error); }
 });
