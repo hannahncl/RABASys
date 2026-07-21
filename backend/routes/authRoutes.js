@@ -142,7 +142,7 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         }
 
         const signedToken = tokenFor(account, 0);
-        const session = await createSession(account, signedToken);
+        const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
         await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
