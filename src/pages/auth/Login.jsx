@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { validateEmailOrPhone, validateRequired } from '../../utils/validation';
+import { sanitizeInput, validateEmailOrPhone, validateRequired } from '../../utils/validation';
 
 const Login = () => {
   const { login, verifyLoginOtp, user } = useContext(AuthContext);
@@ -30,9 +30,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const cleanedIdentifier = sanitizeInput(identifier);
+    const cleanedPassword = sanitizeInput(password);
+
     const nextErrors = {
-      identifier: validateEmailOrPhone(identifier),
-      password: validateRequired(password, 'Password'),
+      identifier: validateEmailOrPhone(cleanedIdentifier),
+      password: validateRequired(cleanedPassword, 'Password'),
     };
     setFieldErrors(nextErrors);
 
@@ -45,14 +48,14 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login(identifier.trim(), password);
+      const result = await login(cleanedIdentifier, cleanedPassword);
       if (!result.success) {
         setError(result.error || 'Unable to sign in right now.');
         return;
       }
       if (result.requiresTwoFactor) {
         setTwoFactorRequired(true);
-        setTwoFactorEmail(result.email || identifier.trim());
+        setTwoFactorEmail(result.email || cleanedIdentifier);
         setError(result.message || 'A verification code was sent to your email.');
         return;
       }
@@ -166,7 +169,7 @@ const Login = () => {
           <div className="flex justify-end">
             <Link
               to="/forgot-password"
-              state={{ email: identifier.trim() }}
+              state={{ email: sanitizeInput(identifier) }}
               className="text-sm font-semibold text-yellow-700 transition-colors hover:text-yellow-800 hover:underline"
             >
               Forgot password?

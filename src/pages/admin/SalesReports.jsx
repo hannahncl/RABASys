@@ -223,42 +223,42 @@ const SalesReports = () => {
               <tr>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('id')}>
-                    Booking Code <ArrowUpDown className="h-3 w-3" />
+                    Booking Code 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('packageName')}>
-                    Package / Category <ArrowUpDown className="h-3 w-3" />
+                    Package / Category 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('customerName')}>
-                    Customer <ArrowUpDown className="h-3 w-3" />
+                    Customer 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('type')}>
-                    Type <ArrowUpDown className="h-3 w-3" />
+                    Type 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('date')}>
-                    Date <ArrowUpDown className="h-3 w-3" />
+                    Date 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('guestsCount')}>
-                    Guests <ArrowUpDown className="h-3 w-3" />
+                    Guests 
                   </button>
                 </th>
                 <th className="px-5 py-4">
                   <button className="flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('status')}>
-                    Status <ArrowUpDown className="h-3 w-3" />
+                    Status 
                   </button>
                 </th>
                 <th className="px-5 py-4 text-right">
                   <button className="ml-auto flex items-center gap-1 hover:text-slate-300" onClick={() => handleSort('totalPrice')}>
-                    Total Amount <ArrowUpDown className="h-3 w-3" />
+                    Total Amount 
                   </button>
                 </th>
                 <th className="px-5 py-4 text-center">Details</th>

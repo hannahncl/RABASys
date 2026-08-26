@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
+import { api } from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
@@ -23,6 +24,10 @@ const PackageDetail = () => {
   const [tourDate, setTourDate] = useState('');
   const [guestsCount, setGuestsCount] = useState(1);
   
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
   // Payment Modal state
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -37,9 +42,50 @@ const PackageDetail = () => {
         setEmail(user.email || '');
       }
       setLoading(false);
+
+      // Load reviews for this package
+      loadReviewsForPackage(id);
     };
     loadDetails();
   }, [id, user]);
+
+  const loadReviewsForPackage = async (packageId) => {
+    setLoadingReviews(true);
+    try {
+      // Fetch all reviews
+      const allReviewsData = await api('/reviews').catch(() => []);
+      
+      // Fetch all bookings to match reviews with booking info
+      const allBookings = await bookingService.getAll();
+      
+      // Filter reviews for this specific package
+      const packageReviews = [];
+      for (const review of allReviewsData) {
+        // Find the booking for this review
+        const booking = allBookings.find(b => b.id === String(review.booking_id));
+        
+        // Check if this review belongs to our package
+        if (booking && booking.packageId === String(packageId)) {
+          packageReviews.push({
+            rating: review.rating,
+            comment: review.comment,
+            createdAt: review.created_at,
+            customerName: booking.customerName || 'Anonymous',
+            bookingId: booking.id
+          });
+        }
+      }
+      
+      // Sort by most recent first
+      packageReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setReviews(packageReviews);
+      console.log(`[PackageDetail] Loaded ${packageReviews.length} reviews for package ${packageId}`);
+    } catch (err) {
+      console.error('Failed to load reviews:', err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
   const parseItinerary = (data) => {
     if (!data) return [];
@@ -183,6 +229,7 @@ const PackageDetail = () => {
               <button onClick={() => scrollToSection('overview')} className="text-sm font-medium text-black border-b-2 border-black pb-6 -mb-6">Overview</button>
               <button onClick={() => scrollToSection('itinerary')} className="text-sm font-medium text-slate-400 hover:text-black transition-colors">Itinerary</button>
               <button onClick={() => scrollToSection('inclusions')} className="text-sm font-medium text-slate-400 hover:text-black transition-colors">Inclusions</button>
+              <button onClick={() => scrollToSection('reviews')} className="text-sm font-medium text-slate-400 hover:text-black transition-colors">Reviews</button>
             </div>
 
             {/* Overview Section */}
@@ -213,21 +260,21 @@ const PackageDetail = () => {
             </div>
 
             {/* Itinerary Section */}
-            <div id="itinerary" className="space-y-8 scroll-mt-6 pt-12 border-t border-slate-100">
+            <div id="itinerary" className="space-y-6 scroll-mt-6 pt-12 border-t border-slate-100">
               <h2 className="text-lg font-medium text-black">Tour Itinerary</h2>
               
-              <div className="space-y-6">
+              <div className="space-y-0 mt-6">
                 {parseItinerary(pkg.itinerary).map((line, index) => (
-                  <div key={index} className="flex gap-4">
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      <div className="w-7 h-7 rounded-full bg-slate-300 text-black flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      {index < (parseItinerary(pkg.itinerary).length - 1) && (
-                        <div className="w-px h-14 bg-slate-200 mt-1"></div>
-                      )}
+                  <div key={index} className="relative pl-10 pb-6 last:pb-0">
+                    {/* Vertical line connecting steps */}
+                    {index < parseItinerary(pkg.itinerary).length - 1 && (
+                      <div className="absolute left-[13.5px] top-[30px] bottom-0 w-px bg-slate-200"></div>
+                    )}
+                    {/* Number bubble */}
+                    <div className="absolute left-0 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-white text-xs font-semibold shadow-sm">
+                      {index + 1}
                     </div>
-                    <div className="pt-1 pb-2">
+                    <div className="pt-1">
                       <p className="text-sm text-slate-700 leading-relaxed">{line}</p>
                     </div>
                   </div>
@@ -262,6 +309,65 @@ const PackageDetail = () => {
                   <p>No cancellation policy - only rescheduling is allowed based on availability.</p>
                 </div>
               </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div id="reviews" className="space-y-8 scroll-mt-6 pt-12 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-medium text-black">Customer Reviews</h2>
+                {reviews.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium text-black">
+                      {(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)}
+                    </span>
+                    <span className="text-xs text-slate-500">({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})</span>
+                  </div>
+                )}
+              </div>
+
+              {loadingReviews ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-yellow-400 border-t-transparent"></div>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-xl">
+                  <Star className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500">No reviews yet. Be the first to share your experience!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {reviews.map((review, idx) => (
+                    <div key={idx} className="border border-slate-100 rounded-lg p-4 bg-slate-50/30 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-black text-sm">{review.customerName || 'Anonymous'}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(review.createdAt).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= (review.rating || 0)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'fill-gray-200 text-gray-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-slate-700 leading-relaxed">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>

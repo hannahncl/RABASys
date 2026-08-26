@@ -89,7 +89,7 @@ const ServiceDetailPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate('/admin/services')}
-          className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-500 hover:text-cyan-400"
+          className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-500 hover:text-cyan-400"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Service Management
         </button>
@@ -102,15 +102,15 @@ const ServiceDetailPage = () => {
               navigate(`/admin/services/edit-tour-package/${service.id}`);
             }
           }}
-          className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:opacity-90"
         >
           Edit Service
         </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+        <div className="space-y-6 rounded-3xl border border-slate-800 bg-slate-950 p-6">
+          <div className="overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-900">
             {service.image ? (
               <img src={service.image} alt={title} className="h-72 w-full object-cover" />
             ) : (
@@ -121,8 +121,8 @@ const ServiceDetailPage = () => {
           </div>
 
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-400">Service Preview</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-100">{title}</h1>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Service Preview</p>
+            <h1 className="mt-2 text-2xl font-bold text-slate-400">{title}</h1>
           </div>
 
           <p className="text-sm leading-7 text-slate-300">{description}</p>
@@ -130,7 +130,7 @@ const ServiceDetailPage = () => {
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
-                <span key={tag} className="rounded-full border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <span key={tag} className="rounded-full border border-slate-800 bg-slate-900/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   {tag}
                 </span>
               ))}
@@ -139,10 +139,10 @@ const ServiceDetailPage = () => {
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Overview</p>
-              <span className="text-xl font-bold text-slate-100">PHP {Number(service.price || 0).toLocaleString()}</span>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Overview</p>
+              <span className="text-xl font-bold text-slate-400">PHP {Number(service.price || 0).toLocaleString()}</span>
             </div>
 
             <div className="mt-4 space-y-3 text-sm text-slate-400">
@@ -174,26 +174,33 @@ const ServiceDetailPage = () => {
           </div>
 
           {itinerary.length > 0 && (
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-slate-500">Itinerary</p>
-              <ul className="space-y-2 text-sm text-slate-300">
+            <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Itinerary</p>
+              <div className="space-y-0">
                 {itinerary.map((item, index) => (
-                  <li key={`${item}-${index}`} className="flex gap-2">
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-400" />
-                    <span>{item}</span>
-                  </li>
+                  <div key={`${item}-${index}`} className="relative pl-8 pb-5 last:pb-0">
+                    {index < itinerary.length - 1 && (
+                      <div className="absolute left-[11.5px] top-[26px] bottom-0 w-px bg-slate-800" />
+                    )}
+                    <div className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-400 text-[10px] font-bold text-slate-950">
+                      {index + 1}
+                    </div>
+                    <div className="pt-0.5">
+                      <p className="text-sm text-slate-300 leading-relaxed">{item}</p>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
           {inclusions.length > 0 && (
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-slate-500">Inclusions</p>
+            <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Inclusions</p>
               <ul className="space-y-2 text-sm text-slate-300">
                 {inclusions.map((item, index) => (
                   <li key={`${item}-${index}`} className="flex gap-2">
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
                     <span>{item}</span>
                   </li>
                 ))}

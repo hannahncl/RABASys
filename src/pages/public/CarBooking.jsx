@@ -119,30 +119,32 @@ const CarBooking = () => {
   return (
     <div className="bg-white min-h-screen pt-12 pb-24 font-sans text-black">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="mb-10">
           <Link to="/car-rentals" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-4 transition-colors font-semibold">
             <ArrowLeft className="w-4 h-4" /> Back to Car Rentals
           </Link>
-          <h1 className="text-3xl font-extrabold text-black mb-2">Book Your Car</h1>
-          <p className="text-gray-500 font-medium">Please provide the details for your rental.</p>
+
+          <div className="border-b border-slate-100 pb-8">
+            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Book Your Car</h1>
+          </div>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
-          
+
           {/* Left Column - Car Details Card */}
           <div>
             <h2 className="text-[17px] font-extrabold text-black mb-6">Car Details</h2>
             <div className="border border-slate-150 rounded-xl p-8 flex flex-col items-center shadow-[0_1px_3px_rgba(0,0,0,0.03)] bg-white">
               <div className="h-[280px] w-full flex items-center justify-center mb-10 overflow-hidden bg-slate-50 rounded-lg">
-                <img 
-                  src={car.image || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600'} 
-                  alt={car.vehicleName} 
-                  className="max-h-full max-w-full object-cover" 
+                <img
+                  src={car.image || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600'}
+                  alt={car.vehicleName}
+                  className="max-h-full max-w-full object-cover"
                 />
               </div>
-              
+
               <div className="w-full max-w-xs space-y-4 text-[13px] font-medium">
                 <div className="grid grid-cols-2">
                   <span className="text-black font-extrabold">Vehicle Name:</span>
@@ -172,46 +174,46 @@ const CarBooking = () => {
           <div className="pt-2">
             <h2 className="text-[17px] font-extrabold text-black mb-6">Rental Information</h2>
             <form onSubmit={handleBookCar} className="space-y-10">
-              
+
               <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-2">Pickup Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      required 
+                      required
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all" 
+                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-2">Return Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={returnDate}
                       onChange={(e) => setReturnDate(e.target.value)}
-                      required 
+                      required
                       min={pickupDate || new Date().toISOString().split('T')[0]}
-                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all" 
+                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all"
                     />
                   </div>
                 </div>
-                
+
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-600 mb-2">Pickup Location</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={pickupLocation}
                     onChange={(e) => setPickupLocation(e.target.value)}
                     placeholder="Where do you want to pick up the car?"
-                    required 
-                    className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all" 
+                    required
+                    className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none focus:border-yellow-500 transition-all"
                   />
                 </div>
               </div>
-              
+
               {/* Price Summary */}
               {days > 0 && (
                 <div className="bg-slate-50 border border-slate-150 rounded-xl p-6">
@@ -296,8 +298,8 @@ const CarBooking = () => {
 
               {/* Submit Button */}
               <div className="flex justify-end pt-2">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={submitting}
                   className="bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-250 font-bold text-[13px] px-16 py-3.5 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors cursor-pointer disabled:opacity-50"
                 >
@@ -315,3 +317,4 @@ const CarBooking = () => {
 };
 
 export default CarBooking;
+
