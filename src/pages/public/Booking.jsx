@@ -33,7 +33,7 @@ const Booking = () => {
 
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Form fields
   const [firstName, setFirstName] = useState(stateData.firstName || (user?.name ? user.name.split(' ')[0] : ''));
   const [lastName, setLastName] = useState(stateData.lastName || (user?.name ? user.name.split(' ').slice(1).join(' ') : ''));
@@ -42,20 +42,20 @@ const Booking = () => {
   const [tourDate, setTourDate] = useState(stateData.tourDate || '');
   const [adultsCount, setAdultsCount] = useState(stateData.adultsCount || 1);
   const [childrenCount, setChildrenCount] = useState(stateData.childrenCount || 0);
-  
+
   // Tour Guide Selection
   const [selectedGuide, setSelectedGuide] = useState(null);
-  
+
   // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
-  
+
   // Step & Payment State
   const [currentStep, setCurrentStep] = useState(stateData.startStep || 1);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Credit Card Form State (mock)
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -123,7 +123,7 @@ const Booking = () => {
     }
     setCurrentStep(2);
   };
-  
+
   const handleFinalSubmit = (e) => {
     e.preventDefault();
     if (paymentMethod === 'gcash') {
@@ -144,7 +144,7 @@ const Booking = () => {
 
   const handlePaymentSuccess = async (referenceNumber) => {
     setSubmitting(true);
-    
+
     try {
       const bookingData = {
         packageId: pkg.id,
@@ -210,8 +210,8 @@ const Booking = () => {
       }
 
       return (
-        <div 
-          key={i} 
+        <div
+          key={i}
           onClick={() => handleDateSelect(day.date)}
           className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all ${bgClass}`}
         >
@@ -224,7 +224,7 @@ const Booking = () => {
   return (
     <div className="bg-white min-h-screen text-black font-sans pb-24 pt-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Stepper */}
         <div className="flex items-center justify-between mb-16 relative w-full max-w-4xl mx-auto px-8">
           {/* Connecting Lines */}
@@ -267,7 +267,7 @@ const Booking = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
+
           {/* Left Column - Form */}
           <div className="lg:col-span-7">
             {currentStep === 1 ? (
@@ -285,19 +285,19 @@ const Booking = () => {
                         className={`w-full border rounded-lg py-3 px-4 flex items-center justify-between text-[15px] transition-all bg-white border-gray-200 text-gray-900 focus:outline-none ${showDatePicker ? 'border-gray-300 shadow-sm' : ''}`}
                       >
                         <span className="flex items-center">
-                           {tourDate && !showDatePicker ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Check Availability'}
+                          {tourDate && !showDatePicker ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Check Availability'}
                         </span>
                         <Calendar className="h-5 w-5 text-gray-400" />
                       </button>
-                      
+
                       {/* Custom Date Picker Popover */}
                       {showDatePicker && (
                         <div className="absolute top-full left-0 mt-3 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 p-5 w-[320px] z-50">
-                          
+
                           {/* Calendar Header */}
                           <div className="flex items-center justify-between mb-4 px-2">
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => {
                                 const prevMonth = new Date(calendarDate);
                                 prevMonth.setMonth(prevMonth.getMonth() - 1);
@@ -310,8 +310,8 @@ const Booking = () => {
                             <span className="text-[13px] font-bold text-black">
                               {calendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                             </span>
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => {
                                 const nextMonth = new Date(calendarDate);
                                 nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -333,15 +333,15 @@ const Booking = () => {
 
                           {/* Footer Buttons */}
                           <div className="flex justify-between items-center px-1">
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => setShowDatePicker(false)}
                               className="px-6 py-1.5 rounded-full border border-slate-300 text-[11px] font-bold text-black hover:bg-slate-50 transition-colors"
                             >
                               Cancel
                             </button>
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => setShowDatePicker(false)}
                               className="px-6 py-1.5 rounded-full bg-yellow-50 hover:bg-yellow-100 border border-yellow-250 text-[11px] font-bold text-yellow-800 transition-colors cursor-pointer"
                             >
@@ -361,16 +361,16 @@ const Booking = () => {
                       <div className="flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 bg-white">
                         <span className="text-[15px] font-medium text-gray-900">Adult</span>
                         <div className="flex items-center gap-4">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setAdultsCount(Math.max(1, adultsCount - 1))}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             -
                           </button>
                           <span className="text-[15px] font-bold w-4 text-center">{adultsCount}</span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setAdultsCount(adultsCount + 1)}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
@@ -383,16 +383,16 @@ const Booking = () => {
                       <div className="flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 bg-white">
                         <span className="text-[15px] font-medium text-gray-900">Child (6-10)</span>
                         <div className="flex items-center gap-4">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
                             -
                           </button>
                           <span className="text-[15px] font-bold w-4 text-center">{childrenCount}</span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setChildrenCount(childrenCount + 1)}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold"
                           >
@@ -458,14 +458,13 @@ const Booking = () => {
                       <h3 className="text-sm font-semibold text-gray-600 mb-4">Select a Tour Guide (Optional)</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {TOUR_GUIDES.map(guide => (
-                          <div 
+                          <div
                             key={guide.id}
                             onClick={() => setSelectedGuide(selectedGuide === guide.id ? null : guide.id)}
-                            className={`border rounded-xl p-4 cursor-pointer transition-all ${
-                              selectedGuide === guide.id 
-                                ? 'border-yellow-500 bg-yellow-50 shadow-sm ring-1 ring-yellow-500' 
+                            className={`border rounded-xl p-4 cursor-pointer transition-all ${selectedGuide === guide.id
+                                ? 'border-yellow-500 bg-yellow-50 shadow-sm ring-1 ring-yellow-500'
                                 : 'border-gray-200 bg-white hover:border-yellow-300'
-                            }`}
+                              }`}
                           >
                             <div className="flex gap-4">
                               <img src={guide.image} alt={guide.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
@@ -495,17 +494,16 @@ const Booking = () => {
             ) : (
               // STEP 2: Payment UI
               <>
-                <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Complete Payment</h1>
+                <h2 className="text-[17px] font-extrabold text-black mb-8">Complete Payment</h2>
                 <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-6">
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"></div>
-                  
                   {/* GCash Option */}
                   <label className="flex items-center gap-4 cursor-pointer py-2">
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'gcash' ? 'border-yellow-400' : 'border-slate-300'}`}>
                       {paymentMethod === 'gcash' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
                     </div>
-                    <h1 className="text-xs text-slate-400 tracking-widest uppercase mb-1">Gcash</h1>
+                    <span className="text-sm font-semibold text-black">GCash</span>
+                    <input type="radio" className="hidden" checked={paymentMethod === 'gcash'} onChange={() => setPaymentMethod('gcash')} />
                   </label>
 
                   {/* GCash Reference Number Input */}
@@ -528,7 +526,64 @@ const Booking = () => {
                   )}
 
                   <div className="h-px bg-slate-100 my-4 w-full"></div>
-                  
+
+                  {/* Credit/Debit Option */}
+                  <label className="flex items-center justify-between cursor-pointer py-2">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'border-yellow-400' : 'border-slate-300'}`}>
+                        {paymentMethod === 'card' && <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></div>}
+                      </div>
+                      <span className="text-sm font-semibold text-black">Credit/ Debit Card</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-[#1A1F71] font-bold italic text-sm">VISA</div>
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-[#EB001B] relative left-1 z-10"></div>
+                        <div className="w-3 h-3 rounded-full bg-[#F79E1B] relative right-1"></div>
+                      </div>
+                    </div>
+                    <input type="radio" className="hidden" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
+                  </label>
+
+                  {/* Credit Card Form (Visible if selected) */}
+                  {paymentMethod === 'card' && (
+                    <div className="bg-[#F8F9FA] rounded-xl p-6 mt-6 space-y-5">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">Card number</label>
+                        <input
+                          type="text"
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          className="w-[260px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
+                        />
+                      </div>
+                      <div className="flex gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">Expiration date</label>
+                          <input
+                            type="text"
+                            placeholder="MM/YYYY"
+                            value={expiryDate}
+                            onChange={(e) => setExpiryDate(e.target.value)}
+                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-600 mb-2">Security Code</label>
+                          <input
+                            type="text"
+                            value={cvv}
+                            onChange={(e) => setCvv(e.target.value)}
+                            className="w-[180px] bg-white border border-gray-200 rounded-lg py-3 px-4 text-gray-900 text-[15px] focus:outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 pt-2 cursor-pointer">
+                        <input type="checkbox" className="w-3.5 h-3.5 border-slate-300 rounded text-yellow-400 focus:ring-yellow-400" />
+                        <span className="text-[11px] font-medium text-black">Save card details</span>
+                      </label>
+                    </div>
+                  )}
 
                   {/* Final T&C and Submit */}
                   <div className="flex items-center justify-between pt-12">
@@ -538,7 +593,7 @@ const Booking = () => {
                         By continuing, you acknowledge and agree to <span className="underline cursor-pointer">General Terms of Use</span> and <span className="underline cursor-pointer">Privacy Policy</span>
                       </span>
                     </label>
-                    
+
                     <button
                       type="submit"
                       disabled={submitting}
@@ -557,7 +612,7 @@ const Booking = () => {
           <div className="lg:col-span-5 relative">
             <div className="max-w-sm rounded-3xl border border-slate-300 bg-white p-5 shadow-sm sticky top-24 text-black">
               <h3 className="text-lg font-semibold text-black mb-5">Booking Details</h3>
-              
+
               <div className="space-y-4 mb-6">
                 <div>
                   <h4 className="font-bold text-black text-xl">{pkg.title}</h4>
@@ -566,7 +621,7 @@ const Booking = () => {
                     <span>Strictly No Cancellation</span>
                   </div>
                 </div>
-                
+
                 <div className="border-t border-slate-200 pt-4 space-y-3 text-sm text-slate-700">
                   <div className="flex justify-between font-medium text-black">
                     <span>Date</span>
@@ -581,7 +636,7 @@ const Booking = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="border-t border-slate-200 pt-4 flex justify-between items-center text-sm font-semibold text-black">
                   <span>Total</span>
                   <span className="text-base font-black">₱{totalPrice.toLocaleString()}</span>

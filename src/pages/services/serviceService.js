@@ -36,6 +36,7 @@ const vehicleFromApi = (item) => ({
   price: Number(item.daily_rate),
   dailyRate: Number(item.daily_rate),
   vehicleType: item.vehicle_type,
+  plateNumber: item.plate_number,
   capacity: `${item.capacity} Passengers`,
   seatingCapacity: item.capacity,
   image: item.image || '/CAGSAWA.jpg',

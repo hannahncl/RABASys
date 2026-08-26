@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import DualRangeSlider from '../../components/ui/DualRangeSlider';
 import { serviceService } from '../services/serviceService';
 import { filterCars } from './carRentalsFilters';
 
 const CarRentals = () => {
   // Filter States
   const [capacity, setCapacity] = useState(4);
-  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [allCars, setAllCars] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,14 +41,32 @@ const CarRentals = () => {
             </h3>
             
             <div className="border-t border-slate-100 pt-6 mb-8">
-              <h4 className="text-xs font-extrabold text-black mb-6">Price range (PHP)</h4>
-              <DualRangeSlider 
-                min={0} 
-                max={15000} 
-                step={500} 
-                value={priceRange} 
-                onChange={setPriceRange} 
-              />
+              <h4 className="text-xs font-extrabold text-black mb-4">Price range (PHP)</h4>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: 'All Prices', min: 0, max: 100000 },
+                  { label: 'Under ₱3,000', min: 0, max: 3000 },
+                  { label: '₱3,000 - ₱6,000', min: 3000, max: 6000 },
+                  { label: '₱6,000 - ₱10,000', min: 6000, max: 10000 },
+                  { label: '₱10,000+', min: 10000, max: 100000 },
+                ].map((option) => {
+                  const isSelected = priceRange[0] === option.min && priceRange[1] === option.max;
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setPriceRange([option.min, option.max])}
+                      className={`w-full text-left px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                        isSelected
+                          ? 'border-yellow-250 bg-yellow-50 text-yellow-750 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                          : 'border-slate-150 hover:border-slate-300 text-slate-700 bg-white'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             
             {/* Siting Capacity */}

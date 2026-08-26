@@ -260,21 +260,21 @@ const PackageDetail = () => {
             </div>
 
             {/* Itinerary Section */}
-            <div id="itinerary" className="space-y-8 scroll-mt-6 pt-12 border-t border-slate-100">
+            <div id="itinerary" className="space-y-6 scroll-mt-6 pt-12 border-t border-slate-100">
               <h2 className="text-lg font-medium text-black">Tour Itinerary</h2>
               
-              <div className="space-y-6">
+              <div className="space-y-0 mt-6">
                 {parseItinerary(pkg.itinerary).map((line, index) => (
-                  <div key={index} className="flex gap-4">
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      <div className="w-7 h-7 rounded-full bg-slate-300 text-black flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      {index < (parseItinerary(pkg.itinerary).length - 1) && (
-                        <div className="w-px h-14 bg-slate-200 mt-1"></div>
-                      )}
+                  <div key={index} className="relative pl-10 pb-6 last:pb-0">
+                    {/* Vertical line connecting steps */}
+                    {index < parseItinerary(pkg.itinerary).length - 1 && (
+                      <div className="absolute left-[13.5px] top-[30px] bottom-0 w-px bg-slate-200"></div>
+                    )}
+                    {/* Number bubble */}
+                    <div className="absolute left-0 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-white text-xs font-semibold shadow-sm">
+                      {index + 1}
                     </div>
-                    <div className="pt-1 pb-2">
+                    <div className="pt-1">
                       <p className="text-sm text-slate-700 leading-relaxed">{line}</p>
                     </div>
                   </div>
