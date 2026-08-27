@@ -1,30 +1,10 @@
 const nodemailer = require("nodemailer");
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
 function getMailer() {
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
         return null;
     }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     return nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -34,30 +14,10 @@ function getMailer() {
     });
 }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
 // PASSWORD RESET OTP EMAIL
 async function sendPasswordResetOtp(email, otp) {
     const transporter = getMailer();
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     if (!transporter) {
         console.warn(
             `[mailer] Email delivery is not configured. Password Reset OTP for ${email}: ${otp}`
@@ -65,133 +25,12 @@ async function sendPasswordResetOtp(email, otp) {
         return false;
     }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     try {
         await transporter.sendMail({
             from: `"RABAS Travel & Tours Services" <${process.env.GMAIL_FROM || process.env.GMAIL_USER}>`,
             to: email,
             subject: "Password Reset Verification Code",
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-            text: `
-Dear Customer,
-
-
-
-
-
-
-
-
-We received a request to reset the password for your RABAS Travel & Tours Services account.
-
-
-
-
-
-
-
-
-Your verification code is:
-
-
-
-
-
-
-
-
-${otp}
-
-
-
-
-
-
-
-
-This code is valid for 10 minutes.
-
-
-
-
-
-
-
-
-If you did not request a password reset, please ignore this email. No changes will be made to your account unless this verification code is used.
-
-
-
-
-
-
-
-
-For your security, please do not share this verification code with anyone.
-
-
-
-
-
-
-
-
-Thank you.
-
-
-
-
-
-
-
-
-Sincerely,
-
-
-
-
-
-
-
-
-RABAS Travel & Tours Services
-            `,
-
-
-
-
-
-
-
-
-            html: `
-<div style="font-family: Arial, sans-serif; color:#333; line-height:1.6; max-width:600px; margin:auto; padding:20px;">
-
-
-
-
-
-
-
-
-=======
             text: `
 Dear Customer,
 
@@ -217,61 +56,21 @@ RABAS Travel & Tours Services
             html: `
 <div style="font-family: Arial, sans-serif; color:#333; line-height:1.6; max-width:600px; margin:auto; padding:20px;">
 
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <h2 style="color:#0B4F6C; margin-bottom:20px;">
         RABAS Travel & Tours Services
     </h2>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
     <p>Dear Customer,</p>
 
-
-
-
-
-
-
-
-=======
-    <p>Dear Customer,</p>
-
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         We received a request to reset the password for your
         <strong>RABAS Travel & Tours Services</strong> account.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Please use the verification code below to continue with your password reset request.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <div style="
         background:#f4f4f4;
         border:1px solid #dddddd;
@@ -290,142 +89,43 @@ RABAS Travel & Tours Services
         </h1>
     </div>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         <strong>Note:</strong> This verification code is valid for
         <strong>10 minutes</strong>.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         If you did not request a password reset, you may safely ignore this email.
         No changes will be made to your account unless this verification code is used.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         For your security, please do not share this verification code with anyone.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Thank you for choosing RABAS Travel & Tours Services.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Sincerely,<br>
         <strong>RABAS Travel & Tours Services</strong>
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
     <hr style="margin-top:30px;">
 
-
-
-
-
-
-
-
-=======
-    <hr style="margin-top:30px;">
-
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p style="font-size:12px; color:#777;">
         This is an automated email. Please do not reply to this message.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
 </div>
             `,
         });
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         console.log(
             `[mailer] Password reset email sent successfully to ${email}`
         );
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         return true;
     } catch (error) {
         console.error(
@@ -433,44 +133,14 @@ RABAS Travel & Tours Services
             error.message
         );
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         return false;
     }
 }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
 // TWO-FACTOR AUTHENTICATION EMAIL
 async function sendTwoFactorOtp(email, otp) {
     const transporter = getMailer();
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     if (!transporter) {
         console.warn(
             `[mailer] Email delivery is not configured. Two-Factor Authentication OTP for ${email}: ${otp}`
@@ -478,133 +148,12 @@ async function sendTwoFactorOtp(email, otp) {
         return false;
     }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     try {
         await transporter.sendMail({
             from: `"RABAS Travel & Tours Services" <${process.env.GMAIL_FROM || process.env.GMAIL_USER}>`,
             to: email,
             subject: "Two-Factor Authentication Verification Code",
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-            text: `
-Dear Customer,
-
-
-
-
-
-
-
-
-A sign-in attempt to your RABAS Travel & Tours Services account requires additional verification.
-
-
-
-
-
-
-
-
-Your verification code is:
-
-
-
-
-
-
-
-
-${otp}
-
-
-
-
-
-
-
-
-This code is valid for 10 minutes.
-
-
-
-
-
-
-
-
-If you did not attempt to sign in to your account, we recommend changing your password immediately and securing your account.
-
-
-
-
-
-
-
-
-For your security, please do not share this verification code with anyone.
-
-
-
-
-
-
-
-
-Thank you.
-
-
-
-
-
-
-
-
-Sincerely,
-
-
-
-
-
-
-
-
-RABAS Travel & Tours Services
-            `,
-
-
-
-
-
-
-
-
-            html: `
-<div style="font-family: Arial, sans-serif; color:#333; line-height:1.6; max-width:600px; margin:auto; padding:20px;">
-
-
-
-
-
-
-
-
-=======
             text: `
 Dear Customer,
 
@@ -630,61 +179,21 @@ RABAS Travel & Tours Services
             html: `
 <div style="font-family: Arial, sans-serif; color:#333; line-height:1.6; max-width:600px; margin:auto; padding:20px;">
 
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <h2 style="color:#0B4F6C; margin-bottom:20px;">
         RABAS Travel & Tours Services
     </h2>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
     <p>Dear Customer,</p>
 
-
-
-
-
-
-
-
-=======
-    <p>Dear Customer,</p>
-
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         A sign-in attempt to your
         <strong>RABAS Travel & Tours Services</strong> account requires additional verification.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Please use the verification code below to complete the authentication process.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <div style="
         background:#f4f4f4;
         border:1px solid #dddddd;
@@ -703,141 +212,42 @@ RABAS Travel & Tours Services
         </h1>
     </div>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         <strong>Note:</strong> This verification code is valid for
         <strong>10 minutes</strong>.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         If you did not attempt to sign in to your account, we recommend changing your password immediately and securing your account.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         For your security, please do not share this verification code with anyone.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Thank you for choosing RABAS Travel & Tours Services.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p>
         Sincerely,<br>
         <strong>RABAS Travel & Tours Services</strong>
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
     <hr style="margin-top:30px;">
 
-
-
-
-
-
-
-
-=======
-    <hr style="margin-top:30px;">
-
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
     <p style="font-size:12px; color:#777;">
         This is an automated email. Please do not reply to this message.
     </p>
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
 </div>
             `,
         });
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         console.log(
             `[mailer] Two-Factor Authentication email sent successfully to ${email}`
         );
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         return true;
     } catch (error) {
         console.error(
@@ -845,16 +255,6 @@ RABAS Travel & Tours Services
             error.message
         );
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
         return false;
     }
 }
@@ -911,27 +311,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
     }
 }
 
-
-
-
-
 module.exports = {
     sendPasswordResetOtp,
     sendTwoFactorOtp,
     sendBookingConfirmation,
 };
-<<<<<<< HEAD
-
-
-
-
-
-
-
-
-
-
-
-
-=======
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625

@@ -127,12 +127,8 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
-<<<<<<< HEAD
-        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
-=======
         const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
         if (!account || !isActiveAccount(account) || !passwordMatches) {
->>>>>>> 723e337ae6472e21c5ff03761d2c74ee76f40625
             return res.status(401).json({ message: "Invalid email/phone or password." });
         }
 
