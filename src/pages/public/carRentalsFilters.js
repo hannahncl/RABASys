@@ -31,7 +31,7 @@ export const isCarAvailable = (car) => {
   return String(rawStatus).trim().toLowerCase() === 'available';
 };
 
-export const filterCars = (cars = [], { capacity = 0, priceRange = [0, Number.MAX_SAFE_INTEGER] } = {}) => {
+export const filterCars = (cars = [], { capacity = 0, priceRange = [0, Number.MAX_SAFE_INTEGER], searchQuery = '' } = {}) => {
   const [minPrice, maxPrice] = priceRange;
 
   return (cars || []).filter((car) => {
@@ -39,11 +39,15 @@ export const filterCars = (cars = [], { capacity = 0, priceRange = [0, Number.MA
       return false;
     }
 
+    const matchesSearch = !searchQuery || 
+      (car.vehicleName && car.vehicleName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (car.vehicleType && car.vehicleType.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const carCapacity = getCarCapacity(car);
     const meetsCapacity = carCapacity === null || carCapacity >= capacity;
     const carPrice = getCarPrice(car);
     const meetsPrice = carPrice >= minPrice && carPrice <= maxPrice;
 
-    return meetsCapacity && meetsPrice;
+    return matchesSearch && meetsCapacity && meetsPrice;
   });
 };
