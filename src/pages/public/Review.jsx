@@ -166,11 +166,11 @@ const Review = () => {
                   </div>
                   {rating > 0 && (
                     <p className="text-base font-bold text-gray-700 h-6">
-                      {rating === 1 && "😞 Not satisfied"}
-                      {rating === 2 && "😕 Below expectations"}
-                      {rating === 3 && "😐 Meets expectations"}
-                      {rating === 4 && "😊 Very satisfied"}
-                      {rating === 5 && "😍 Absolutely excellent!"}
+                      {rating === 1 && " Not satisfied"}
+                      {rating === 2 && " Below expectations"}
+                      {rating === 3 && " Meets expectations"}
+                      {rating === 4 && " Very satisfied"}
+                      {rating === 5 && " Absolutely excellent!"}
                     </p>
                   )}
                 </div>
@@ -187,7 +187,6 @@ const Review = () => {
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={6}
-                    placeholder="Example: The tour guide was amazing and very knowledgeable. The accommodations were comfortable. One thing to improve would be the pacing of the itinerary..."
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 px-5 text-[15px] text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-yellow-400/70 focus:border-yellow-400 focus:bg-white transition-all resize-none placeholder:text-gray-300 placeholder:font-normal"
                   />
                   <p className="text-xs text-gray-400 text-right">{comment.length}/500 characters</p>

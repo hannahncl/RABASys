@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, ShieldCheck, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
   const [step, setStep] = useState(1); // 1: Mobile Num, 2: OTP, 3: MPIN, 4: Success Receipt
@@ -59,22 +59,21 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      {/* Phone container mockup */}
-      <div className="relative w-full max-w-sm bg-blue-600 rounded-3xl overflow-hidden shadow-2xl border border-blue-500 flex flex-col min-h-[520px]">
-        {/* GCash Top Branding */}
-        <div className="bg-blue-600 px-6 py-5 flex items-center justify-between text-white border-b border-blue-500">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-extrabold tracking-tighter text-2xl">g)</span>
-            <span className="font-display font-bold text-sm tracking-wide">GCash Testing Portal</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] flex flex-col min-h-[520px]">
+        <div className="border-b border-slate-200 bg-slate-50 px-6 py-5 text-slate-800">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">Secure Payment</p>
+              <h3 className="text-base font-semibold text-slate-800">GCash Payment</h3>
+            </div>
+            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Sandbox
+            </span>
           </div>
-          <span className="text-[9px] uppercase bg-blue-800 border border-blue-400 font-bold px-2 py-0.5 rounded-full">
-            Sandbox
-          </span>
         </div>
 
-        {/* Content body */}
-        <div className="flex-1 bg-slate-50 text-slate-900 p-6 flex flex-col justify-between">
+        <div className="flex-1 bg-white text-slate-900 p-6 flex flex-col justify-between">
           
           {/* STEP 1: MOBILE NO. */}
           {step === 1 && (
@@ -83,7 +82,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                 <div className="text-center space-y-1">
                   <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Merchant Name</span>
                   <h4 className="font-bold text-base text-slate-800">RABAS TRAVEL AND TOURS</h4>
-                  <div className="inline-block px-3 py-1 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 font-bold font-display text-sm mt-1">
+                  <div className="mt-2 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
                     PHP {amount.toLocaleString()}
                   </div>
                 </div>
@@ -99,7 +98,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                       setError('');
                     }}
                     placeholder="e.g. 09171234567"
-                    className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 text-sm focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:border-slate-400 focus:outline-none"
                   />
                   {error && <p className="text-[11px] text-rose-500 font-semibold">{error}</p>}
                 </div>
@@ -109,14 +108,14 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/20"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-900 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Next'}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full text-center text-xs text-slate-400 hover:text-slate-600 font-semibold"
+                  className="w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-700"
                 >
                   Cancel Payment
                 </button>
@@ -128,7 +127,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
           {step === 2 && (
             <form onSubmit={handleNextStep2} className="flex-grow flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-blue-600" onClick={() => setStep(1)}>
+                <div className="flex items-center gap-2 text-slate-600" onClick={() => setStep(1)}>
                   <ArrowLeft className="h-4 w-4 cursor-pointer" />
                   <span className="text-xs font-semibold cursor-pointer">Go back</span>
                 </div>
@@ -151,9 +150,9 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                       setError('');
                     }}
                     placeholder="Enter 123456"
-                    className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 rounded-xl px-4 py-3 text-center tracking-widest font-mono font-bold text-slate-800 text-sm focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-mono font-bold tracking-widest text-slate-800 focus:border-slate-400 focus:outline-none"
                   />
-                  <div className="bg-amber-50 border border-amber-200/60 p-2.5 rounded-xl text-[10px] text-amber-800 leading-relaxed">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[10px] leading-relaxed text-slate-600">
                     <span className="font-bold block uppercase mb-0.5">Sandbox Hint:</span>
                     Enter the code <span className="font-bold">123456</span> to simulate validation success.
                   </div>
@@ -165,7 +164,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-900 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify Code'}
                 </button>
@@ -196,9 +195,9 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                       setError('');
                     }}
                     placeholder="••••"
-                    className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-100 rounded-xl px-4 py-3 text-center tracking-widest font-bold text-slate-800 text-base focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-base font-bold tracking-widest text-slate-800 focus:border-slate-400 focus:outline-none"
                   />
-                  <div className="bg-amber-50 border border-amber-200/60 p-2.5 rounded-xl text-[10px] text-amber-800">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-600">
                     Enter any 4-digit code (e.g. 1234).
                   </div>
                   {error && <p className="text-[11px] text-rose-500 font-semibold">{error}</p>}
@@ -209,7 +208,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-900 py-3.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : `Pay PHP ${amount.toLocaleString()}`}
                 </button>
@@ -233,7 +232,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                 </div>
 
                 {/* Receipt Board */}
-                <div className="bg-slate-100 rounded-2xl p-4 border border-slate-200 text-xs text-left space-y-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-left space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Merchant</span>
                     <span className="font-bold text-slate-800">Rabas Travel & Tours</span>
@@ -248,7 +247,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Status</span>
-                    <span className="font-bold text-emerald-600 uppercase">Settled</span>
+                    <span className="font-bold uppercase text-slate-700">Settled</span>
                   </div>
                 </div>
               </div>
@@ -256,7 +255,7 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
               <div className="pt-6">
                 <button
                   onClick={handleFinalize}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-all cursor-pointer"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-900 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800"
                 >
                   Done & Confirm Booking
                 </button>
