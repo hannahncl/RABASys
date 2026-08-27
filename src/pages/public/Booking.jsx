@@ -6,24 +6,10 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
+import { api } from '../../services/api';
 
 
-const TOUR_GUIDES = [
-  {
-    id: 1,
-    name: 'Ms. Anne',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    description: 'Expert in Bicol history and cultural heritage with 5+ years of guiding experience.',
-    languages: ['English', 'Tagalog', 'Bicolano']
-  },
-  {
-    id: 2,
-    name: 'Mr. Mark',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    description: 'Adventure specialist, perfect for eco-tours and extreme activities.',
-    languages: ['English', 'Tagalog']
-  }
-];
+
 
 // Shared style constants
 const colors = {
@@ -80,6 +66,7 @@ const Booking = () => {
 
   // Tour Guide Selection
   const [selectedGuide, setSelectedGuide] = useState(null);
+  const [tourGuides, setTourGuides] = useState([]);
 
   // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -100,6 +87,14 @@ const Booking = () => {
   useEffect(() => {
     const loadPkg = async () => {
       setLoading(true);
+      
+      try {
+        const guides = await api('/tour-guides/public');
+        setTourGuides(guides);
+      } catch (err) {
+        console.error('Failed to load tour guides:', err);
+      }
+
       if (packageId === 'custom') {
         if (stateData.customPackage) {
           setPkg(stateData.customPackage);
@@ -623,7 +618,7 @@ const Booking = () => {
                     <div>
                       <SectionLabel>Select a Tour Guide (Optional)</SectionLabel>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {TOUR_GUIDES.map(guide => (
+                        {tourGuides.map(guide => (
                           <div
                             key={guide.id}
                             onClick={() => setSelectedGuide(selectedGuide === guide.id ? null : guide.id)}
@@ -649,12 +644,18 @@ const Booking = () => {
                             }}
                           >
                             <div className="flex gap-4">
-                              <img
-                                src={guide.image}
-                                alt={guide.name}
-                                className="w-12 h-12 object-cover shrink-0"
-                                style={{ borderRadius: '2px' }}
-                              />
+                              <div
+                                className="w-12 h-12 shrink-0 flex items-center justify-center text-[13px] font-bold"
+                                style={{
+                                  borderRadius: '2px',
+                                  background: '#e8e3da',
+                                  color: '#4a453b',
+                                  letterSpacing: '0.04em',
+                                }}
+                              >
+                                {(guide.firstName?.[0] || guide.name?.[0] || 'T').toUpperCase()}
+                                {(guide.lastName?.[0] || guide.name?.split(' ')[1]?.[0] || 'G').toUpperCase()}
+                              </div>
                               <div>
                                 <h4
                                   className="font-semibold text-[13px]"
@@ -666,7 +667,7 @@ const Booking = () => {
                                   className="text-[11px] mt-1 leading-relaxed"
                                   style={{ color: colors.textSecondary }}
                                 >
-                                  {guide.description}
+                                  {guide.description || 'Professional local tour guide.'}
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-2">
                                   <Globe className="w-3 h-3" style={{ color: colors.accent }} />
@@ -674,7 +675,7 @@ const Booking = () => {
                                     className="text-[10px] font-medium"
                                     style={{ color: colors.textMuted }}
                                   >
-                                    {guide.languages.join(', ')}
+                                    {guide.languageSpoken || (guide.languages && guide.languages.join(', ')) || 'English, Tagalog'}
                                   </span>
                                 </div>
                               </div>

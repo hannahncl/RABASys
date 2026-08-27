@@ -49,6 +49,14 @@ router.get("/", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res,
     } catch (e) { next(e); }
 });
 
+// GET all available tour guides (Public for booking interface)
+router.get("/public", requireAuth, async (req, res, next) => {
+    try {
+        const [rows] = await db.query(`${guideSelect} AND tg.availability_status = 'Available' ORDER BY a.account_id DESC`);
+        res.json(rows.map(formatGuide));
+    } catch (e) { next(e); }
+});
+
 // GET single tour guide
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
