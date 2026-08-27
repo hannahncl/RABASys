@@ -36,18 +36,18 @@ const MyTours = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       {/* Filters and search */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-900">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           {['All', 'Confirmed', 'Completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition-all cursor-pointer ${
                 filter === status
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-500'
-                  : 'bg-slate-950 border-slate-850 text-slate-400 hover:border-slate-800'
+                  ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                  : 'bg-white border-[#d6cfc2] text-[#4a453b] hover:bg-[#f7f4ef]'
               }`}
             >
               {status}
@@ -62,7 +62,7 @@ const MyTours = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by client or ref ID..."
-            className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 rounded-xl py-2 pl-9 pr-4 text-xs focus:outline-none"
+            className="w-full bg-white border border-[#d6cfc2] focus:border-[#b0a68e] rounded-sm py-2 pl-9 pr-4 text-xs focus:outline-none"
           />
         </div>
       </div>
@@ -77,7 +77,7 @@ const MyTours = () => {
       ) : filteredBookings.length > 0 ? (
         <div className="space-y-4">
           {filteredBookings.map((b) => (
-            <div key={b.id} className="glass-card rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div key={b.id} className="bg-white border border-[#e0dbd0] rounded-md p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               
               {/* Profile Details */}
               <div className="space-y-2 max-w-md w-full">

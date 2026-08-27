@@ -21,12 +21,24 @@ const AddTuktripPage = () => {
     inclusions: '',
     maximumCapacity: '',
     meetingLocation: '',
-    itinerary: ''
+    itinerary: '',
+    image: ''
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageSelection = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -41,6 +53,7 @@ const AddTuktripPage = () => {
     try {
       const payload = {
         category: 'tuktrip',
+        packageType: 'tuktrip',
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
@@ -55,7 +68,7 @@ const AddTuktripPage = () => {
           .map(line => line.trim())
           .filter(Boolean)
           .map((line, index) => ({ day: index + 1, title: line, desc: line })),
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=800',
+        image: formData.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=800',
         tags: [formData.destination.trim(), 'Tuktrip']
       };
 
@@ -119,6 +132,13 @@ const AddTuktripPage = () => {
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Itinerary</label>
             <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Package Image</label>
+            <input type="file" accept="image/*" onChange={handleImageSelection} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:bg-cyan-500 file:text-slate-950" />
+            {formData.image && (
+              <img src={formData.image} alt="Preview" className="mt-3 h-32 w-full object-cover rounded-lg border border-slate-700" />
+            )}
           </div>
         </div>
 

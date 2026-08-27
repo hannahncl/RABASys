@@ -5,10 +5,15 @@ const parseJson = (value, fallback) => {
   try { return JSON.parse(value); } catch { return fallback; }
 };
 
+const normalizePackageType = (item = {}) => {
+  const rawType = item.package_type || item.packageType || item.category || item.type || 'tour';
+  return rawType === 'tuktrip' ? 'tuktrip' : 'tour';
+};
+
 const packageFromApi = (item) => ({
   ...item,
   id: String(item.package_id),
-  category: 'tour',
+  category: normalizePackageType(item),
   title: item.package_name,
   packageName: item.package_name,
   price: Number(item.price),
@@ -31,11 +36,15 @@ const vehicleFromApi = (item) => ({
   price: Number(item.daily_rate),
   dailyRate: Number(item.daily_rate),
   vehicleType: item.vehicle_type,
+  plateNumber: item.plate_number,
   capacity: `${item.capacity} Passengers`,
   seatingCapacity: item.capacity,
   image: item.image || '/CAGSAWA.jpg',
   duration: 'Per Day',
   availabilityStatus: item.availability_status || 'Available',
+  fuelType: item.fuel_type || '',
+  vehicleBrand: item.vehicle_brand || '',
+  transmission: item.transmission || '',
 });
 
 const packagePayload = (item) => ({
@@ -49,6 +58,8 @@ const packagePayload = (item) => ({
   meeting_location: item.meetingLocation || item.meeting_location || null,
   itinerary: JSON.stringify(item.itinerary || []),
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
+  package_type: normalizePackageType(item),
+  image: item.image || null,
 });
 
 const vehiclePayload = (item) => ({
@@ -59,14 +70,22 @@ const vehiclePayload = (item) => ({
   daily_rate: Number(item.dailyRate || item.price || item.daily_rate || 0),
   image: item.vehicleImage || item.image || null,
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
+  fuel_type: item.fuelType || null,
+  vehicle_brand: item.vehicleBrand || null,
+  transmission: item.transmission || null,
 });
 
 export const serviceService = {
   getAll: async () => (await api('/packages')).map(packageFromApi),
   getByCategory: async (category) => {
     if (category === 'car') return (await api('/vehicles')).map(vehicleFromApi);
-    // The current schema has tour_package but no separate TukTrip table.
-    return (await api('/packages')).map(packageFromApi).filter(item => category === 'tour' || item.category === category);
+
+    const packages = (await api('/packages')).map(packageFromApi);
+    if (category === 'tour') {
+      return packages.filter(item => item.category !== 'tuktrip');
+    }
+
+    return packages.filter(item => item.category === category);
   },
   getById: async (id) => {
     try { return packageFromApi(await api(`/packages/${id}`)); }
@@ -83,7 +102,7 @@ export const serviceService = {
 };
 
 export const packageService = {
-  getAll: () => serviceService.getByCategory('tour'),
+  getAll: () => serviceService.getAll(),
   getById: (id) => serviceService.getById(id),
   getRecommendations: (preferences) => serviceService.getRecommendations(preferences),
   create: (item) => serviceService.create({ ...item, category: 'tour' }),

@@ -25,6 +25,7 @@ const statusLabel = (status) => {
 const Dashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [totalUpdates, setTotalUpdates] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
   const [recentBookings, setRecentBookings] = useState([]);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ const Dashboard = () => {
       const allBookings = await bookingService.getAll();
       const upcoming = allBookings.filter(b => b.status === 'Confirmed');
       setPendingCount(upcoming.length);
+      setCompletedCount(allBookings.filter(b => b.status === 'Completed').length);
       setRecentBookings(allBookings.slice(0, 3));
 
       const updates = await tripUploadService.getAll();
@@ -41,30 +43,37 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1 */}
-        <div className="glass-panel p-6 rounded-2xl border-slate-800">
+        <div className="bg-white p-6 rounded-md border border-[#e0dbd0]">
           <div className="space-y-2">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Assigned Tours</span>
-            <span className="text-3xl font-extrabold font-display text-slate-100">{pendingCount}</span>
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Assigned Tours</span><ClipboardList className="h-4 w-4 text-[#1a1a1a]" /></div>
+            <span className="text-3xl font-extrabold font-display text-[#1a1a1a]">{pendingCount}</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-md border border-[#e0dbd0]">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Completed Tours</span><ShieldCheck className="h-4 w-4 text-[#1a1a1a]" /></div>
+            <span className="text-3xl font-extrabold font-display text-[#1a1a1a]">{completedCount}</span>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div className="glass-panel p-6 rounded-2xl border-slate-800">
+        <div className="bg-white p-6 rounded-md border border-[#e0dbd0]">
           <div className="space-y-2">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Live Field Logs Published</span>
-            <span className="text-3xl font-extrabold font-display text-slate-100">{totalUpdates}</span>
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">Live Field Logs Published</span><FileUp className="h-4 w-4 text-[#1a1a1a]" /></div>
+            <span className="text-3xl font-extrabold font-display text-[#1a1a1a]">{totalUpdates}</span>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div className="glass-panel p-6 rounded-2xl border-slate-800">
+        <div className="bg-white p-6 rounded-md border border-[#e0dbd0]">
           <div className="space-y-2">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">My Status</span>
-            <span className="text-3xl font-extrabold font-display text-slate-100">Active</span>
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">My Status</span><ShieldCheck className="h-4 w-4 text-[#1a1a1a]" /></div>
+            <span className="text-3xl font-extrabold font-display text-[#1a1a1a]">Active</span>
           </div>
         </div>
       </div>
@@ -74,12 +83,12 @@ const Dashboard = () => {
         
         {/* Left Column: Quick actions */}
         <div className="lg:col-span-1 space-y-6">
-          <h3 className="font-bold text-slate-200 font-display text-lg">Quick Actions</h3>
+          <h3 className="font-semibold text-white font-display text-lg">Quick Actions</h3>
           
           <div className="space-y-4">
             <Link 
               to="/staff/bookings" 
-              className="glass-card p-5 rounded-2xl flex items-center justify-between border-slate-800 group"
+              className="bg-white p-5 rounded-md flex items-center justify-between border border-[#e0dbd0] group"
             >
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
@@ -95,7 +104,7 @@ const Dashboard = () => {
 
             <Link 
               to="/staff/uploads" 
-              className="glass-card p-5 rounded-2xl flex items-center justify-between border-slate-800 group"
+              className="bg-white p-5 rounded-md flex items-center justify-between border border-[#e0dbd0] group"
             >
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
@@ -113,11 +122,11 @@ const Dashboard = () => {
 
         {/* Right Column: Recent Bookings list */}
         <div className="lg:col-span-2 space-y-6">
-          <h3 className="font-bold text-slate-200 font-display text-lg">Recent Tours</h3>
+          <h3 className="font-semibold text-white font-display text-lg">Recent Tours</h3>
           
           <div className="space-y-4">
             {recentBookings.map((b) => (
-              <div key={b.id} className="glass-panel p-4 rounded-xl border-slate-900 flex justify-between items-center text-xs">
+              <div key={b.id} className="bg-white p-4 rounded-md border border-[#e0dbd0] flex justify-between items-center text-xs">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-300">{b.customerName}</span>

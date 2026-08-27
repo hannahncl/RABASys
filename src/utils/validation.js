@@ -1,35 +1,63 @@
 export const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export function sanitizeInput(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .trim()
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/[<>]/g, '');
+}
+
+export function normalizePhone(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
 export function validateEmail(value) {
-  if (!value?.trim()) return 'Email is required.';
-  if (!emailRegex.test(value.trim())) return 'Please enter a valid email address.';
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return 'Email is required.';
+  if (!emailRegex.test(sanitized)) return 'Please enter a valid email address.';
   return '';
 }
 
+export function validateEmailOrPhone(value) {
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return 'Email or phone is required.';
+  if (emailRegex.test(sanitized)) return '';
+  const normalizedPhone = normalizePhone(sanitized);
+  if (normalizedPhone.length >= 10 && normalizedPhone.length <= 13) return '';
+  return 'Please enter a valid email address or phone number.';
+}
+
 export function validatePassword(value) {
-  if (!value) return 'Password is required.';
-  if (value.length < 8) return 'Password must be at least 8 characters long.';
-  if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) {
-    return 'Password must include at least one uppercase letter and one number.';
-  }
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return 'Password is required.';
+  if (sanitized.length < 8) return 'Password must be at least 8 characters long.';
+  if (!/[A-Z]/.test(sanitized)) return 'Password must include at least one uppercase letter.';
+  if (!/[a-z]/.test(sanitized)) return 'Password must include at least one lowercase letter.';
+  if (!/[0-9]/.test(sanitized)) return 'Password must include at least one number.';
+  if (!/[^A-Za-z0-9]/.test(sanitized)) return 'Password must include at least one special character.';
   return '';
 }
 
 export function validateName(value, fieldName = 'Name') {
-  if (!value?.trim()) return `${fieldName} is required.`;
-  if (!/^[A-Za-z\s.'-]+$/.test(value.trim())) return `${fieldName} can only contain letters and basic punctuation.`;
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return `${fieldName} is required.`;
+  if (!/^[A-Za-z\s.'-]+$/.test(sanitized)) return `${fieldName} can only contain letters and basic punctuation.`;
   return '';
 }
 
 export function validatePhone(value) {
-  if (!value?.trim()) return 'Contact number is required.';
-  const normalized = value.replace(/\D/g, '');
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return 'Contact number is required.';
+  if (!/^[0-9+\-()\s]+$/.test(sanitized)) return 'Contact number can only contain numbers and allowed separators.';
+  const normalized = sanitized.replace(/\D/g, '');
   if (normalized.length < 10 || normalized.length > 13) return 'Please enter a valid phone number.';
   return '';
 }
 
 export function validateRequired(value, fieldName) {
-  if (!value?.toString().trim()) return `${fieldName} is required.`;
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return `${fieldName} is required.`;
   return '';
 }
 
@@ -43,7 +71,8 @@ export function validateNumber(value, fieldName, { min = 0, max } = {}) {
 }
 
 export function validatePlateNumber(value) {
-  if (!value?.trim()) return 'Plate number is required.';
-  if (!/^[A-Za-z0-9\s-]{2,20}$/.test(value.trim())) return 'Plate number can only contain letters, numbers, spaces, and hyphens.';
+  const sanitized = sanitizeInput(value);
+  if (!sanitized) return 'Plate number is required.';
+  if (!/^[A-Za-z0-9\s-]{2,20}$/.test(sanitized)) return 'Plate number can only contain letters, numbers, spaces, and hyphens.';
   return '';
 }

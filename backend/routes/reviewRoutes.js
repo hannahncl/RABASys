@@ -1,8 +1,22 @@
 const express = require("express");
 const db = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
+const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
+
+router.get("/", async (req, res, next) => {
+    try {
+        const [reviews] = await db.execute(`
+            SELECT r.review_id, r.booking_id, r.package_id, r.rating, r.comment, r.created_at, a.first_name, a.last_name 
+            FROM review r
+            JOIN account a ON r.account_id = a.account_id
+            WHERE r.deleted_at IS NULL
+            ORDER BY r.created_at DESC
+        `);
+        res.json(reviews);
+    } catch (error) { next(error); }
+});
 
 router.post("/", requireAuth, async (req, res, next) => {
     try {
@@ -16,6 +30,7 @@ router.post("/", requireAuth, async (req, res, next) => {
         if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "You can only review your own booking." });
         const [result] = await db.execute("INSERT INTO review (account_id, package_id, booking_id, rating, comment) VALUES (?, ?, ?, ?, ?)", [req.user.accountId, booking.package_id, booking_id, rating, comment || null]);
         const [rows] = await db.execute("SELECT * FROM review WHERE review_id = ?", [result.insertId]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "review", recordId: result.insertId, newValues: rows[0], req });
         res.status(201).json(rows[0]);
     } catch (error) { next(error); }
 });

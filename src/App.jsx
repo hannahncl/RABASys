@@ -42,6 +42,7 @@ import AdminAnalytics from './pages/admin/Analytics';
 import AdminSchedule from './pages/admin/Schedule';
 import AdminBookings from './pages/admin/Bookings';
 import ManageServices from './pages/admin/ManageServices';
+import ServiceDetailPage from './pages/admin/ServiceDetailPage';
 import ManageTourPackages from './pages/admin/ManageTourPackages';
 import ManageTuktripPackages from './pages/admin/ManageTuktripPackages';
 import ManageCarRentals from './pages/admin/ManageCarRentals';
@@ -51,6 +52,8 @@ import AddCarRentalPage from './pages/admin/AddCarRentalPage';
 import EditTourPackagePage from './pages/admin/EditTourPackagePage';
 import EditTuktripPage from './pages/admin/EditTuktripPage';
 import EditCarRentalPage from './pages/admin/EditCarRentalPage';
+import CarRentalDetailPage from './pages/admin/CarRentalDetailPage';
+import TourPackageDetailPage from './pages/admin/TourPackageDetailPage';
 import AddServicePage from './pages/admin/AddServicePage';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
@@ -133,15 +136,18 @@ function App() {
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="services" element={<ManageServices />} />
+              <Route path="services/:category/:id" element={<ServiceDetailPage />} />
               <Route path="tour-packages" element={<ManageTourPackages />} />
               <Route path="tour-packages/add" element={<AddTourPackagePage />} />
               <Route path="tour-packages/edit/:id" element={<EditTourPackagePage />} />
+              <Route path="tour-packages/:id" element={<TourPackageDetailPage />} />
               <Route path="tuktrip" element={<ManageTuktripPackages />} />
               <Route path="tuktrip/add" element={<AddTuktripPage />} />
               <Route path="tuktrip/edit/:id" element={<EditTuktripPage />} />
               <Route path="car-rentals" element={<ManageCarRentals />} />
               <Route path="car-rentals/add" element={<AddCarRentalPage />} />
               <Route path="car-rentals/edit/:id" element={<EditCarRentalPage />} />
+              <Route path="car-rentals/:id" element={<CarRentalDetailPage />} />
               <Route path="services/add-tour-package" element={<AddTourPackagePage />} />
               <Route path="services/add-tuktrip" element={<AddTuktripPage />} />
               <Route path="services/add-car-rental" element={<AddCarRentalPage />} />

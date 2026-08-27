@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
-  Plus, Edit, Trash2, Loader, MapPin, Users, Car
+  Plus, Edit, Trash2, Loader, Users, Car, Search
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 
@@ -11,19 +11,22 @@ const catConfig = {
   label: 'Car Rentals',
   singular: 'Car Rental',
   icon: Car,
-  accent: 'text-violet-400',
-  border: 'border-violet-500/30',
-  bg: 'bg-violet-500/10',
-  activeBg: 'bg-violet-500',
+  accent: 'text-yellow-600',
+  border: 'border-yellow-200',
+  bg: 'bg-yellow-50',
+  activeBg: 'bg-[#1a1a1a]',
   description: 'Vehicle rental services with driver - sedans, SUVs, and vans',
 };
 
-const ServiceCard = ({ item, onEdit, onDelete }) => {
+const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
   const Icon = catConfig.icon;
   return (
-    <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group">
-      <div className="relative h-44 overflow-hidden bg-slate-800">
-        {item.image ? (
+    <div
+      onClick={() => onView(item)}
+      className="bg-white border border-[#e0dbd0] hover:border-[#b0a68e] rounded-md overflow-hidden flex flex-col transition-colors group cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+    >
+      <div className="relative h-44 overflow-hidden bg-[#ebe7df]">
+        {item.image && item.image !== '/CAGSAWA.jpg' ? (
           <img
             src={item.image}
             alt={item.title}
@@ -35,20 +38,20 @@ const ServiceCard = ({ item, onEdit, onDelete }) => {
             <Icon className={`h-12 w-12 ${catConfig.accent} opacity-40`} />
           </div>
         )}
-        <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${catConfig.bg} ${catConfig.accent} border ${catConfig.border} backdrop-blur-sm`}>
-          {catConfig.label}
+        <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider ${catConfig.bg} ${catConfig.accent} border ${catConfig.border}`}>
+          {item.vehicleType || catConfig.label}
         </div>
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => onEdit(item)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90`}
+            onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-sm font-bold text-sm transition-all cursor-pointer text-white ${catConfig.activeBg} hover:bg-[#333333]`}
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-3.5 w-3.5" />
             Edit
           </button>
           <button
-            onClick={() => onDelete(item.id)}
-            className="p-1.5 bg-slate-900/90 hover:bg-rose-500 text-white rounded-lg cursor-pointer backdrop-blur-sm transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+            className="p-1.5 bg-white hover:bg-[#f7f4ef] border border-[#d6cfc2] text-[#1a1a1a] rounded-sm cursor-pointer transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -56,41 +59,40 @@ const ServiceCard = ({ item, onEdit, onDelete }) => {
       </div>
 
       <div className="p-4 flex-grow space-y-2">
-        <div className={`flex items-center gap-1 text-[10px] font-semibold ${catConfig.accent}`}>
-          <MapPin className="h-3 w-3" />
-          {item.destination}
-        </div>
-        <h3 className="text-sm font-bold text-slate-100 line-clamp-2 leading-snug">{item.title}</h3>
+        <h3 className="text-sm font-semibold text-[#1a1a1a] line-clamp-1 leading-snug">{item.title}</h3>
+        {item.vehicleBrand && (
+          <p className="text-[11px] text-slate-400">{item.vehicleBrand}</p>
+        )}
         <div className="flex items-center justify-between">
-          <span className="text-base font-extrabold text-slate-100">PHP {Number(item.price).toLocaleString()}</span>
+          <span className="text-base font-extrabold text-[#1a1a1a]">PHP {Number(item.price).toLocaleString()}<span className="text-[10px] font-normal text-slate-500">/day</span></span>
           {item.capacity && (
             <span className="flex items-center gap-1 text-[10px] text-slate-500">
               <Users className="h-3 w-3" /> {item.capacity}
             </span>
           )}
         </div>
-        {item.vehicleType && (
-          <div className="flex items-center gap-1 text-[10px] text-slate-500">
-            <span className="font-semibold">{item.vehicleType}</span>
-          </div>
-        )}
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {(Array.isArray(item.tags) ? item.tags : item.tags.split(',')).slice(0, 3).map(t => (
-              <span key={t} className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400">
-                {typeof t === 'string' ? t.trim() : t}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-1 pt-1">
+          {item.fuelType && (
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400">{item.fuelType}</span>
+          )}
+          {item.transmission && (
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400">{item.transmission}</span>
+          )}
+          {item.plateNumber && (
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400">{item.plateNumber}</span>
+          )}
+        </div>
       </div>
     </div>
   );
+
 };
 
 const ManageCarRentals = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
@@ -114,6 +116,10 @@ const ManageCarRentals = () => {
     navigate(`/admin/car-rentals/edit/${item.id}`);
   };
 
+  const handleView = (item) => {
+    navigate(`/admin/car-rentals/${item.id}`);
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this car rental?')) {
       try {
@@ -127,27 +133,19 @@ const ManageCarRentals = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display text-slate-100">Car Rentals</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            {catConfig.description}
-          </p>
+          <h1 className="text-xl font-semibold font-display text-[#1a1a1a]">Car Rentals</h1>
+          <p className="text-[#6b6255] text-sm mt-0.5">{catConfig.description}</p>
         </div>
-        <button
-          onClick={() => navigate('/admin/car-rentals/add')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90 shrink-0`}
-        >
-          <Plus className="h-4 w-4" />
-          Add Car Rental
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {searchOpen && <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search vehicles..." className="w-40 px-3 py-2 text-xs border border-[#d6cfc2] rounded-sm bg-white text-[#1a1a1a] outline-none focus:border-[#b0a68e]" />}
+          <button onClick={() => setSearchOpen((open) => !open)} className="p-2.5 rounded-sm border border-[#d6cfc2] bg-white text-[#1a1a1a] hover:bg-[#f7f4ef]" aria-label="Search car rentals"><Search className="h-4 w-4" /></button>
+          <button onClick={() => navigate('/admin/car-rentals/add')} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all cursor-pointer text-white ${catConfig.activeBg} hover:bg-[#333333]`}><Plus className="h-4 w-4" />Add Car Rental</button>
+        </div>
       </div>
 
-      <div className={`flex items-center gap-2 text-sm ${catConfig.accent} ${catConfig.bg} ${catConfig.border} border rounded-xl px-4 py-2.5`}>
-        {React.createElement(catConfig.icon, { className: 'h-4 w-4 shrink-0' })}
-        <span className="text-slate-300 text-xs">{catConfig.description}</span>
-      </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-48">
@@ -155,12 +153,13 @@ const ManageCarRentals = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map(item => (
+          {services.filter(item => !search.trim() || `${item.title || ''} ${item.vehicleBrand || ''} ${item.vehicleType || ''}`.toLowerCase().includes(search.toLowerCase())).map(item => (
             <ServiceCard
               key={item.id}
               item={item}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={handleView}
             />
           ))}
 
