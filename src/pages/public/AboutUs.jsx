@@ -1,83 +1,147 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MoreVertical } from 'lucide-react';
+import { ArrowRight, Compass, Handshake, MapPin, Route, ShieldCheck, Users } from 'lucide-react';
+
+const values = [
+  {
+    icon: Route,
+    title: 'Tailored Trips',
+    text: 'Itineraries are shaped around pace, purpose, group size, and preferred destinations.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Reliable Care',
+    text: 'Trips are handled with practical planning, clear coordination, and safety in mind.',
+  },
+  {
+    icon: Handshake,
+    title: 'Local Network',
+    text: 'We work with regional guides and local partners who know the communities firsthand.',
+  },
+];
+
+const steps = [
+  'Understand traveler needs',
+  'Plan routes and timing',
+  'Coordinate guides and transport',
+  'Support the trip experience',
+];
+
+const destinations = [
+  { name: 'Albay', image: '/ALBAY.jpg' },
+  { name: 'Calaguas', image: '/CALAGUAS.jpg' },
+  { name: 'Caramoan', image: '/CARAMOAN.jpg' },
+  { name: 'Matnog', image: '/MATNOG.jpg' },
+];
 
 const AboutUs = () => {
   return (
-    <div className="bg-white min-h-screen text-slate-800">
-      {/* ── TOP SECTION: ABOUT US & MONTAGE ── */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16 lg:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-
-          {/* Left Column: text content */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="space-y-1">
-              <span className="text-3xl font-bold text-cyan-500 uppercase tracking-[0.3em] block">
-                RABAS TRAVEL AND TOUR SERVICES
-              </span>
-            </div>
-
-            <span className="text-slate-600 text-sm md:text-base leading-relaxed font-light">
-              Rabas – Travel and Tours Services is a Bicol-based travel and tourism company
-                headquartered in Albay, Philippines, specializing in personalized and premium travel
-                experiences for both domestic and international travelers.
-            </span>
-            <p></p>
-            <p className="text-slate-600 text-sm md:text-base leading-relaxed font-light">
-              We provide travel and tour services, professional tour guiding, and customized tour
-                package design, focusing on creating tailor-made itineraries that match each
-                traveler’s preferences, pace, and purpose. Our services cater to solo travelers,
-                joiners, families, and small to large groups, ensuring a high standard of quality,
-                safety, and care across every journey</p>
-        
-
-            <div className="pt-2">
+    <div className="min-h-screen bg-white pb-20 text-[#1a1a1a]">
+      <section className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-12 lg:py-20">
+        <div className="grid items-end gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="max-w-xl">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e]">
+              Bicol-Based Travel Planning
+            </p>
+            <h1 className="text-3xl font-bold leading-tight tracking-[0.02em] text-[#1a1a1a] sm:text-4xl">
+              RABAS Travel and Tour Services
+            </h1>
+            <p className="mt-5 text-sm leading-7 text-[#4a453b]">
+              Rabas Travel and Tours is headquartered in Albay, Philippines, creating personalized travel experiences for domestic and international travelers. We design guided trips, custom packages, and local routes built around comfort, clarity, and care.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/packages"
-                className="bg-cyan-500 hover:bg-[#208eb4] text-white text-xs font-extrabold uppercase tracking-widest px-7 py-3.5 rounded-lg shadow-md transition-all inline-block hover:scale-[1.02] cursor-pointer"
+                className="inline-flex items-center gap-2 rounded border border-[#2d2a24] bg-[#2d2a24] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#f7f4ef] transition-colors hover:bg-transparent hover:text-[#2d2a24]"
               >
-                EXPLORE MORE
+                View Packages
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                to="/customize"
+                className="inline-flex items-center gap-2 rounded border border-[#e0dbd0] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#4a453b] transition-colors hover:bg-[#fcfbf9]"
+              >
+                Customize Trip
               </Link>
             </div>
           </div>
 
-          {/* Right Column: Montage matching mockup structure */}
-          <div className="lg:col-span-7 flex justify-center items-center">
-            <div className="relative w-full max-w-[600px] h-[540px]">
-
-              {/* Middle Right Photo (coastal village cliffs) */}
-              <div className="absolute top-[50px] right-0 w-[500px] h-[390px] rounded-3xl overflow-hidden shadow-md">
+          <div className="grid grid-cols-2 gap-3">
+            {destinations.map((destination, index) => (
+              <div
+                key={destination.name}
+                className={`group relative overflow-hidden rounded-md border border-[#e0dbd0] bg-[#fcfbf9] ${index === 0 ? 'row-span-2 min-h-[24rem]' : 'min-h-[11.5rem]'}`}
+              >
                 <img
-                  src="https://scontent.fmnl33-2.fna.fbcdn.net/v/t39.30808-6/602335986_122106580341161293_4013693818088048221_n.jpg?stp=dst-jpg_tt6&cstp=mx1620x1620&ctp=s1620x1620&_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeFQx5FfSVou41zWMREJCZYMVgQjFAPdNVxWBCMUA901XJzrV0ve-LNL-EkbdLkGFx8ldHqgk1ONu329iIAbnyqO&_nc_ohc=8wsAbzvqYvQQ7kNvwH1-1Xt&_nc_oc=AdoHPoto2yL7OE2O4lytnKvJga11L7l4iLDK9yG2dfAiuZOF08GKsQIhEXEyFRAa6fhZGZMP_sACtFWBnOi6SjJl&_nc_zt=23&_nc_ht=scontent.fmnl33-2.fna&_nc_gid=QMPvExXPvJXz3nFx4RrzCA&_nc_ss=7b2a8&oh=00_AQBtx_vPqwDf7DxdHrXH6HzcBotXyi_JXC7sGFEzbd7a1Q&oe=6A63BF52"
-                  className="w-full h-full object-cover"
+                  src={destination.image}
+                  alt={destination.name}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
+                <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-sm font-semibold">{destination.name}</span>
+                </div>
               </div>
-
-            </div>
+            ))}
           </div>
-
         </div>
       </section>
 
-      {/* ── BOTTOM SECTION: MEET OUR TEAM ── */}
-      <section className="bg-white border-t border-slate-100 py-20 lg:py-28">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
+      <section className="border-y border-[#eae5db] bg-[#fcfbf9]">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 py-10 sm:px-8 md:grid-cols-3 lg:px-12">
+          {values.map((value) => (
+            <div key={value.title} className="rounded-md border border-[#e0dbd0] bg-white p-5">
+              <value.icon className="mb-4 h-5 w-5 text-[#b0a68e]" />
+              <h2 className="text-sm font-bold text-[#1a1a1a]">{value.title}</h2>
+              <p className="mt-2 text-xs leading-6 text-[#6b6255]">{value.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Header */}
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-              <span className="text-3xl font-bold text-cyan-500 uppercase tracking-[0.3em] block">
-                MEET OUR TEAM
+      <section className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:px-12">
+        <div>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e]">
+            How We Work
+          </p>
+          <h2 className="text-2xl font-bold tracking-[0.02em] text-[#1a1a1a]">
+            Planned simply, handled carefully.
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-[#4a453b]">
+            Our process keeps each trip easy to understand before travel starts. Guests know the route, timing, inclusions, and support points ahead of the journey.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {steps.map((step, index) => (
+            <div key={step} className="flex items-center gap-4 rounded-md border border-[#e0dbd0] bg-white p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#d6cfc2] bg-[#fcfbf9] text-xs font-bold text-[#6b6255]">
+                {String(index + 1).padStart(2, '0')}
               </span>
+              <p className="text-sm font-semibold text-[#2d2a24]">{step}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          
-            <p className="text-slate-400 text-sm md:text-base leading-relaxed font-light justify-center items-center">
-              At Rabas – Travel and Tours Services, our strength lies in our people. Our team is composed of DOT-accredited
-                  regional tour guides, experienced local community guides, and dedicated travel professionals who share
-                  the same passion for tourism, culture, and service excellence.
-
-            </p>
+      <section className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+        <div className="grid overflow-hidden rounded-md border border-[#e0dbd0] bg-[#2d2a24] md:grid-cols-[0.9fr_1.1fr]">
+          <div className="min-h-[18rem]">
+            <img src="/SORSOGON.jpg" alt="Sorsogon destination" className="h-full w-full object-cover" />
           </div>
-
+          <div className="flex flex-col justify-center p-6 text-[#f7f4ef] sm:p-8">
+            <Compass className="mb-5 h-6 w-6 text-[#c4b99a]" />
+            <h2 className="text-2xl font-bold tracking-[0.02em]">Guides, partners, and travel professionals.</h2>
+            <p className="mt-4 text-sm leading-7 text-[#d6cfc2]">
+              Our team includes DOT-accredited regional tour guides, local community guides, and travel coordinators who share the same focus on culture, service, and dependable guest care.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#d6cfc2]">
+              <span className="inline-flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Solo Travelers</span>
+              <span className="inline-flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Families</span>
+              <span className="inline-flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Groups</span>
+            </div>
+          </div>
         </div>
       </section>
     </div>

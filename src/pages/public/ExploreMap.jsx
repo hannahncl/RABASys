@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Camera, MapPin, X, ArrowLeft,
-  Image as ImageIcon, Send, Upload, RefreshCw, Search, ZoomIn,
-  Link2, SwitchCamera, RotateCcw, Check, VideoOff
+  Image as ImageIcon, Send, RefreshCw, Search,
+  Link2, VideoOff, Heart,
+  Sparkles, Flame, Plus, Grid, List
 } from 'lucide-react';
 import mapGalleryService from '../../services/mapGalleryService';
+import { useNotification } from '../../hooks/useNotification';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -21,11 +23,20 @@ L.Icon.Default.mergeOptions({
 });
 
 const PRESET_UPLOAD_IMAGES = [
-  { name: 'Sunset Beach', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800' },
-  { name: 'Crystal Lagoon', url: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800' },
-  { name: 'Surfer Waves', url: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&q=80&w=800' },
-  { name: 'Mountain Overlook', url: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Cagsawa Ruins', url: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Caramoan Lagoon', url: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Calaguas Beach', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Matnog Pink Sand', url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800' },
 ];
+
+const getTimeAgo = (dateStr) => {
+  if (!dateStr) return 'Just now';
+  const diffSec = Math.floor((new Date() - new Date(dateStr)) / 1000);
+  if (diffSec < 60) return 'Just now';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return `${Math.floor(diffSec / 86400)}d ago`;
+};
 
 const MapFocusController = ({ center, zoom }) => {
   const map = useMap();
@@ -45,22 +56,25 @@ const MapEventsController = ({ onMapClick }) => {
 };
 
 const ExploreMap = () => {
+  const { showNotification } = useNotification();
+
   const [spots, setSpots] = useState([]);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [uploads, setUploads] = useState([]);
   const [mapCenter, setMapCenter] = useState([13.4, 123.6]);
   const [mapZoom, setMapZoom] = useState(8.5);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [categories, setCategories] = useState(['All']);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Left panel mode: 'grid' (spots overview) or 'photos' (spot's photo album)
-  const [leftPanelMode, setLeftPanelMode] = useState('grid');
+  // Gallery filter state
+  const [galleryFilterValue, setGalleryFilterValue] = useState('All');
+  const [galleryView, setGalleryView] = useState('grid'); // 'grid' | 'list'
 
-  // Lightbox state
-  const [lightboxIndex, setLightboxIndex] = useState(null);
+  // Story Viewer state
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
+  const [storyProgress, setStoryProgress] = useState(0);
 
-  // Upload state
+  // Upload modal state
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [touristName, setTouristName] = useState('');
   const [caption, setCaption] = useState('');
@@ -68,6 +82,7 @@ const ExploreMap = () => {
   const [selectedPresetImage, setSelectedPresetImage] = useState(PRESET_UPLOAD_IMAGES[0].url);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [targetSpotId, setTargetSpotId] = useState('spot-mayon');
 
   // Upload tab state: 'camera' | 'gallery' | 'url'
   const [uploadTab, setUploadTab] = useState('camera');
@@ -79,14 +94,13 @@ const ExploreMap = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [facingMode, setFacingMode] = useState('environment'); // 'user' or 'environment'
+  const [facingMode] = useState('environment');
 
   // Start camera stream
   const startCamera = useCallback(async () => {
     setCameraError('');
     setCapturedPhoto(null);
     try {
-      // Stop any existing stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -103,11 +117,11 @@ const ExploreMap = () => {
     } catch (err) {
       console.error('Camera error:', err);
       if (err.name === 'NotAllowedError') {
-        setCameraError('Camera permission was denied. Please allow camera access in your browser settings.');
+        setCameraError('Camera permission was denied. Please allow camera access.');
       } else if (err.name === 'NotFoundError') {
         setCameraError('No camera found on this device.');
       } else {
-        setCameraError('Could not access camera. Please try the Gallery or URL tab instead.');
+        setCameraError('Could not access camera. Try Gallery or URL instead.');
       }
       setCameraActive(false);
     }
@@ -125,7 +139,7 @@ const ExploreMap = () => {
     setCameraActive(false);
   }, []);
 
-  // Snap photo from video stream
+  // Snap photo
   const snapPhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
@@ -133,7 +147,6 @@ const ExploreMap = () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    // Mirror if using front camera
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -144,12 +157,6 @@ const ExploreMap = () => {
     stopCamera();
   }, [facingMode, stopCamera]);
 
-  // Flip camera between front and rear
-  const flipCamera = useCallback(() => {
-    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
-  }, []);
-
-  // Auto-start camera when camera tab is selected and modal is open
   useEffect(() => {
     if (uploadModalOpen && uploadTab === 'camera' && !capturedPhoto) {
       startCamera();
@@ -157,12 +164,10 @@ const ExploreMap = () => {
       stopCamera();
     }
     return () => {
-      // Cleanup on unmount or tab switch
       if (uploadTab !== 'camera') stopCamera();
     };
-  }, [uploadModalOpen, uploadTab, facingMode]);
+  }, [uploadModalOpen, uploadTab, facingMode, startCamera, stopCamera, capturedPhoto]);
 
-  // Cleanup camera when modal closes
   useEffect(() => {
     if (!uploadModalOpen) {
       stopCamera();
@@ -171,41 +176,66 @@ const ExploreMap = () => {
     }
   }, [uploadModalOpen, stopCamera]);
 
+  // Initial load
   useEffect(() => {
-    const fetchSpots = async () => {
-      const data = await mapGalleryService.getSpots();
-      setSpots(data);
-      const cats = ['All', ...new Set(data.map(s => s.category))];
-      setCategories(cats);
+    const initData = async () => {
+      const spotList = await mapGalleryService.getSpots();
+      setSpots(spotList);
+
+      const allStoryUploads = await mapGalleryService.getAllUploads();
+      setUploads(allStoryUploads);
     };
-    fetchSpots();
+    initData();
   }, []);
 
-  // When a spot is selected, load its photos.
+  // When spot changes
   useEffect(() => {
-    if (selectedSpot) {
-      const loadDetails = async () => {
-        const gallery = await mapGalleryService.getUploads(selectedSpot.id);
-        setUploads(gallery);
-      };
-      loadDetails();
-      setLeftPanelMode('photos'); // Switch left panel to photo album view
-    } else {
-      setUploads([]);
-      setLeftPanelMode('grid');
-    }
+    const loadSpotUploads = async () => {
+      if (selectedSpot) {
+        const spotPhotos = await mapGalleryService.getUploads(selectedSpot.id);
+        setUploads(spotPhotos);
+        setTargetSpotId(selectedSpot.id);
+      } else {
+        const all = await mapGalleryService.getAllUploads();
+        setUploads(all);
+      }
+    };
+    loadSpotUploads();
   }, [selectedSpot]);
+
+  // Auto-progress timer for Story Viewer
+  useEffect(() => {
+    let timer;
+    if (storyViewerOpen && uploads.length > 0) {
+      setStoryProgress(0);
+      const interval = 50;
+      const totalTime = 5000;
+      timer = setInterval(() => {
+        setStoryProgress(prev => {
+          if (prev >= 100) {
+            if (activeStoryIndex < uploads.length - 1) {
+              setActiveStoryIndex(idx => idx + 1);
+              return 0;
+            } else {
+              setStoryViewerOpen(false);
+              return 0;
+            }
+          }
+          return prev + (interval / totalTime) * 100;
+        });
+      }, interval);
+    }
+    return () => clearInterval(timer);
+  }, [storyViewerOpen, activeStoryIndex, uploads.length]);
 
   const handleSpotClick = (spot) => {
     setSelectedSpot(spot);
     setMapCenter(spot.coords);
     setMapZoom(11);
-    setLightboxIndex(null);
   };
 
-  const handleBackToGrid = () => {
+  const handleBackToAll = () => {
     setSelectedSpot(null);
-    setLeftPanelMode('grid');
     setMapCenter([13.4, 123.6]);
     setMapZoom(8.5);
   };
@@ -216,7 +246,7 @@ const ExploreMap = () => {
     if (!caption.trim()) { setUploadError('Please add a caption.'); return; }
     setUploading(true);
     setUploadError('');
-    // Determine final image: camera capture > custom URL > preset image
+
     let finalImageUrl;
     if (uploadTab === 'camera' && capturedPhoto) {
       finalImageUrl = capturedPhoto;
@@ -225,9 +255,15 @@ const ExploreMap = () => {
     } else {
       finalImageUrl = selectedPresetImage;
     }
+
     try {
-      const newUpload = await mapGalleryService.uploadPhoto(selectedSpot.id, touristName, caption, finalImageUrl);
+      const activeSpotId = selectedSpot ? selectedSpot.id : targetSpotId;
+      const newUpload = await mapGalleryService.uploadPhoto(activeSpotId, touristName, caption, finalImageUrl);
+
       setUploads(prev => [newUpload, ...prev]);
+
+      showNotification('Story posted to Explore Map!', 'success');
+
       setTouristName('');
       setCaption('');
       setCustomImageUrl('');
@@ -241,594 +277,549 @@ const ExploreMap = () => {
     }
   };
 
+  const handleLike = async (e, uploadId) => {
+    e.stopPropagation();
+    const updated = await mapGalleryService.likeUpload(uploadId);
+    if (updated) {
+      setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
+    }
+  };
+
+  const openStoryViewer = (index = 0) => {
+    setActiveStoryIndex(index);
+    setStoryProgress(0);
+    setStoryViewerOpen(true);
+  };
+
   const getMarkerIcon = (spot) => {
     const isSelected = selectedSpot?.id === spot.id;
     return L.divIcon({
       className: 'custom-marker-wrapper',
       html: `
         <div class="relative flex flex-col items-center group cursor-pointer">
-          ${isSelected ? `<span class="animate-ping absolute inline-flex h-9 w-9 rounded-full bg-yellow-400 opacity-50"></span>` : ''}
-          <div class="relative flex items-center justify-center h-9 w-9 rounded-full ${isSelected ? 'border-4 border-yellow-500' : 'border-2 border-white'} shadow-xl overflow-hidden">
-            <img src="${spot.featuredImage}" class="w-full h-full object-cover" />
+          <div class="p-[2px] rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 shadow-md transition-transform group-hover:scale-110 ${isSelected ? 'ring-4 ring-amber-400' : ''}">
+            <div class="w-9 h-9 rounded-full overflow-hidden border-2 border-white bg-stone-900">
+              <img src="${spot.featuredImage}" class="w-full h-full object-cover" />
+            </div>
           </div>
-          <div class="absolute -bottom-7 bg-white border border-slate-200 text-slate-400 text-[10px] font-bold py-0.5 px-2 rounded-full whitespace-nowrap shadow-md opacity-100 transition-opacity pointer-events-none">
+          <div class="mt-1 bg-white/95 backdrop-blur-sm border border-stone-200 text-stone-800 text-[10px] font-bold py-0.5 px-2.5 rounded-full whitespace-nowrap shadow-sm pointer-events-none flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
             ${spot.name.split(',')[0]}
           </div>
         </div>
       `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
+      iconSize: [40, 50],
+      iconAnchor: [20, 25],
     });
   };
 
-  const filteredSpots = spots.filter(spot => {
-    const hasImage = Boolean(spot.featuredImage?.trim());
-    const matchCat = selectedCategory === 'All' || spot.category === selectedCategory;
-    const matchSearch = spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spot.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return hasImage && matchCat && matchSearch;
+  const filteredSpots = spots.filter(spot =>
+    spot.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Derive gallery filter options
+  const galleryDestinationOptions = ['All', ...spots.map(s => s.name.split(',')[0])];
+
+  // Filtered uploads for gallery
+  const galleryUploads = uploads.filter(up => {
+    if (galleryFilterValue === 'All') return true;
+    const spot = spots.find(s => s.id === up.spotId);
+    return spot?.name.split(',')[0] === galleryFilterValue;
   });
 
   return (
-        <div className="bg-white min-h-screen pb-24 pt-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div style={{ background: '#ffffff', minHeight: '100vh', paddingBottom: '7rem', paddingTop: '2.5rem', fontFamily: "'Inter', 'Outfit', Georgia, serif" }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
 
-        <div className="mb-10 border-b border-slate-100 pb-8">
-          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Spot Gallery & Explore Map</h1>
+        {/* ── Page Header ── */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #d6cfc2', paddingBottom: '1.5rem', marginBottom: '2rem', gap: '1rem' }}>
+          <div>
+            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">EXPLORE MAP & TOURISTS GALLERY</h1>
+          </div>
+
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', border: '1px solid #2d2a24', borderRadius: '2px', background: '#2d2a24', color: '#f7f4ef', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#2d2a24'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#2d2a24'; e.currentTarget.style.color = '#f7f4ef'; }}
+          >
+            <Camera style={{ width: '0.875rem', height: '0.875rem' }} />
+            + Share Story
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"></div>
-
-
-
-        {/* ── When in PHOTOS mode: show back button header ── */}
-        {leftPanelMode === 'photos' && selectedSpot && (
-          <div className="flex items-center gap-4 mb-6">
-            <button
-              onClick={handleBackToGrid}
-              className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-yellow-600 transition-colors cursor-pointer bg-white border border-slate-200 hover:border-yellow-300 rounded-xl px-4 py-2 shadow-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All Spots
-            </button>
-              <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full overflow-hidden border-2 border-yellow-500 shadow-sm">
-                <img src={selectedSpot.featuredImage} alt={selectedSpot.name} className="w-full h-full object-cover" />
+        {/* ── STORIES TRAY (Horizontal at Top) ── */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.625rem', fontWeight: 600, color: '#3d3a34', letterSpacing: '0.18em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <Flame style={{ width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
+              Tourist Stories ({uploads.length})
+            </h3>
+            <span style={{ fontSize: '0.625rem', color: '#6b6255', letterSpacing: '0.04em' }}>Tap avatar to view</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            {/* Add Story */}
+            <div onClick={() => setUploadModalOpen(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', flexShrink: 0, cursor: 'pointer' }}>
+              <div style={{ width: '3.25rem', height: '3.25rem', borderRadius: '50%', border: '1.5px dashed #b0a68e', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fcfbf9' }}>
+                <Plus style={{ width: '1.125rem', height: '1.125rem', color: '#6b6255' }} />
               </div>
+              <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.04em' }}>Add Story</span>
+            </div>
+            {uploads.map((story, idx) => (
+              <div key={story.id} onClick={() => openStoryViewer(idx)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', flexShrink: 0, cursor: 'pointer' }}>
+                <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg, #c4b99a, #b0a68e, #6b6255)' }}>
+                  <div style={{ width: '2.875rem', height: '2.875rem', borderRadius: '50%', overflow: 'hidden', border: '2px solid #ffffff', background: '#ebe7df' }}>
+                    <img src={story.imageUrl || story.avatar} alt={story.touristName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#3d3a34', maxWidth: '3.5rem', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {story.touristName.split(' ')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Side-by-Side Flex Layout ── */}
+        <div style={{ display: 'flex', gap: '3rem' }} className="flex-col lg:flex-row">
+
+          {/* ── LEFT COLUMN: Photo Gallery & Filters (55% width) ── */}
+          <div style={{ flex: '1 1 55%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* Gallery Header Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h2 className="text-base font-extrabold text-slate-800 leading-tight">{selectedSpot.name}</h2>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{selectedSpot.category}</span>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Grid style={{ width: '1rem', height: '1rem', color: '#6b6255' }} />
+                  {selectedSpot ? `${selectedSpot.name.split(',')[0]} Photos` : 'Photo Gallery'}
+                </h2>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {selectedSpot && (
+                  <button
+                    onClick={handleBackToAll}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.875rem', border: '1px solid #b0a68e', borderRadius: '2px', background: 'rgba(196,185,154,0.12)', color: '#3d3a34', fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft style={{ width: '0.75rem', height: '0.75rem' }} /> All Spots
+                  </button>
+                )}
+                <button
+                  onClick={() => setGalleryView(v => v === 'grid' ? 'list' : 'grid')}
+                  style={{ padding: '0.4rem', border: '1px solid #e0dbd0', borderRadius: '4px', background: 'rgba(255,255,255,0.7)', color: '#6b6255', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title={galleryView === 'grid' ? 'List view' : 'Grid view'}
+                >
+                  {galleryView === 'grid' ? <List style={{ width: '0.875rem', height: '0.875rem' }} /> : <Grid style={{ width: '0.875rem', height: '0.875rem' }} />}
+                </button>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Main Two-Column Layout */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-
-          {/* ── LEFT PANEL ── */}
-          <div className="w-full lg:w-5/12 xl:w-5/12">
-
-            {/* ── GRID VIEW: all spots cards ── */}
-            {leftPanelMode === 'grid' && (
-              <div className="grid grid-cols-2 gap-4">
-                {filteredSpots.map(spot => (
-                  <div
-                    key={spot.id}
-                    onClick={() => handleSpotClick(spot)}
-                    className="relative group h-52 rounded-2xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-yellow-400 transition-all duration-200 shadow-sm hover:shadow-xl"
-                  >
-                    <img
-                      src={spot.featuredImage}
-                      alt={spot.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-slate-400 text-[11px] font-bold px-2.5 py-1.5 rounded-full shadow-md">
-                      <MapPin className="h-3 w-3 text-slate-700 shrink-0" />
-                      <span className="truncate max-w-[100px]">{spot.name.split(',')[0]}</span>
-                    </div>
-                    <div className="absolute top-3 right-3 bg-yellow-500 text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      {spot.category.split(' ')[0]}
-                    </div>
-                    {/* Click hint */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-3 py-2 rounded-full flex items-center gap-1.5">
-                        <Camera className="h-3.5 w-3.5" />
-                        View Photos
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {filteredSpots.length === 0 && (
-                  <div className="col-span-2 py-16 text-center text-slate-400">
-                    <ImageIcon className="h-10 w-10 mx-auto mb-2 stroke-1" />
-                    <p className="text-sm font-medium">No spots found for this category.</p>
-                  </div>
-                )}
+            {/* Filter Controls container */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#fcfbf9', border: '1px solid #e0dbd0', borderRadius: '6px', padding: '1rem' }}>
+              
+              {/* Search Bar */}
+              <div style={{ position: 'relative' }}>
+                <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
+                <input
+                  type="text"
+                  placeholder="Search destinations..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ width: '100%', paddingLeft: '2.5rem', paddingRight: '1rem', paddingTop: '0.625rem', paddingBottom: '0.625rem', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#1a1a1a', fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => { e.target.style.borderColor = '#b0a68e'; e.target.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = '#d6cfc2'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
-            )}
 
-            {/* ── PHOTO ALBUM VIEW: all uploaded photos for selected spot ── */}
-            {leftPanelMode === 'photos' && selectedSpot && (
-              <div className="space-y-4">
-                {/* Photo album header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold text-slate-700 flex items-center gap-1.5">
-                    <Camera className="h-4 w-4 text-yellow-500" />
-                    Tourist Photos
-                    <span className="text-xs font-bold text-slate-400 ml-1">({uploads.length} uploaded)</span>
-                  </h3>
+              {/* Destination filter chips */}
+              <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', paddingBottom: '0.25rem', flexWrap: 'nowrap' }}>
+                {galleryDestinationOptions.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => setGalleryFilterValue(opt)}
+                    style={{
+                      flexShrink: 0, padding: '0.375rem 0.875rem', borderRadius: '2px', fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s',
+                      border: galleryFilterValue === opt ? '1px solid #b0a68e' : '1px solid #e0dbd0',
+                      background: galleryFilterValue === opt ? 'rgba(196,185,154,0.15)' : 'rgba(255,255,255,0.7)',
+                      color: galleryFilterValue === opt ? '#2d2a24' : '#45403a',
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Gallery Grid/List content wrapper */}
+            <div style={{ maxHeight: '640px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              {galleryUploads.length === 0 ? (
+                <div style={{ padding: '4rem 1.5rem', textAlign: 'center', border: '1px solid #e0dbd0', borderRadius: '6px', background: 'rgba(255,255,255,0.6)' }}>
+                  <ImageIcon style={{ width: '2.5rem', height: '2.5rem', margin: '0 auto 1rem', color: '#c4b99a', opacity: 0.6 }} />
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#3d3a34', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>No Photos Found</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#4a453b', marginBottom: '1rem' }}>Try changing your filters or search query.</p>
                   <button
                     onClick={() => setUploadModalOpen(true)}
-                    className="flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-3.5 rounded-xl transition-colors cursor-pointer shadow-sm"
+                    style={{ padding: '0.5rem 1.25rem', border: '1px solid #2d2a24', borderRadius: '2px', background: '#2d2a24', color: '#f7f4ef', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}
                   >
-                    <Upload className="h-3.5 w-3.5" />
-                    Upload Photo
+                    Be the First to Share
                   </button>
                 </div>
-
-                {/* Photo grid – 2 columns of all uploaded photos */}
-                {uploads.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
-                    <ImageIcon className="h-10 w-10 mb-2 stroke-1" />
-                    <p className="text-sm font-semibold text-slate-500 text-center">No photos uploaded yet for this spot.</p>
-                    <p className="text-xs text-slate-400 mt-1">Be the first to share your photo!</p>
-                    <button
-                      onClick={() => setUploadModalOpen(true)}
-                      className="mt-4 flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-colors cursor-pointer"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      Upload First Photo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {uploads.map((up, idx) => (
+              ) : galleryView === 'grid' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                  {galleryUploads.map(up => {
+                    const spot = spots.find(s => s.id === up.spotId);
+                    const uploadsIdx = uploads.findIndex(u => u.id === up.id);
+                    return (
                       <div
                         key={up.id}
-                        onClick={() => setLightboxIndex(idx)}
-                        className="group relative rounded-2xl overflow-hidden cursor-pointer border border-slate-200 shadow-sm hover:shadow-lg hover:border-yellow-300 transition-all duration-200"
+                        onClick={() => openStoryViewer(uploadsIdx >= 0 ? uploadsIdx : 0)}
+                        className="group"
+                        style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', transition: 'box-shadow 0.3s, transform 0.5s' }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
-                        <div className="h-40 w-full overflow-hidden">
-                          <img
-                            src={up.imageUrl}
-                            alt={up.caption}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400"
-                          />
+                        <div style={{ height: '220px', overflow: 'hidden', background: '#ebe7df' }}>
+                          <img src={up.imageUrl} alt={up.caption} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.7s' }} className="group-hover:scale-105" />
                         </div>
-                        {/* Zoom hint */}
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="bg-white/90 rounded-full p-2">
-                            <ZoomIn className="h-4 w-4 text-slate-700" />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4rem', background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)', pointerEvents: 'none' }} />
+                        
+                        {/* Card Info */}
+                        <div style={{ padding: '0.75rem 0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 500, color: '#2d2a24', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {up.caption}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                            <span style={{ fontSize: '0.625rem', color: '#6b6255', fontWeight: 500 }}>{up.touristName}</span>
+                            <button
+                              onClick={e => handleLike(e, up.id)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.625rem', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer', color: up.isLiked ? '#3d3a34' : '#b0a68e', transition: 'color 0.2s' }}
+                            >
+                              <Heart style={{ width: '0.7rem', height: '0.7rem', fill: up.isLiked ? '#3d3a34' : 'none' }} />{up.likesCount || 0}
+                            </button>
                           </div>
-                        </div>
-                        {/* Caption overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-[11px] text-white font-semibold line-clamp-2 leading-snug">"{up.caption}"</p>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <span className="text-[10px] font-bold text-slate-700">{up.touristName}</span>
-                            <span className="text-[9px] text-white/60">
-                              {new Date(up.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
+                          <div style={{ height: '1px', background: '#eae5db', margin: '0.125rem 0' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            {spot && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6rem', fontWeight: 600, color: '#6b6255' }}>
+                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{spot.name.split(',')[0]}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.575rem', color: '#b0a68e' }}>{getTimeAgo(up.date)}</span>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {galleryUploads.map(up => {
+                    const spot = spots.find(s => s.id === up.spotId);
+                    const uploadsIdx = uploads.findIndex(u => u.id === up.id);
+                    return (
+                      <div
+                        key={up.id}
+                        onClick={() => openStoryViewer(uploadsIdx >= 0 ? uploadsIdx : 0)}
+                        style={{ display: 'flex', gap: '0.875rem', background: '#ffffff', border: '1px solid #e0dbd0', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.3s, transform 0.3s', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        className="group"
+                      >
+                        <div style={{ position: 'relative', width: '7rem', height: '6rem', flexShrink: 0, overflow: 'hidden', background: '#ebe7df' }}>
+                          <img src={up.imageUrl} alt={up.caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} className="group-hover:scale-105" />
+                        </div>
+                        <div style={{ flex: 1, padding: '0.75rem 0.875rem 0.75rem 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, gap: '0.375rem' }}>
+                          <p style={{ fontSize: '0.75rem', color: '#2d2a24', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            <span style={{ fontWeight: 700 }}>{up.touristName}: </span>{up.caption}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {spot && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.625rem', fontWeight: 600, color: '#6b6255' }}>
+                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{spot.name.split(',')[0]}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.6rem', color: '#b0a68e' }}>{getTimeAgo(up.date)}</span>
+                            <button
+                              onClick={e => handleLike(e, up.id)}
+                              style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.625rem', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer', color: up.isLiked ? '#3d3a34' : '#b0a68e' }}
+                            >
+                              <Heart style={{ width: '0.7rem', height: '0.7rem', fill: up.isLiked ? '#3d3a34' : 'none' }} />{up.likesCount || 0}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* ── RIGHT: Map Card ── */}
-          <div className="w-full lg:w-7/12 xl:w-7/12 lg:sticky lg:top-6">
-            {/* Search Bar */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search spots..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 bg-white text-[15px] text-gray-900 focus:outline-none transition-all"
-              />
+          {/* ── RIGHT COLUMN: Map & Destinations (45% width) ── */}
+          <div style={{ flex: '1 1 45%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'sticky', top: '2rem' }}>
+            
+            {/* Destinations Map Header */}
+            <div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <MapPin style={{ width: '0.95rem', height: '0.95rem', color: '#b0a68e' }} /> Interactive Map Guide
+              </h3>
+              <p style={{ fontSize: '0.65rem', color: '#6b6255', marginTop: '0.125rem' }}>
+                Select a marker on the map to filter stories from that destination
+              </p>
             </div>
 
             {/* Map Container */}
-            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-white" style={{ height: '520px' }}>
-              <MapContainer
-                center={mapCenter}
-                zoom={mapZoom}
-                className="w-full h-full"
-                zoomControl={true}
-              >
+            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '480px', position: 'relative', zIndex: 0 }}>
+              <MapContainer center={mapCenter} zoom={mapZoom} className="w-full h-full" zoomControl={true}>
                 <TileLayer
-                  attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; Esri &mdash; Source: Esri, USGS, NOAA'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                  maxZoom={19}
                 />
                 <MapFocusController center={mapCenter} zoom={mapZoom} />
                 <MapEventsController onMapClick={() => {}} />
-
                 {filteredSpots.map(spot => (
-                  <Marker
-                    key={spot.id}
-                    position={spot.coords}
-                    icon={getMarkerIcon(spot)}
-                    eventHandlers={{ click: () => handleSpotClick(spot) }}
-                  />
+                  <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
+                    <Popup className="custom-spot-popup">
+                      <div style={{ padding: '0.25rem', maxWidth: '200px' }}>
+                        <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5rem', objectFit: 'cover', borderRadius: '4px', marginBottom: '0.5rem' }} />
+                        <h4 style={{ fontWeight: 700, fontSize: '0.7rem', color: '#1a1a1a', lineHeight: 1.3 }}>{spot.name}</h4>
+                        <span style={{ display: 'inline-block', fontSize: '0.55rem', fontWeight: 600, color: '#6b6255', background: 'rgba(196,185,154,0.15)', border: '1px solid #d6cfc2', padding: '0.15rem 0.5rem', borderRadius: '2px', marginTop: '0.25rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{spot.category}</span>
+                        <button
+                          onClick={() => handleSpotClick(spot)}
+                          style={{ width: '100%', marginTop: '0.625rem', padding: '0.4rem 0.5rem', background: '#2d2a24', color: '#f7f4ef', fontWeight: 700, fontSize: '0.6rem', borderRadius: '2px', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                        >
+                          View Destination Stories
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
                 ))}
               </MapContainer>
             </div>
 
-            {/* Map Legend / Spot list chips */}
-              <div className="mt-3 flex flex-wrap gap-2">
-              {filteredSpots.map(spot => (
-                <button
-                  key={spot.id}
-                  onClick={() => handleSpotClick(spot)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                      selectedSpot?.id === spot.id
-                        ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
-                        : 'bg-white text-slate-400 border-slate-200 hover:border-yellow-400 hover:text-yellow-600'
-                    }`}
-                >
-                    <MapPin className="h-3 w-3 text-slate-600" />
-                  {spot.name.split(',')[0]}
-                </button>
-              ))}
+            {/* Map Legend / Destination Chip Selection */}
+            <div>
+              <h4 style={{ fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                Bicol Destinations
+              </h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                {filteredSpots.map(spot => {
+                  const isActive = selectedSpot?.id === spot.id;
+                  return (
+                    <button
+                      key={spot.id}
+                      onClick={() => handleSpotClick(spot)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.875rem', borderRadius: '2px', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'all 0.2s', textTransform: 'uppercase',
+                        border: isActive ? '1px solid #b0a68e' : '1px solid #e0dbd0',
+                        background: isActive ? 'rgba(196,185,154,0.15)' : 'rgba(255,255,255,0.6)',
+                        color: isActive ? '#2d2a24' : '#45403a',
+                      }}
+                    >
+                      <MapPin style={{ width: '0.6rem', height: '0.6rem', color: '#b0a68e' }} />
+                      {spot.name.split(',')[0]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Lightbox Overlay for uploaded photos */}
-      {lightboxIndex !== null && uploads.length > 0 && (
+      {/* ── STORY VIEWER MODAL ── */}
+      {storyViewerOpen && uploads.length > 0 && uploads[activeStoryIndex] && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setLightboxIndex(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(29,26,20,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(6px)' }}
+          onClick={() => setStoryViewerOpen(false)}
         >
           <button
-            onClick={() => setLightboxIndex(null)}
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl cursor-pointer transition-colors"
+            onClick={() => setStoryViewerOpen(false)}
+            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', padding: '0.5rem', color: 'rgba(247,244,239,0.7)', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', cursor: 'pointer', zIndex: 50 }}
           >
-            <X className="h-5 w-5" />
+            <X style={{ width: '1.25rem', height: '1.25rem' }} />
           </button>
-
           <div
-            className="relative max-w-3xl w-full"
+            style={{ position: 'relative', width: '100%', maxWidth: '26rem', height: '80vh', maxHeight: '44rem', background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Prev */}
-            <button
-              onClick={() => setLightboxIndex(prev => (prev - 1 + uploads.length) % uploads.length)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 p-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl cursor-pointer transition-colors"
-            >
-              ‹
-            </button>
-
-            {/* Main Photo */}
-            <div className="rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src={uploads[lightboxIndex].imageUrl}
-                alt={uploads[lightboxIndex].caption}
-                className="w-full max-h-[70vh] object-contain bg-black"
-              />
+            {/* Progress bars */}
+            <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', right: '0.75rem', zIndex: 30, display: 'flex', gap: '0.25rem' }}>
+              {uploads.map((_, i) => (
+                <div key={i} style={{ height: '2px', flex: 1, background: 'rgba(247,244,239,0.25)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: '#f7f4ef', transition: 'width 0.05s linear', width: i === activeStoryIndex ? `${storyProgress}%` : i < activeStoryIndex ? '100%' : '0%' }} />
+                </div>
+              ))}
             </div>
-
-            <div className="mt-4 text-center space-y-1">
-              <p className="text-white font-semibold text-sm">"{uploads[lightboxIndex].caption}"</p>
-              <div className="flex items-center justify-center gap-3 text-xs">
-                <span className="font-bold text-slate-700">{uploads[lightboxIndex].touristName}</span>
-                <span className="text-white/50">•</span>
-                <span className="text-white/60">
-                  {new Date(uploads[lightboxIndex].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {/* Header */}
+            <div style={{ position: 'absolute', top: '1.5rem', left: '1rem', right: '1rem', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <img src={uploads[activeStoryIndex].avatar} alt={uploads[activeStoryIndex].touristName} style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #c4b99a' }} />
+                <div>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f7f4ef', lineHeight: 1.2 }}>{uploads[activeStoryIndex].touristName}</h4>
+                  <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.6)' }}>{getTimeAgo(uploads[activeStoryIndex].date)}</span>
+                </div>
+              </div>
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#f7f4ef', background: 'rgba(29,26,20,0.6)', border: '1px solid rgba(196,185,154,0.3)', padding: '0.25rem 0.625rem', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '0.25rem', backdropFilter: 'blur(4px)' }}>
+                <MapPin style={{ width: '0.625rem', height: '0.625rem', color: '#c4b99a' }} />
+                {spots.find(s => s.id === uploads[activeStoryIndex].spotId)?.name.split(',')[0] || 'Bicol Spot'}
+              </span>
+            </div>
+            {/* Image & Nav */}
+            <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0c0a' }}>
+              <img src={uploads[activeStoryIndex].imageUrl} alt={uploads[activeStoryIndex].caption} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div onClick={() => { if (activeStoryIndex > 0) setActiveStoryIndex(i => i - 1); }} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '33%', cursor: 'pointer' }} />
+              <div onClick={() => { if (activeStoryIndex < uploads.length - 1) setActiveStoryIndex(i => i + 1); else setStoryViewerOpen(false); }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '67%', cursor: 'pointer' }} />
+            </div>
+            {/* Caption & Actions */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to top, rgba(10,9,7,0.92) 0%, rgba(10,9,7,0.5) 60%, transparent 100%)', zIndex: 30 }}>
+              <p style={{ fontSize: '0.7rem', color: '#f7f4ef', lineHeight: 1.5, marginBottom: '0.75rem' }}>{uploads[activeStoryIndex].caption}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <button
+                  onClick={e => handleLike(e, uploads[activeStoryIndex].id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 700, background: 'none', border: 'none', color: '#f7f4ef', cursor: 'pointer' }}
+                >
+                  <Heart style={{ width: '1.125rem', height: '1.125rem', fill: uploads[activeStoryIndex].isLiked ? '#f7f4ef' : 'none' }} />
+                  {uploads[activeStoryIndex].likesCount || 0} Likes
+                </button>
+                <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.5)', letterSpacing: '0.04em' }}>
+                  {activeStoryIndex + 1} of {uploads.length}
                 </span>
               </div>
-              <p className="text-white/40 text-xs">{lightboxIndex + 1} of {uploads.length} photos</p>
             </div>
-
-            {/* Next */}
-            <button
-              onClick={() => setLightboxIndex(prev => (prev + 1) % uploads.length)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 p-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl cursor-pointer transition-colors"
-            >
-              ›
-            </button>
           </div>
         </div>
       )}
 
-      {/* Hidden canvas for camera capture */}
+      {/* Hidden canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Upload Photo Modal — 3-Tab Design */}
-      {uploadModalOpen && selectedSpot && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+      {/* â”€â”€ UPLOAD MODAL â”€â”€ */}
+      {uploadModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(29,26,20,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
+          <div style={{ width: '100%', maxWidth: '28rem', background: '#ffffff', borderRadius: '6px', boxShadow: '0 24px 60px rgba(0,0,0,0.14)', overflow: 'hidden', border: '1px solid #e0dbd0' }}>
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-3">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                <Camera className="h-5 w-5 text-yellow-500" />
-                Upload Photo
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #eae5db' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Camera style={{ width: '1rem', height: '1rem', color: '#6b6255' }} /> Share a Story
               </h3>
-              <button
-                onClick={() => setUploadModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-xl cursor-pointer transition-colors"
-              >
-                <X className="h-4 w-4" />
+              <button onClick={() => setUploadModalOpen(false)} style={{ padding: '0.375rem', background: 'rgba(214,207,194,0.2)', border: '1px solid #e0dbd0', borderRadius: '4px', cursor: 'pointer', color: '#6b6255' }}>
+                <X style={{ width: '0.875rem', height: '0.875rem' }} />
               </button>
             </div>
 
-            {/* Spot name pill */}
-            <div className="px-6 pb-3">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
-                <MapPin className="h-3 w-3 text-slate-700" />
-                {selectedSpot.name}
-              </span>
-            </div>
-
             {uploadError && (
-              <div className="mx-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold mb-2">
+              <div style={{ margin: '0.75rem 1.5rem', padding: '0.75rem 1rem', background: '#fdf2f2', border: '1px solid #e0c0c0', borderRadius: '4px', fontSize: '0.7rem', color: '#7a3636', fontWeight: 600 }}>
                 {uploadError}
               </div>
             )}
 
-            <form onSubmit={handleUploadSubmit}>
-              <div className="px-6 space-y-4">
-                {/* Name & Caption */}
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">Your Name</label>
-                    <input
-                      type="text"
-                      value={touristName}
-                      onChange={e => setTouristName(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all capitalize"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">Caption / Story</label>
-                    <textarea
-                      rows="2"
-                      value={caption}
-                      onChange={e => setCaption(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all resize-none"
-                    />
-                  </div>
-                </div>
+            <form onSubmit={handleUploadSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Destination */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Destination Spot</label>
+                <select
+                  value={selectedSpot ? selectedSpot.id : targetSpotId}
+                  onChange={e => setTargetSpotId(e.target.value)}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.8)', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#1a1a1a', outline: 'none', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
 
-                {/* ── 3-Tab Selector ── */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Choose Photo Source</label>
-                  <div className="flex rounded-xl bg-slate-100 p-1 gap-1">
-                    {[
-                      { id: 'camera', label: 'Camera', icon: Camera },
-                      { id: 'gallery', label: 'Gallery', icon: ImageIcon },
-                      { id: 'url', label: 'URL', icon: Link2 },
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setUploadTab(tab.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                          uploadTab === tab.id
-                            ? 'bg-white text-slate-800 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <tab.icon className="h-3.5 w-3.5" />
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Your Name</label>
+                <input
+                  type="text" value={touristName} onChange={e => setTouristName(e.target.value)} placeholder="e.g. Alex Santos"
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.8)', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#1a1a1a', outline: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
+                  onFocus={e => { e.target.style.borderColor = '#b0a68e'; e.target.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.1)'; }}
+                  onBlur={e => { e.target.style.borderColor = '#d6cfc2'; e.target.style.boxShadow = 'none'; }}
+                />
+              </div>
 
-                {/* ── Tab Content ── */}
-                <div className="min-h-[220px]">
+              {/* Caption */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Story Caption</label>
+                <textarea
+                  rows={2} value={caption} onChange={e => setCaption(e.target.value)} placeholder="Share your experience..."
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.8)', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#1a1a1a', outline: 'none', resize: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
+                  onFocus={e => { e.target.style.borderColor = '#b0a68e'; e.target.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.1)'; }}
+                  onBlur={e => { e.target.style.borderColor = '#d6cfc2'; e.target.style.boxShadow = 'none'; }}
+                />
+              </div>
 
-                  {/* CAMERA TAB */}
-                  {uploadTab === 'camera' && (
-                    <div className="space-y-3">
-                      {cameraError ? (
-                        /* Camera error / permission denied fallback */
-                        <div className="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                          <VideoOff className="h-10 w-10 text-slate-300 mb-3" />
-                          <p className="text-sm font-semibold text-slate-600 text-center mb-1">{cameraError}</p>
-                          <p className="text-xs text-slate-400 text-center mb-4">You can use the Gallery or URL tab to upload a photo instead.</p>
-                          <button
-                            type="button"
-                            onClick={() => setUploadTab('gallery')}
-                            className="flex items-center gap-1.5 text-xs font-bold text-yellow-600 hover:text-yellow-700 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-xl transition-colors cursor-pointer"
-                          >
-                            <ImageIcon className="h-3.5 w-3.5" />
-                            Switch to Gallery
-                          </button>
-                        </div>
-                      ) : capturedPhoto ? (
-                        /* Captured photo preview */
-                        <div className="space-y-3">
-                          <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                            <img src={capturedPhoto} alt="Captured" className="w-full h-52 object-cover" />
-                            <div className="absolute top-3 right-3 flex gap-2">
-                              <div className="bg-green-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
-                                <Check className="h-3 w-3" />
-                                Photo Captured
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCapturedPhoto(null);
-                                startCamera();
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold transition-colors cursor-pointer"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              Retake
-                            </button>
-                            <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-50 text-green-700 border border-green-200 text-xs font-bold">
-                              <Check className="h-3.5 w-3.5" />
-                              Ready to Submit
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Live camera viewfinder */
-                        <div className="space-y-3">
-                          <div className="relative rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-sm">
-                            <video
-                              ref={videoRef}
-                              autoPlay
-                              playsInline
-                              muted
-                              className={`w-full h-52 object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
-                            />
-
-                            {/* Camera loading overlay */}
-                            {!cameraActive && (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900">
-                                <RefreshCw className="h-6 w-6 text-yellow-400 animate-spin mb-2" />
-                                <span className="text-xs text-slate-400 font-medium">Starting camera...</span>
-                              </div>
-                            )}
-
-                            {/* Viewfinder corners */}
-                            {cameraActive && (
-                              <>
-                                <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-white/60 rounded-tl-md" />
-                                <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-white/60 rounded-tr-md" />
-                                <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-white/60 rounded-bl-md" />
-                                <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-white/60 rounded-br-md" />
-                              </>
-                            )}
-
-                            {/* Flip camera button */}
-                            {cameraActive && (
-                              <button
-                                type="button"
-                                onClick={flipCamera}
-                                className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full transition-colors cursor-pointer"
-                                title="Switch camera"
-                              >
-                                <SwitchCamera className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Snap button — Instagram style */}
-                          <div className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={snapPhoto}
-                              disabled={!cameraActive}
-                              className="group relative cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Take photo"
-                            >
-                              {/* Outer ring */}
-                              <div className="w-16 h-16 rounded-full border-[3px] border-yellow-500 flex items-center justify-center transition-all group-hover:border-yellow-400 group-hover:scale-105">
-                                {/* Inner circle */}
-                                <div className="w-12 h-12 rounded-full bg-yellow-500 group-hover:bg-yellow-400 transition-all group-active:scale-90 shadow-lg flex items-center justify-center">
-                                  <Camera className="h-5 w-5 text-white" />
-                                </div>
-                              </div>
-                              {/* Pulse animation ring */}
-                              <div className="absolute inset-0 rounded-full border-2 border-yellow-400 animate-ping opacity-20 group-hover:opacity-40" />
-                            </button>
-                          </div>
-                          <p className="text-center text-[10px] text-slate-400 font-medium -mt-1">Tap to capture</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* GALLERY TAB */}
-                  {uploadTab === 'gallery' && (
-                    <div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {PRESET_UPLOAD_IMAGES.map(img => (
-                          <button
-                            type="button"
-                            key={img.name}
-                            onClick={() => { setSelectedPresetImage(img.url); setCustomImageUrl(''); }}
-                            className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                              selectedPresetImage === img.url
-                                ? 'border-yellow-500 shadow-md scale-105'
-                                : 'border-slate-200 opacity-60 hover:opacity-100 hover:border-slate-300'
-                            }`}
-                          >
-                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                            {selectedPresetImage === img.url && (
-                              <div className="absolute inset-0 bg-yellow-500/20 flex items-center justify-center">
-                                <div className="bg-yellow-500 rounded-full p-1">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Preview of selected preset */}
-                      <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                        <img src={selectedPresetImage} alt="Selected" className="w-full h-36 object-cover" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* URL TAB */}
-                  {uploadTab === 'url' && (
-                    <div className="space-y-3">
-                      <input
-                        type="url"
-                        placeholder="https://..."
-                        value={customImageUrl}
-                        onChange={e => setCustomImageUrl(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all"
-                      />
-                      {/* URL preview */}
-                      {customImageUrl.trim() ? (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                          <img
-                            src={customImageUrl}
-                            alt="Preview"
-                            className="w-full h-36 object-cover"
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                          <Link2 className="h-8 w-8 text-slate-300 mb-2" />
-                          <p className="text-xs text-slate-400 font-medium">Paste an image URL above to preview</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              {/* Source Tabs */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Photo Source</label>
+                <div style={{ display: 'flex', gap: '0.25rem', background: '#f5f2ee', borderRadius: '4px', padding: '0.25rem' }}>
+                  {[{ id: 'camera', label: 'Camera', icon: Camera }, { id: 'gallery', label: 'Gallery', icon: ImageIcon }, { id: 'url', label: 'URL', icon: Link2 }].map(tab => (
+                    <button
+                      key={tab.id} type="button" onClick={() => setUploadTab(tab.id)}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.5rem', borderRadius: '3px', border: 'none', fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: uploadTab === tab.id ? '#ffffff' : 'transparent', color: uploadTab === tab.id ? '#1a1a1a' : '#6b6255', boxShadow: uploadTab === tab.id ? '0 1px 4px rgba(0,0,0,0.07)' : 'none' }}
+                    >
+                      <tab.icon style={{ width: '0.75rem', height: '0.75rem' }} />{tab.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setUploadModalOpen(false)}
-                  className="flex-1 bg-white text-slate-600 hover:bg-slate-100 text-sm font-bold py-2.5 rounded-xl transition-colors cursor-pointer border border-slate-200"
+              {/* Tab content */}
+              <div style={{ minHeight: '10rem' }}>
+                {uploadTab === 'camera' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {cameraError ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', background: '#f5f2ee', border: '1px solid #e0dbd0', borderRadius: '6px' }}>
+                        <VideoOff style={{ width: '1.75rem', height: '1.75rem', color: '#b0a68e', marginBottom: '0.5rem' }} />
+                        <p style={{ fontSize: '0.7rem', color: '#4a453b', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 600 }}>{cameraError}</p>
+                        <button type="button" onClick={() => setUploadTab('gallery')} style={{ fontSize: '0.65rem', fontWeight: 600, color: '#3d3a34', background: 'rgba(196,185,154,0.15)', border: '1px solid #b0a68e', padding: '0.375rem 0.875rem', borderRadius: '2px', cursor: 'pointer' }}>Switch to Gallery</button>
+                      </div>
+                    ) : capturedPhoto ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <img src={capturedPhoto} alt="Captured" style={{ width: '100%', height: '11rem', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e0dbd0' }} />
+                        <button type="button" onClick={() => { setCapturedPhoto(null); startCamera(); }} style={{ width: '100%', padding: '0.5rem', background: '#f5f2ee', border: '1px solid #e0dbd0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, color: '#3d3a34', cursor: 'pointer' }}>Retake Photo</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ borderRadius: '4px', overflow: 'hidden', background: '#0d0c0a', height: '11rem', border: '1px solid #e0dbd0' }}>
+                          <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <button type="button" onClick={snapPhoto} disabled={!cameraActive} style={{ width: '100%', padding: '0.625rem', background: '#2d2a24', color: '#f7f4ef', border: 'none', borderRadius: '2px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: cameraActive ? 'pointer' : 'not-allowed', opacity: cameraActive ? 1 : 0.5 }}>
+                          Snap Photo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+ 
+                {uploadTab === 'url' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <input
+                      type="url" placeholder="https://..." value={customImageUrl} onChange={e => setCustomImageUrl(e.target.value)}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.8)', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => { e.target.style.borderColor = '#b0a68e'; }}
+                      onBlur={e => { e.target.style.borderColor = '#d6cfc2'; }}
+                    />
+                    {customImageUrl.trim() && (
+                      <div style={{ borderRadius: '4px', overflow: 'hidden', border: '1px solid #e0dbd0' }}>
+                        <img src={customImageUrl} alt="Preview" style={{ width: '100%', height: '9rem', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.25rem' }}>
+                <button type="button" onClick={() => setUploadModalOpen(false)}
+                  style={{ flex: 1, padding: '0.75rem', background: 'rgba(255,255,255,0.6)', border: '1px solid #e0dbd0', borderRadius: '2px', fontSize: '0.65rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={uploading || (uploadTab === 'camera' && !capturedPhoto)}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                <button type="submit" disabled={uploading}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.75rem', background: '#2d2a24', color: '#f7f4ef', border: '1px solid #2d2a24', borderRadius: '2px', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.65 : 1 }}
                 >
-                  {uploading ? (
-                    <><RefreshCw className="h-4 w-4 animate-spin" />Uploading...</>
-                  ) : (
-                    <><Send className="h-4 w-4" />Submit Photo</>
-                  )}
+                  {uploading ? <><RefreshCw style={{ width: '0.875rem', height: '0.875rem' }} className="animate-spin" /> Posting...</> : <><Send style={{ width: '0.875rem', height: '0.875rem' }} /> Share Story</>}
                 </button>
               </div>
             </form>
@@ -840,3 +831,4 @@ const ExploreMap = () => {
 };
 
 export default ExploreMap;
+

@@ -5,6 +5,8 @@ import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import WeatherWidget from '../../components/feedback/WeatherWidget';
+
 
 const TOUR_GUIDES = [
   {
@@ -911,109 +913,120 @@ const Booking = () => {
             )}
           </div>
 
-          {/* Right Column - Booking Details Card */}
+          {/* Right Column - Booking Details Card & Weather Forecast */}
           <div className="lg:col-span-5 relative">
-            <div
-              className="max-w-sm p-6 sticky top-24"
-              style={{
-                border: `1px solid ${colors.border}`,
-                borderRadius: '4px',
-                background: colors.bg,
-              }}
-            >
-              <h3
-                className="text-[11px] font-semibold mb-6 pb-4"
+            <div className="sticky top-20 space-y-6 max-w-sm">
+              <div
+                className="p-6"
                 style={{
-                  color: colors.textMuted,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  borderBottom: `1px solid ${colors.borderLight}`,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '4px',
+                  background: colors.bg,
                 }}
               >
-                Booking Details
-              </h3>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <h4
-                    className="font-medium text-lg"
-                    style={{
-                      color: colors.textPrimary,
-                      fontFamily: "'Outfit', Georgia, serif",
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    {pkg.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-[11px] font-medium mt-2" style={{ color: colors.textSecondary }}>
-                    <ShieldCheck className="w-3.5 h-3.5" style={{ color: colors.accent }} />
-                    <span>Strictly No Cancellation</span>
-                  </div>
-                </div>
-
-                <div
-                  className="pt-4 space-y-3 text-[12px]"
-                  style={{ borderTop: `1px solid ${colors.borderLight}` }}
+                <h3
+                  className="text-[11px] font-semibold mb-6 pb-4"
+                  style={{
+                    color: colors.textMuted,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                  }}
                 >
-                  <div className="flex justify-between font-medium" style={{ color: colors.textPrimary }}>
-                    <span>Date</span>
-                    <span>{tourDate ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '---'}</span>
+                  Booking Details
+                </h3>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <h4
+                      className="font-medium text-lg"
+                      style={{
+                        color: colors.textPrimary,
+                        fontFamily: "'Outfit', Georgia, serif",
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {pkg.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-[11px] font-medium mt-2" style={{ color: colors.textSecondary }}>
+                      <ShieldCheck className="w-3.5 h-3.5" style={{ color: colors.accent }} />
+                      <span>Strictly No Cancellation</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between font-medium" style={{ color: colors.textPrimary }}>
-                    <span>Quantity</span>
-                    <span>
-                      {adultsCount > 0 && `Adult x ${adultsCount}`}
-                      {adultsCount > 0 && childrenCount > 0 && ', '}
-                      {childrenCount > 0 && `Child x ${childrenCount}`}
+
+                  <div
+                    className="pt-4 space-y-3 text-[12px]"
+                    style={{ borderTop: `1px solid ${colors.borderLight}` }}
+                  >
+                    <div className="flex justify-between font-medium" style={{ color: colors.textPrimary }}>
+                      <span>Date</span>
+                      <span>{tourDate ? new Date(tourDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '---'}</span>
+                    </div>
+                    <div className="flex justify-between font-medium" style={{ color: colors.textPrimary }}>
+                      <span>Quantity</span>
+                      <span>
+                        {adultsCount > 0 && `Adult x ${adultsCount}`}
+                        {adultsCount > 0 && childrenCount > 0 && ', '}
+                        {childrenCount > 0 && `Child x ${childrenCount}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className="pt-4 flex justify-between items-center"
+                    style={{ borderTop: `1px solid ${colors.borderLight}` }}
+                  >
+                    <span className="text-[11px] font-semibold" style={{ color: colors.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Total</span>
+                    <span
+                      className="text-lg font-semibold"
+                      style={{
+                        color: colors.textPrimary,
+                        fontFamily: "'Outfit', sans-serif",
+                      }}
+                    >
+                      ₱{totalPrice.toLocaleString()}
                     </span>
                   </div>
                 </div>
 
-                <div
-                  className="pt-4 flex justify-between items-center"
-                  style={{ borderTop: `1px solid ${colors.borderLight}` }}
-                >
-                  <span className="text-[11px] font-semibold" style={{ color: colors.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Total</span>
-                  <span
-                    className="text-lg font-semibold"
+                {currentStep === 1 && (
+                  <button
+                    type="submit"
+                    form="booking-form"
+                    disabled={submitting}
+                    className="w-full py-3 text-[11px] font-semibold transition-all duration-300 disabled:opacity-50 mt-3 cursor-pointer"
                     style={{
-                      color: colors.textPrimary,
-                      fontFamily: "'Outfit', sans-serif",
+                      background: colors.accentDark,
+                      color: '#f7f4ef',
+                      borderRadius: '2px',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      border: 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#1a1715';
+                      e.target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = colors.accentDark;
+                      e.target.style.boxShadow = 'none';
                     }}
                   >
-                    ₱{totalPrice.toLocaleString()}
-                  </span>
-                </div>
+                    Proceed to Pay
+                  </button>
+                )}
               </div>
 
-              {currentStep === 1 && (
-                <button
-                  type="submit"
-                  form="booking-form"
-                  disabled={submitting}
-                  className="w-full py-3 text-[11px] font-semibold transition-all duration-300 disabled:opacity-50 mt-3"
-                  style={{
-                    background: colors.accentDark,
-                    color: '#f7f4ef',
-                    borderRadius: '2px',
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    border: 'none',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#1a1715';
-                    e.target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = colors.accentDark;
-                    e.target.style.boxShadow = 'none';
-                  }}
-                >
-                  Proceed to Pay
-                </button>
-              )}
+              {/* Free Weather API Forecast Box (Flashes automatically on Date Selection) */}
+              <WeatherWidget
+                destination={pkg.destination || pkg.meetingLocation || pkg.title || 'Legazpi, Albay'}
+                tourDate={tourDate}
+                durationDays={getPackageDurationInDays()}
+                theme="light"
+              />
             </div>
           </div>
+
 
         </div>
       </div>

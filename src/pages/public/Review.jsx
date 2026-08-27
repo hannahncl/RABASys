@@ -8,7 +8,7 @@ import { Star, ArrowLeft } from 'lucide-react';
 const Review = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const showNotification = useNotification();
+  const { showNotification } = useNotification();
   
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ const Review = () => {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-yellow-400 border-t-transparent"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#c4b99a] border-t-transparent"></div>
       </div>
     );
   }
@@ -77,73 +77,65 @@ const Review = () => {
   if (!booking) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50 text-black font-sans pb-24 pt-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Back Button */}
+    <div className="min-h-screen bg-white pb-24 pt-10 font-sans text-[#1a1a1a]">
+      <div className="mx-auto max-w-xl px-4 sm:px-6">
         <button 
           onClick={() => navigate('/profile')}
-          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-black mb-8 transition-colors"
+          className="mb-6 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b6255] transition-colors hover:text-[#2d2a24]"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back to My Bookings
         </button>
 
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 overflow-hidden">
-          
-          {/* Header */}
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 border-b border-yellow-200 px-8 sm:px-10 py-10">
-            <h1 className="text-3xl font-black text-black mb-2">Share Your Experience</h1>
-            <p className="text-[15px] text-gray-600 font-medium leading-relaxed">
-              Help us improve by sharing your honest feedback about your trip to <span className="font-bold text-black">{booking?.packageName}</span>
+        <div className="overflow-hidden rounded-md border border-[#e0dbd0] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.04)]">
+          <div className="border-b border-[#eae5db] px-5 py-5 sm:px-6">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e]">Review</p>
+            <h1 className="text-xl font-bold tracking-[0.02em] text-[#1a1a1a]">Share Your Experience</h1>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-[#6b6255]">
+              Feedback for <span className="font-semibold text-[#2d2a24]">{booking?.packageName}</span>
             </p>
           </div>
 
-          {/* Trip Summary Card */}
-          <div className="px-8 sm:px-10 py-6 bg-slate-50 border-b border-gray-100">
-            <div className="flex items-center justify-between">
+          <div className="border-b border-[#eae5db] bg-[#fcfbf9] px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Your Trip</p>
-                <p className="text-sm font-bold text-black">{booking?.packageName}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Your Trip</p>
+                <p className="text-sm font-semibold text-[#1a1a1a]">{booking?.packageName}</p>
+                <p className="text-[11px] text-[#6b6255]">
                   {new Date(booking?.tourDate).toLocaleDateString('en-US', {
                     month: 'long', day: 'numeric', year: 'numeric'
                   })}
                 </p>
               </div>
-              <div className="text-right space-y-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Duration</p>
-                <p className="text-sm font-bold text-black">{booking?.guestsCount} {booking?.guestsCount > 1 ? 'guests' : 'guest'}</p>
+              <div className="space-y-1 text-left sm:text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Guests</p>
+                <p className="text-sm font-semibold text-[#1a1a1a]">{booking?.guestsCount} {booking?.guestsCount > 1 ? 'guests' : 'guest'}</p>
               </div>
             </div>
           </div>
 
-          {/* Form Content */}
-          <div className="p-8 sm:p-10">
+          <div className="p-5 sm:p-6">
             {isSuccess ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
-                <div className="h-20 w-20 bg-yellow-50 border border-yellow-100 rounded-full flex items-center justify-center mb-2 shadow-sm">
-                  <Star className="h-10 w-10 text-yellow-400 fill-yellow-400" />
+              <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#e0dbd0] bg-[#fcfbf9]">
+                  <Star className="h-7 w-7 fill-[#c4b99a] text-[#c4b99a]" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-extrabold text-black mb-2">Review Submitted!</h3>
-                  <p className="text-[15px] font-medium text-gray-500">Thank you for sharing your feedback.</p>
+                  <h3 className="mb-1 text-lg font-bold text-[#1a1a1a]">Review Submitted</h3>
+                  <p className="text-xs font-medium text-[#6b6255]">Thank you for sharing your feedback.</p>
                 </div>
               </div>
             ) : submitting ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-3 border-yellow-300 border-t-yellow-500"></div>
-                <h3 className="text-[15px] font-bold text-gray-700">Submitting your review...</h3>
+              <div className="flex flex-col items-center justify-center space-y-3 py-10 text-center">
+                <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#d6cfc2] border-t-[#b0a68e]"></div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b6255]">Submitting review...</h3>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-10">
-                
-                {/* Rating Section */}
-                <div className="flex flex-col items-center justify-center space-y-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <label className="text-base font-bold text-black mb-1 block">How would you rate this trip?</label>
-                    <p className="text-xs text-gray-500 mb-4">Your rating helps us maintain quality and improve our services</p>
-                    <div className="flex items-center gap-4 justify-center">
+                    <label className="mb-3 block text-xs font-semibold uppercase tracking-[0.12em] text-[#4a453b]">Trip Rating</label>
+                    <div className="flex items-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
@@ -151,13 +143,14 @@ const Review = () => {
                           onMouseEnter={() => setHoverRating(star)}
                           onMouseLeave={() => setHoverRating(0)}
                           onClick={() => setRating(star)}
-                          className="focus:outline-none transition-all hover:scale-125 active:scale-90"
+                          className="transition-transform hover:scale-110 focus:outline-none active:scale-95"
+                          title={`${star} star${star > 1 ? 's' : ''}`}
                         >
                           <Star 
-                            className={`h-14 w-14 ${
+                            className={`h-8 w-8 ${
                               (hoverRating || rating) >= star 
-                                ? 'fill-yellow-400 text-yellow-400 drop-shadow-md' 
-                                : 'fill-gray-100 text-gray-200'
+                                ? 'fill-[#c4b99a] text-[#c4b99a]' 
+                                : 'fill-[#f5f2ee] text-[#d6cfc2]'
                             } transition-all`}
                           />
                         </button>
@@ -165,50 +158,46 @@ const Review = () => {
                     </div>
                   </div>
                   {rating > 0 && (
-                    <p className="text-base font-bold text-gray-700 h-6">
-                      {rating === 1 && " Not satisfied"}
-                      {rating === 2 && " Below expectations"}
-                      {rating === 3 && " Meets expectations"}
-                      {rating === 4 && " Very satisfied"}
-                      {rating === 5 && " Absolutely excellent!"}
+                    <p className="h-4 text-xs font-semibold text-[#4a453b]">
+                      {rating === 1 && "Not satisfied"}
+                      {rating === 2 && "Below expectations"}
+                      {rating === 3 && "Meets expectations"}
+                      {rating === 4 && "Very satisfied"}
+                      {rating === 5 && "Excellent"}
                     </p>
                   )}
                 </div>
 
-                {/* Comment Section */}
                 <div className="space-y-3">
-                  <label className="block text-sm font-bold text-gray-700">
-                    Tell us what you think <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                  <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#4a453b]">
+                    Comment <span className="font-medium normal-case tracking-normal text-[#8f8576]">(Optional)</span>
                   </label>
-                  <p className="text-xs text-gray-500">
-                    Share what you loved, what could be improved, and any highlights from your journey. Your detailed feedback is invaluable!
-                  </p>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    rows={6}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 px-5 text-[15px] text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-yellow-400/70 focus:border-yellow-400 focus:bg-white transition-all resize-none placeholder:text-gray-300 placeholder:font-normal"
+                    rows={4}
+                    maxLength={500}
+                    className="w-full resize-none rounded border border-[#d6cfc2] bg-white px-3 py-2.5 text-sm font-medium text-[#1a1a1a] outline-none transition-all placeholder:text-[#b0a68e] focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15"
+                    placeholder="Share a short note..."
                   />
-                  <p className="text-xs text-gray-400 text-right">{comment.length}/500 characters</p>
+                  <p className="text-right text-[11px] text-[#8f8576]">{comment.length}/500</p>
                 </div>
 
-                {/* Submit Button */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => navigate('/profile')}
-                    className="flex-1 py-3.5 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-[15px] transition-all active:scale-95"
+                    className="flex-1 rounded border border-[#e0dbd0] bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#4a453b] transition-colors hover:bg-[#fcfbf9]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3.5 px-6 bg-black hover:bg-slate-900 text-white font-bold rounded-2xl text-[15px] active:scale-95 transition-all shadow-sm"
+                    className="flex-1 rounded border border-[#2d2a24] bg-[#2d2a24] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#f7f4ef] transition-colors hover:bg-transparent hover:text-[#2d2a24]"
                   >
                     Submit Review
                   </button>
                 </div>
-
               </form>
             )}
           </div>
