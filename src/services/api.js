@@ -50,3 +50,10 @@ export async function api(path, options = {}) {
   }
   return data;
 }
+
+export const notificationService = {
+  getAll: () => api('/notifications'),
+  getUnread: () => api('/notifications/unread'),
+  markAsRead: (id) => api(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllAsRead: () => api('/notifications/read-all', { method: 'PATCH' }),
+};

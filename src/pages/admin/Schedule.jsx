@@ -70,36 +70,36 @@ const Schedule = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-[#4a453b]" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* Calendar — Left 2 Cols */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl border-slate-800 overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#e0dbd0] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           {/* Month Navigation */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-900">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-[#eae5db]">
             <div className="flex items-center gap-4">
-              <button onClick={prevMonth} className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-100 transition-all cursor-pointer">
+              <button onClick={prevMonth} className="p-2 rounded-xl bg-white border border-[#e0dbd0] hover:border-[#b0a68e] text-[#4a453b] transition-all cursor-pointer">
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h2 className="text-xl font-bold font-display text-slate-100">
+              <h2 className="text-xl font-bold font-display text-[#3d3a34]">
                 {MONTH_NAMES[currentMonth]} {currentYear}
               </h2>
-              <button onClick={nextMonth} className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-100 transition-all cursor-pointer">
+              <button onClick={nextMonth} className="p-2 rounded-xl bg-white border border-[#e0dbd0] hover:border-[#b0a68e] text-[#4a453b] transition-all cursor-pointer">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
             <button
               onClick={goToToday}
-              className="px-4 py-2 text-xs font-semibold bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-white rounded-xl transition-all cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold bg-white border border-[#e0dbd0] hover:border-[#b0a68e] text-[#4a453b] rounded-xl transition-all cursor-pointer"
             >
               Today
             </button>
           </div>
 
           {/* Day labels row */}
-          <div className="grid grid-cols-7 bg-slate-900/40 border-b border-slate-900">
+          <div className="grid grid-cols-7 bg-[#faf9f6] border-b border-[#eae5db]">
             {DAY_LABELS.map((d) => (
-              <div key={d} className="py-3 text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+              <div key={d} className="py-3 text-center text-[10px] font-extrabold uppercase tracking-wider text-[#6b6255]">
                 {d}
               </div>
             ))}
@@ -114,7 +114,7 @@ const Schedule = () => {
             <div className="grid grid-cols-7">
               {calendarCells.map((cell, idx) => {
                 if (!cell) {
-                  return <div key={`empty-${idx}`} className="min-h-24 border-b border-r border-slate-900/60 bg-slate-950/30" />;
+                  return <div key={`empty-${idx}`} className="min-h-24 border-b border-r border-[#f0ede6] bg-[#fdfcf9]" />;
                 }
 
                 const hasBookings = cell.bookings.length > 0;
@@ -128,19 +128,19 @@ const Schedule = () => {
                     onClick={() => setSelectedDate(isSelected ? null : cell.dateStr)}
                     className={`min-h-24 p-2 border-b border-r border-slate-900/60 cursor-pointer transition-all relative group ${
                       isSelected
-                        ? 'bg-cyan-500/10 ring-1 ring-cyan-500/40 ring-inset'
+                        ? 'bg-yellow-50 ring-1 ring-yellow-200 ring-inset'
                         : hasBookings
-                        ? 'bg-slate-900/20 hover:bg-slate-900/40'
-                        : 'hover:bg-slate-900/20'
+                        ? 'bg-[#faf9f6] hover:bg-yellow-50/40'
+                        : 'hover:bg-[#faf9f6]'
                     }`}
                   >
                     {/* Day number */}
                     <span className={`text-xs font-bold inline-flex items-center justify-center h-6 w-6 rounded-full ${
                       cell.isToday
-                        ? 'bg-cyan-500 text-slate-950'
+                        ? 'bg-yellow-400 text-slate-900'
                         : isSelected
-                        ? 'text-cyan-400'
-                        : 'text-slate-300'
+                        ? 'text-yellow-700'
+                        : 'text-[#4a453b]'
                     }`}>
                       {cell.day}
                     </span>
@@ -180,23 +180,23 @@ const Schedule = () => {
         <div className="space-y-6">
           {/* Summary counters */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="glass-panel p-4 rounded-2xl border-slate-800 text-center">
-              <span className="text-2xl font-extrabold font-display text-slate-100 block">{bookings.length}</span>
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Bookings</span>
+            <div className="bg-white p-4 rounded-2xl border border-[#e0dbd0] text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+              <span className="text-2xl font-extrabold font-display text-[#3d3a34] block">{bookings.length}</span>
+              <span className="text-[10px] text-[#6b6255] uppercase font-bold tracking-wider">Total Bookings</span>
             </div>
-            <div className="glass-panel p-4 rounded-2xl border-slate-800 text-center">
+            <div className="bg-white p-4 rounded-2xl border border-[#e0dbd0] text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
               <span className="text-2xl font-extrabold font-display text-emerald-400 block">
                 {bookings.filter(b => b.status === 'Confirmed').length}
               </span>
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Confirmed</span>
+              <span className="text-[10px] text-[#6b6255] uppercase font-bold tracking-wider">Confirmed</span>
             </div>
           </div>
 
           {/* Selected Day Details */}
-          <div className="glass-panel rounded-2xl border-slate-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-900 flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-cyan-400" />
-              <h3 className="font-bold text-slate-200 text-sm font-display">
+          <div className="bg-white rounded-2xl border border-[#e0dbd0] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="px-5 py-4 border-b border-[#eae5db] flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-yellow-500" />
+              <h3 className="font-bold text-[#3d3a34] text-sm font-display">
                 {selectedDate
                   ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
                   : 'Select a Date'}
@@ -215,40 +215,40 @@ const Schedule = () => {
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                   {selectedBookings.map((b) => (
-                    <div key={b.id} className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-3">
+                  <div key={b.id} className="bg-white border border-[#f0ede6] rounded-xl p-4 space-y-3">
                       {/* Status badge + ID */}
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] text-slate-500 font-bold">{b.id}</span>
+                        <span className="font-mono text-[10px] text-[#6b6255] font-bold">{b.id}</span>
                         <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
                           b.status === 'Confirmed'
-                            ? 'bg-emerald-950/60 border-emerald-800/40 text-emerald-400'
+                            ? 'bg-emerald-100 border-emerald-200 text-emerald-600'
                             : b.status === 'Cancelled'
-                            ? 'bg-rose-950/60 border-rose-800/40 text-rose-400'
-                            : 'bg-amber-950/60 border-amber-800/40 text-amber-400'
+                            ? 'bg-rose-100 border-rose-200 text-rose-600'
+                            : 'bg-amber-100 border-amber-200 text-amber-700'
                         }`}>
                           {b.status}
                         </span>
                       </div>
 
                       {/* Tour name */}
-                      <h4 className="font-bold text-sm text-slate-200 font-display leading-snug">{b.packageName}</h4>
+                      <h4 className="font-bold text-sm text-[#3d3a34] font-display leading-snug">{b.packageName}</h4>
 
                       {/* Client info */}
-                      <div className="grid grid-cols-1 gap-1.5 text-[11px] text-slate-400">
+                      <div className="grid grid-cols-1 gap-1.5 text-[11px] text-[#4a453b]">
                         <div className="flex items-center gap-1.5">
-                          <Users className="h-3 w-3 text-cyan-400 shrink-0" />
+                          <Users className="h-3 w-3 text-yellow-500 shrink-0" />
                           <span>{b.customerName} — {b.guestsCount} guest(s)</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />
-                          <span>GCash Ref: <span className="font-mono text-cyan-400 font-bold">{b.paymentRef}</span></span>
+                          <MapPin className="h-3 w-3 text-yellow-500 shrink-0" />
+                          <span>GCash Ref: <span className="font-mono text-yellow-600 font-bold">{b.paymentRef}</span></span>
                         </div>
                       </div>
 
                       {/* Total */}
-                      <div className="flex justify-between items-center border-t border-slate-900 pt-2 text-xs">
-                        <span className="text-slate-500">Total Paid</span>
-                        <span className="font-extrabold text-slate-200 font-display">PHP {b.totalPrice.toLocaleString()}</span>
+                      <div className="flex justify-between items-center border-t border-[#eae5db] pt-2 text-xs">
+                        <span className="text-[#6b6255]">Total Paid</span>
+                        <span className="font-extrabold text-[#4a453b] font-display">PHP {b.totalPrice.toLocaleString()}</span>
                       </div>
                     </div>
                   ))}

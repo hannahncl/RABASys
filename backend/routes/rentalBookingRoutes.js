@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
+const { sendBookingConfirmation } = require("../config/mailer");
 const router = express.Router();
 
 const bookingSelect = `SELECT b.*, 
@@ -71,6 +72,16 @@ router.post("/", requireAuth, async (req, res, next) => {
 
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [result.insertId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "car_rental_booking", recordId: result.insertId, newValues: rows[0], req });
+        
+        // Create notifications for admins
+        const [admins] = await db.execute("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
+        for (const admin of admins) {
+          await db.execute("INSERT INTO notification (account_id, booking_id, title, message, notification_type) VALUES (?, ?, ?, ?, ?)", [admin.account_id, result.insertId, "New Car Rental Booking", `A new car rental booking (${reference}) has been placed.`, "Booking"]);
+        }
+
+        // Send the customer a complete rental confirmation after the booking is stored.
+        // Do not fail an otherwise successful booking when email delivery is unavailable.
+        try { await sendBookingConfirmation(rows[0], "rental"); } catch (error) { console.error("[rental-booking] confirmation email error:", error.message); }
         res.status(201).json(rows[0]);
     } catch (e) {
         next(e);

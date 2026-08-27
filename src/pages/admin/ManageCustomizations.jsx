@@ -365,12 +365,12 @@ const ManageCustomizations = () => {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
                 <button
                   onClick={() => setActiveSection('manage')}
-                  className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
+                  className={`px-4 py-2 rounded-sm text-sm font-medium transition ${
                     activeSection === 'manage'
                       ? 'bg-cyan-500 text-slate-950'
                       : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
@@ -380,7 +380,7 @@ const ManageCustomizations = () => {
                 </button>
                 <button
                   onClick={() => setActiveSection('review')}
-                  className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${
+                  className={`px-4 py-2 rounded-sm text-sm font-medium transition ${
                     activeSection === 'review'
                       ? 'bg-cyan-500 text-slate-950'
                       : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
@@ -403,7 +403,7 @@ const ManageCustomizations = () => {
 
       {activeSection === 'review' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
-          <div className="glass-panel rounded-2xl border-slate-800 overflow-hidden">
+          <div className="bg-white rounded-md border border-[#e0dbd0] overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-slate-900">
               <div>
                 <h2 className="text-lg font-bold text-slate-100 font-display">Customization Review & Approval</h2>
@@ -494,7 +494,7 @@ const ManageCustomizations = () => {
 
           <section className="space-y-2">
             {editingDestination && (
-              <div className="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-5 space-y-4">
+              <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <h2 className="text-base font-bold text-cyan-300">
                     {editingDestination === 'new' ? 'New Customization Destination' : 'Edit Destination Details'}
@@ -534,7 +534,7 @@ const ManageCustomizations = () => {
 
             {activeDetails ? (
               <>
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="bg-white border border-[#e0dbd0] rounded-md overflow-hidden">
                   {activeDetails.image && (
                     <div className="h-48 bg-slate-800">
                       <img src={activeDetails.image} alt={activeDestination} className="w-full h-full object-cover" />
@@ -564,7 +564,7 @@ const ManageCustomizations = () => {
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 space-y-4">
+                  <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                       <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                         <Compass className="h-5 w-5 text-cyan-400" /> Tours Offered
@@ -598,7 +598,7 @@ const ManageCustomizations = () => {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 space-y-4">
+                  <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                       <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                         <Hotel className="h-5 w-5 text-cyan-400" /> Accommodations
@@ -645,7 +645,7 @@ const ManageCustomizations = () => {
 const CustomBookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
   if (!booking) {
     return (
-      <aside className="glass-panel rounded-2xl border-slate-800 p-8 text-center xl:sticky xl:top-24">
+      <aside className="bg-white rounded-md border border-[#e0dbd0] p-8 text-center xl:sticky xl:top-24">
         <ReceiptText className="h-10 w-10 text-slate-600 mx-auto mb-3" />
         <h3 className="text-sm font-bold text-slate-300">Select a customized booking</h3>
         <p className="text-xs text-slate-500 mt-2">Review custom-trip details and confirm pending requests here.</p>
@@ -658,7 +658,7 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
   const isPending = booking.status === 'Pending Verification';
 
   return (
-    <aside className="glass-panel rounded-2xl border-slate-800 overflow-hidden xl:sticky xl:top-24">
+    <aside className="bg-white rounded-md border border-[#e0dbd0] overflow-hidden xl:sticky xl:top-24">
       <div className="p-5 border-b border-slate-900">
         <div className="flex items-start justify-between gap-4">
           <div>

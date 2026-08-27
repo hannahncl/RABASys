@@ -156,6 +156,21 @@ async function ensureSchema() {
         PRIMARY KEY (vehicle_id),
         UNIQUE KEY uq_vehicle_plate_number (plate_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    const [fuelTypeCol] = await db.query(`SHOW COLUMNS FROM vehicle LIKE 'fuel_type'`);
+    if (!fuelTypeCol.length) {
+        await db.query(`ALTER TABLE vehicle ADD COLUMN fuel_type VARCHAR(50) NULL DEFAULT NULL`);
+    }
+
+    const [brandCol] = await db.query(`SHOW COLUMNS FROM vehicle LIKE 'vehicle_brand'`);
+    if (!brandCol.length) {
+        await db.query(`ALTER TABLE vehicle ADD COLUMN vehicle_brand VARCHAR(100) NULL DEFAULT NULL`);
+    }
+
+    const [transmissionCol] = await db.query(`SHOW COLUMNS FROM vehicle LIKE 'transmission'`);
+    if (!transmissionCol.length) {
+        await db.query(`ALTER TABLE vehicle ADD COLUMN transmission VARCHAR(50) NULL DEFAULT NULL`);
+    }
 }
 
 module.exports = { ensureSchema };

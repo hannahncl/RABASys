@@ -37,12 +37,15 @@ app.get("/", (req, res) => {
     res.json({ name: "RABAS Travel and Tours API", status: "running" });
 });
 
+const notificationRoutes = require("./routes/notificationRoutes");
+
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/rental-bookings", rentalBookingRoutes);
 app.use("/api/tour-guides", tourGuideRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api", resourceRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));

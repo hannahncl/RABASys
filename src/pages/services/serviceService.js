@@ -42,6 +42,9 @@ const vehicleFromApi = (item) => ({
   image: item.image || '/CAGSAWA.jpg',
   duration: 'Per Day',
   availabilityStatus: item.availability_status || 'Available',
+  fuelType: item.fuel_type || '',
+  vehicleBrand: item.vehicle_brand || '',
+  transmission: item.transmission || '',
 });
 
 const packagePayload = (item) => ({
@@ -67,6 +70,9 @@ const vehiclePayload = (item) => ({
   daily_rate: Number(item.dailyRate || item.price || item.daily_rate || 0),
   image: item.vehicleImage || item.image || null,
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
+  fuel_type: item.fuelType || null,
+  vehicle_brand: item.vehicleBrand || null,
+  transmission: item.transmission || null,
 });
 
 export const serviceService = {
