@@ -14,9 +14,12 @@
   --slate-100: #a0a098;
 
   /* Butter Yellow Accents */
-  --cyan-400: #f5d061; /* Warm Butter Yellow */
-  --cyan-500: #e2bd4f; /* Hover */
-  --cyan-300: #fbeaa6; /* Lighter highlight */
+  --cyan-400: #f5d061;
+  /* Warm Butter Yellow */
+  --cyan-500: #e2bd4f;
+  /* Hover */
+  --cyan-300: #fbeaa6;
+  /* Lighter highlight */
   --cyan-200: #fff7d6;
 
   /* Glassmorphism settings for light mode */
@@ -54,7 +57,7 @@
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
-  
+
   /* Redefine Tailwind standard slate colors to map to our dynamic properties */
   --color-slate-950: var(--slate-950);
   --color-slate-900: var(--slate-900);
@@ -72,7 +75,7 @@
   --color-cyan-500: var(--cyan-500);
   --color-cyan-300: var(--cyan-300);
   --color-cyan-200: var(--cyan-200);
-  
+
   --color-accent-500: #f97316;
   --color-accent-600: #ea580c;
 }
@@ -82,11 +85,27 @@
   html {
     font-family: var(--font-sans);
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+}
+
+/* Text selection highlight — standard blue */
+::selection {
+  background: #7a7a7a !important;
+  color: #ffffff !important;
+}
+
+::-moz-selection {
+  background: #7a7a7a !important;
+  color: #ffffff !important;
 }
 
 /* Custom UI enhancements */
