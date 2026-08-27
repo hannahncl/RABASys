@@ -9,7 +9,8 @@ const CarRentals = () => {
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [capacity, setCapacity] = useState(4);
+  // Show every available vehicle by default; customers can narrow this below.
+  const [capacity, setCapacity] = useState(0);
   const [priceRange, setPriceRange] = useState([0, 100000]);
   const [allCars, setAllCars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,7 +166,7 @@ const CarRentals = () => {
                 Minimum Seating Capacity
               </h4>
               <div className="flex gap-2">
-                {[2, 4, 6, 8, 12, 15].map(cap => {
+                {[0, 2, 4, 6, 8, 12, 15].map(cap => {
                   const isSelected = capacity === cap;
                   return (
                     <button
@@ -191,7 +192,7 @@ const CarRentals = () => {
                         }
                       }}
                     >
-                      {cap}
+                      {cap === 0 ? 'Any' : cap}
                     </button>
                   );
                 })}

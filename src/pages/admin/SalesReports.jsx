@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
-import { ArrowUpDown, Eye, Loader, Search } from 'lucide-react';
+import { ArrowUpDown, Eye, Loader, Search, DollarSign, ReceiptText, CheckCircle2, XCircle } from 'lucide-react';
 
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
 
@@ -136,50 +136,46 @@ const SalesReports = () => {
   const cancelledCount = sortedBookings.filter((booking) => normalizeStatus(booking.status) === 'cancelled').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
+        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Earnings</span>
+            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Earnings</span><DollarSign className="h-4 w-4 text-[#1a1a1a]" />
           </div>
-          <div className="text-2xl font-display font-extrabold text-slate-100">
+          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
             PHP {totalEarnings.toLocaleString()}
           </div>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
+        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Bookings</span>
+            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Bookings</span><ReceiptText className="h-4 w-4 text-[#1a1a1a]" />
           </div>
-          <div className="text-2xl font-display font-extrabold text-slate-100">
+          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
             {totalBookings}
           </div>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
+        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Confirmed</span>
+            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Confirmed</span><CheckCircle2 className="h-4 w-4 text-[#1a1a1a]" />
           </div>
-          <div className="text-2xl font-display font-extrabold text-slate-100">
+          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
             {confirmedCount}
           </div>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
+        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Cancelled</span>
+            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Cancelled</span><XCircle className="h-4 w-4 text-[#1a1a1a]" />
           </div>
-          <div className="text-2xl font-display font-extrabold text-slate-100">
+          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
             {cancelledCount}
           </div>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 py-2">
-        <h2 className="text-lg font-extrabold text-slate-100 font-display">
-          Sales Report <span className="text-slate-500 font-medium px-1">/</span> Total Earnings <span className="text-slate-500 font-medium px-1">/</span> <span className="text-cyan-400">{timeFilter === 'all' ? 'All Time' : timeFilter.charAt(0).toUpperCase() + timeFilter.slice(1)}</span>
-        </h2>
-
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-xs font-bold">
             {['all', 'week', 'month', 'day'].map((filter) => (
@@ -193,7 +189,7 @@ const SalesReports = () => {
             ))}
           </div>
 
-          <label className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-300">
+          <label className="flex items-center gap-2 rounded-sm border border-[#d6cfc2] bg-white px-3 py-1.5 text-xs font-semibold text-[#4a453b]">
             <Search className="h-3.5 w-3.5 text-slate-500" />
             <input
               value={searchTerm}
@@ -206,7 +202,7 @@ const SalesReports = () => {
           <select
             value={selectedMonth}
             onChange={(event) => setSelectedMonth(event.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-lg text-xs font-bold text-slate-300 px-3 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+            className="bg-white border border-[#d6cfc2] rounded-sm text-xs font-bold text-[#4a453b] px-3 py-1.5 focus:outline-none focus:border-[#b0a68e] cursor-pointer"
           >
             <option value="all">All Months</option>
             {monthOptions.map((month) => (
@@ -216,7 +212,7 @@ const SalesReports = () => {
         </div>
       </div>
 
-      <div className="glass-panel border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-[#e0dbd0] rounded-md overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs whitespace-nowrap">
             <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wider text-slate-500 font-extrabold border-b border-slate-800">
@@ -295,7 +291,7 @@ const SalesReports = () => {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <span className="font-display font-extrabold text-slate-100">
+                      <span className="font-display font-extrabold text-[#1a1a1a]">
                         PHP {Number(booking.totalPrice).toLocaleString()}
                       </span>
                     </td>

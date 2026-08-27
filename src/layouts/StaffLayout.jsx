@@ -27,7 +27,7 @@ const StaffLayout = () => {
   return (
     <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-900 bg-slate-900/50 shrink-0">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 h-screen sticky top-0 border-r border-slate-900 bg-slate-900/50 shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-slate-900">
           <Link to="/">
             <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
@@ -43,7 +43,7 @@ const StaffLayout = () => {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   isActive(item.path)
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                     : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40'
                 }`}
               >
@@ -90,7 +90,7 @@ const StaffLayout = () => {
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'bg-emerald-500/10 text-emerald-400'
+                        ? 'bg-cyan-500/10 text-cyan-400'
                         : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                     }`}
                   >
@@ -123,27 +123,20 @@ const StaffLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold text-slate-200">
-              {location.pathname === '/staff/my-tours'
-                ? 'MY TOURS'
-                : location.pathname === '/staff/calendar'
-                  ? 'CALENDARS'
-                  : 'DASHBOARD'}
-            </h2>
           </div>
 
           <div className="flex items-center gap-6">
             <button className="relative text-slate-400 hover:text-white p-1">
               <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
             </button>
             
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-slate-200">{user?.name}</p>
-                <p className="text-xs text-emerald-400 uppercase tracking-wider font-semibold">Tour Guide</p>
+                <p className="text-xs text-cyan-400 uppercase tracking-wider font-semibold">Tour Guide</p>
               </div>
-              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold font-display">
+              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold font-display">
                 G
               </div>
             </div>

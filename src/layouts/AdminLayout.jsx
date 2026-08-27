@@ -1,15 +1,75 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { notificationService } from '../services/api';
 import { 
-  LayoutDashboard, BarChart3, Package, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList
+  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check
 } from 'lucide-react';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    let interval;
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationService.getAll();
+        setNotifications(data || []);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+    
+    fetchNotifications();
+    interval = setInterval(fetchNotifications, 10000); // 10 seconds polling
+
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: 1 } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    try {
+      await notificationService.markAsRead(notif.notification_id);
+      setNotifications(prev => prev.map(n => n.notification_id === notif.notification_id ? { ...n, is_read: 1 } : n));
+      setShowNotifications(false);
+      navigate('/admin/bookings');
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -21,7 +81,8 @@ const AdminLayout = () => {
     { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
     { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
-    { name: 'Service Management', path: '/admin/services', icon: Package },
+    { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
+    { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
     { name: 'Customizations', path: '/admin/customizations', icon: Settings },
     { name: 'Accounts', path: '/admin/accounts', icon: Users },
   ];
@@ -120,7 +181,7 @@ const AdminLayout = () => {
       {/* Main Canvas */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-20 border-b border-slate-900 bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-6">
+        <header className="relative z-50 h-20 border-b border-slate-900 bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -128,14 +189,72 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
+            {!['Dashboard', 'Car Rentals', 'Tour Packages', 'Sales Report', 'Bookings'].includes(currentPageTitle) && (
+              <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
+            )}
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="relative text-slate-400 hover:text-white p-1">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-cyan-500 animate-ping"></span>
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`relative p-2 rounded-full transition-colors ${showNotifications ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+              >
+                <Bell className="h-5 w-5" />
+                {notifications.some(n => !n.is_read) && (
+                  <>
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500"></span>
+                  </>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-96 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/50">
+                    <h3 className="text-sm font-semibold text-slate-200">Notifications</h3>
+                    {notifications.some(n => !n.is_read) && (
+                      <button onClick={handleMarkAllAsRead} className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer">
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[360px] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-slate-500 text-sm">
+                        No new notifications.
+                      </div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif.notification_id} 
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group cursor-pointer ${notif.is_read ? 'opacity-60' : ''}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-slate-200">{notif.title}</p>
+                              <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                              <p className="text-[10px] text-slate-500 mt-2">{new Date(notif.sent_at).toLocaleString()}</p>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notif.notification_id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-cyan-400 transition-all shrink-0 cursor-pointer"
+                              title="Mark as read without navigating"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
               <div className="text-right hidden sm:block">

@@ -7,7 +7,7 @@ const { logAudit } = require("../utils/auditLogger");
 const resources = {
     accounts: { table: "account", id: "account_id", fields: ["first_name", "last_name", "email", "contact_number", "role", "account_status"] },
     packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image"] },
-    vehicles: { table: "vehicle", id: "vehicle_id", fields: ["media_id", "vehicle_name", "vehicle_type", "plate_number", "capacity", "daily_rate", "image", "availability_status"] },
+    vehicles: { table: "vehicle", id: "vehicle_id", fields: ["media_id", "vehicle_name", "vehicle_type", "plate_number", "capacity", "daily_rate", "image", "availability_status", "fuel_type", "vehicle_brand", "transmission"] },
     guides: { table: "tour_guide", id: "guide_id", fields: ["account_id", "media_id", "sex", "birthdate", "years_of_experience", "description", "languages_spoken", "availability_status", "employment_status"] },
     media: { table: "media", id: "media_id", fields: ["file_path", "media_type", "uploaded_by", "title", "description"] },
     content: { table: "content", id: "content_id", fields: ["media_id", "title", "content", "content_type", "display_order", "is_active", "created_by"] },
@@ -41,6 +41,10 @@ function normalizeVehiclePayload(input = {}) {
     const availabilityStatus = input.availability_status || input.availabilityStatus || "Available";
     const image = normalizeImageValue(input.image || input.vehicleImage || input.vehicle_image || null);
 
+    const fuelType = input.fuel_type || input.fuelType || null;
+    const vehicleBrand = input.vehicle_brand || input.vehicleBrand || null;
+    const transmission = input.transmission || null;
+
     return {
         vehicle_name: String(vehicleName).trim(),
         vehicle_type: String(vehicleType).trim() || "Car",
@@ -49,30 +53,26 @@ function normalizeVehiclePayload(input = {}) {
         daily_rate: Number.isFinite(dailyRate) && dailyRate >= 0 ? dailyRate : 0,
         availability_status: ["Available", "Unavailable", "Maintenance"].includes(availabilityStatus) ? availabilityStatus : "Available",
         image: image ? String(image) : null,
+        fuel_type: fuelType ? String(fuelType).trim() : null,
+        vehicle_brand: vehicleBrand ? String(vehicleBrand).trim() : null,
+        transmission: transmission ? String(transmission).trim() : null,
     };
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
 function prepareResourcePayload(resource, input = {}) {
     const payload = { ...input };
     if (Object.prototype.hasOwnProperty.call(payload, "image") && payload.image !== undefined && payload.image !== null) {
         payload.image = normalizeImageValue(payload.image);
     }
     return payload;
-<<<<<<< HEAD
-=======
+}
+
 function approvalAction(resource, values) {
     if (resource.table !== "reschedule_request") return "UPDATE";
     const status = String(values.request_status || "").trim().toLowerCase();
     if (status === "approved") return "APPROVE";
     if (status === "rejected") return "REJECT";
     return "UPDATE";
->>>>>>> ae3f79c3dfcb883dd0eb5bdd17e8a57c9b612a3e
-=======
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
 }
 
 function addCrud(router, path, resource) {
@@ -85,16 +85,13 @@ function addCrud(router, path, resource) {
         try { const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); if (!rows[0]) return res.status(404).json({ message: "Record not found." }); res.json(rows[0]); } catch (e) { next(e); }
     });
     router.post(`/${path}`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
         try {
             const payload = prepareResourcePayload(resource, req.body);
             const fields = selected(resource, payload);
             if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
             const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => payload[f]));
             const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]);
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: resource.table, recordId: result.insertId, newValues: req.body, req });
             res.status(201).json(rows[0]);
         } catch (e) { next(e); }
     });
@@ -103,20 +100,15 @@ function addCrud(router, path, resource) {
             const payload = prepareResourcePayload(resource, req.body);
             const fields = selected(resource, payload);
             if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const [existingRows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]);
+            const oldValues = existingRows[0];
+            if (!oldValues) return res.status(404).json({ message: "Record not found." });
             const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
             if (!result.affectedRows) return res.status(404).json({ message: "Record not found." });
             const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]);
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: approvalAction(resource, req.body), tableName: resource.table, recordId: Number(req.params.id), oldValues, newValues: req.body, req });
             res.json(rows[0]);
         } catch (e) { next(e); }
-<<<<<<< HEAD
-=======
-        try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [result] = await db.execute(`INSERT INTO \`${resource.table}\` (${fields.map(f => `\`${f}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`, fields.map(f => req.body[f])); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [result.insertId]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: resource.table, recordId: result.insertId, newValues: req.body, req }); res.status(201).json(rows[0]); } catch (e) { next(e); }
-    });
-    router.patch(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
-        try { const fields = selected(resource, req.body); if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." }); const [existingRows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); const oldValues = existingRows[0]; if (!oldValues) return res.status(404).json({ message: "Record not found." }); const [result] = await db.execute(`UPDATE \`${resource.table}\` SET ${fields.map(f => `\`${f}\` = ?`).join(", ")} WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => req.body[f]), req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); const [rows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?`, [req.params.id]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: approvalAction(resource, req.body), tableName: resource.table, recordId: Number(req.params.id), oldValues, newValues: req.body, req }); res.json(rows[0]); } catch (e) { next(e); }
->>>>>>> ae3f79c3dfcb883dd0eb5bdd17e8a57c9b612a3e
-=======
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
     });
     router.delete(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
         try { const [existingRows] = await db.execute(`SELECT * FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); const oldValues = existingRows[0]; if (!oldValues) return res.status(404).json({ message: "Record not found." }); const sql = resource.softDelete === false ? `DELETE FROM \`${resource.table}\` WHERE \`${resource.id}\` = ?` : `UPDATE \`${resource.table}\` SET deleted_at = NOW() WHERE \`${resource.id}\` = ? AND deleted_at IS NULL`; const [result] = await db.execute(sql, [req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Record not found." }); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "DELETE", tableName: resource.table, recordId: Number(req.params.id), oldValues, req }); res.status(204).end(); } catch (e) { next(e); }
@@ -152,8 +144,8 @@ router.post("/vehicles", requireAuth, allowRoles("Admin"), async (req, res, next
         }
 
         const [result] = await db.execute(
-            "INSERT INTO vehicle (vehicle_name, vehicle_type, plate_number, capacity, daily_rate, image, availability_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [payload.vehicle_name, payload.vehicle_type, payload.plate_number, payload.capacity, payload.daily_rate, payload.image, payload.availability_status]
+            "INSERT INTO vehicle (vehicle_name, vehicle_type, plate_number, capacity, daily_rate, image, availability_status, fuel_type, vehicle_brand, transmission) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [payload.vehicle_name, payload.vehicle_type, payload.plate_number, payload.capacity, payload.daily_rate, payload.image, payload.availability_status, payload.fuel_type, payload.vehicle_brand, payload.transmission]
         );
 
         const [rows] = await db.execute("SELECT * FROM vehicle WHERE vehicle_id = ?", [result.insertId]);
@@ -193,6 +185,15 @@ router.patch("/vehicles/:id", requireAuth, allowRoles("Admin"), async (req, res,
         }
         if (Object.prototype.hasOwnProperty.call(req.body, "image") || Object.prototype.hasOwnProperty.call(req.body, "vehicleImage")) {
             fields.push("image = ?"); values.push(payload.image);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "fuel_type") || Object.prototype.hasOwnProperty.call(req.body, "fuelType")) {
+            fields.push("fuel_type = ?"); values.push(payload.fuel_type);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "vehicle_brand") || Object.prototype.hasOwnProperty.call(req.body, "vehicleBrand")) {
+            fields.push("vehicle_brand = ?"); values.push(payload.vehicle_brand);
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, "transmission")) {
+            fields.push("transmission = ?"); values.push(payload.transmission);
         }
 
         if (!fields.length) return res.status(400).json({ message: "No valid vehicle fields supplied." });

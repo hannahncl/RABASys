@@ -5,17 +5,8 @@ const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
-<<<<<<< HEAD
-<<<<<<< HEAD
-const { sendPasswordResetOtp } = require("../config/mailer");
-const { logAudit } = require("../utils/auditLogger");
-=======
-const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
->>>>>>> 8fc067db244f7dc5aedbc1e06bdfb72a5f93c080
-=======
 const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
 const { logAudit } = require("../utils/auditLogger");
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
 
 const router = express.Router();
 const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, created_at, updated_at";
@@ -136,20 +127,8 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
-<<<<<<< HEAD
-<<<<<<< HEAD
         const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
-        const bootstrapAllowed = isBootstrapAdminLogin(account, req.body.password);
-
-        if (!account || !isActiveAccount(account) || (!passwordMatches && !bootstrapAllowed)) {
-=======
-        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
->>>>>>> ae3f79c3dfcb883dd0eb5bdd17e8a57c9b612a3e
-=======
-        const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
-        
-        if (!account || !isActiveAccount(account) || !(await verifyPassword(req.body.password, account.password_hash))) {
->>>>>>> 7c18dc2a82efcbbf88fc860cdd58b33348a06f7b
+        if (!account || !isActiveAccount(account) || !passwordMatches) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
         }
 
