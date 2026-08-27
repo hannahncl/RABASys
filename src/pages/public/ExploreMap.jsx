@@ -13,6 +13,7 @@ import mapGalleryService from '../services/mapGalleryService';
 import { weatherService } from '../services/weatherService';
 =======
 import mapGalleryService from '../../services/mapGalleryService';
+import { useNotification } from '../../hooks/useNotification';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';

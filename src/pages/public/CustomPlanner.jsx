@@ -2,9 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { bookingService } from '../services/bookingService';
 import { customizationService } from '../services/customizationService';
 =======
+=======
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { customizationService } from '../../services/customizationService';
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { ChevronLeft, ChevronRight, Loader, Calendar } from 'lucide-react';

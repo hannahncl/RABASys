@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { weatherService } from '../../pages/services/weatherService';
 import { CloudSun, Wind, Droplets, Thermometer, AlertCircle, CloudRain, Sun, Cloud, CloudLightning } from 'lucide-react';
+=======
+import { weatherService } from '../../services/weatherService';
+import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 =======
 import { weatherService } from '../../services/weatherService';
 import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';

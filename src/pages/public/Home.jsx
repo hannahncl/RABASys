@@ -8,6 +8,9 @@ import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { tripUploadService } from '../../services/tripUploadService';
 import { api } from '../../services/api';
+<<<<<<< HEAD
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { Compass, Search, Star, MapPin, Sparkles, Activity, Clock, Users } from 'lucide-react';
 

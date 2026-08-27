@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { reportService } from '../services/reportService';
 import { bookingService } from '../services/bookingService';
 import { DollarSign, Receipt, Users, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react';
 =======
+=======
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { bookingService } from '../../services/bookingService';
 import { ArrowUpRight, TrendingUp, DollarSign, Loader, ReceiptText, Clock3, CheckCircle2, XCircle } from 'lucide-react';
 import {
@@ -12,6 +15,9 @@ import {
 } from 'recharts';
 
 const CHART_COLORS = ['#38bdf8', '#34d399', '#fbbf24', '#818cf8', '#f472b6', '#a78bfa'];
+<<<<<<< HEAD
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 
 const statusPillClass = (status) => (

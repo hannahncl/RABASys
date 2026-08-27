@@ -7,6 +7,9 @@ import { bookingService } from '../services/bookingService';
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
+<<<<<<< HEAD
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNotification } from '../../hooks/useNotification';

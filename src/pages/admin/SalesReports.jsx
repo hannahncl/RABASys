@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import React, { useEffect, useState } from 'react';
 <<<<<<< HEAD
 import { reportService } from '../services/reportService';
@@ -11,6 +12,10 @@ import { TrendingUp, TrendingDown, Eye, Loader, Wallet, Receipt, Users, Ban } fr
 =======
 import React, { useEffect, useMemo, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
+=======
+import React, { useEffect, useMemo, useState } from 'react';
+import { bookingService } from '../../services/bookingService';
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { ArrowUpDown, Eye, Loader, Search, DollarSign, ReceiptText, CheckCircle2, XCircle } from 'lucide-react';
 
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -29,6 +34,9 @@ const isSameDay = (dateA, dateB) => {
     && dateA.getMonth() === dateB.getMonth()
     && dateA.getDate() === dateB.getDate();
 };
+<<<<<<< HEAD
+>>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 
 const SalesReports = () => {
