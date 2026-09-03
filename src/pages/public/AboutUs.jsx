@@ -30,12 +30,6 @@ const AboutUs = () => {
 
           {/* LEFT — Text content */}
           <div className="flex flex-col justify-center space-y-6">
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.2em]"
-              style={{ color: '#b0a68e' }}
-            >
-              Bicol-Based Travel Planning
-            </p>
 
             <h1
               className="text-4xl font-bold leading-[1.15] tracking-tight text-[#1a1a1a] sm:text-[42px]"

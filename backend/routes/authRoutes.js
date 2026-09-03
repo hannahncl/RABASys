@@ -47,9 +47,9 @@ const validate = (req, res, next) => {
 };
 const sanitizeText = (value) => String(value ?? "").trim().replace(/[\u0000-\u001F\u007F]/g, "").replace(/[<>]/g, "");
 const sanitizeEmail = (email) => sanitizeText(email).toLowerCase();
-const logAuditEvent = async (accountId, action, detail = "") => {
+const logAuditEvent = async (accountId, action, detail = "", req = null) => {
     try {
-        await db.execute("INSERT INTO audit_log (account_id, action, detail) VALUES (?, ?, ?)", [accountId ?? null, action, detail]);
+        await logAudit({ accountId: accountId ?? null, action: String(action).toUpperCase(), tableName: "account", newValues: detail ? { detail } : null, req });
     } catch (error) {
         console.warn(`[auth] Audit logging failed for ${action}:`, error.message);
     }

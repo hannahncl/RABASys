@@ -84,8 +84,27 @@ const ExploreMap = () => {
   const [uploadError, setUploadError] = useState('');
   const [targetSpotId, setTargetSpotId] = useState('spot-mayon');
 
-  // Upload tab state: 'camera' | 'gallery' | 'url'
-  const [uploadTab, setUploadTab] = useState('camera');
+  // Upload tab state: 'file' | 'camera' | 'gallery' | 'url'
+  const [uploadTab, setUploadTab] = useState('file');
+  const [deviceFile, setDeviceFile] = useState(null);
+  const [deviceFilePreview, setDeviceFilePreview] = useState('');
+
+  // Handle device file upload (phone / computer gallery)
+  const handleDeviceFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError('Image file size must be less than 8MB.');
+      return;
+    }
+    setUploadError('');
+    setDeviceFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setDeviceFilePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Camera state
   const videoRef = useRef(null);
@@ -230,12 +249,14 @@ const ExploreMap = () => {
 
   const handleSpotClick = (spot) => {
     setSelectedSpot(spot);
+    setGalleryFilterValue(spot.name.split(',')[0]);
     setMapCenter(spot.coords);
     setMapZoom(11);
   };
 
   const handleBackToAll = () => {
     setSelectedSpot(null);
+    setGalleryFilterValue('All');
     setMapCenter([13.4, 123.6]);
     setMapZoom(8.5);
   };
@@ -248,12 +269,20 @@ const ExploreMap = () => {
     setUploadError('');
 
     let finalImageUrl;
-    if (uploadTab === 'camera' && capturedPhoto) {
+    if (uploadTab === 'file' && deviceFilePreview) {
+      finalImageUrl = deviceFilePreview;
+    } else if (uploadTab === 'camera' && capturedPhoto) {
       finalImageUrl = capturedPhoto;
     } else if (uploadTab === 'url' && customImageUrl.trim()) {
       finalImageUrl = customImageUrl.trim();
     } else {
       finalImageUrl = selectedPresetImage;
+    }
+
+    if (!finalImageUrl) {
+      setUploadError('Please choose or snap a photo file first.');
+      setUploading(false);
+      return;
     }
 
     try {
@@ -262,16 +291,18 @@ const ExploreMap = () => {
 
       setUploads(prev => [newUpload, ...prev]);
 
-      showNotification('Story posted to Explore Map!', 'success');
+      showNotification('Your photo was uploaded successfully!', 'success');
 
       setTouristName('');
       setCaption('');
       setCustomImageUrl('');
       setCapturedPhoto(null);
+      setDeviceFile(null);
+      setDeviceFilePreview('');
       setUploadModalOpen(false);
-      setUploadTab('camera');
+      setUploadTab('file');
     } catch {
-      setUploadError('Failed to upload. Please try again.');
+      setUploadError('Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -297,13 +328,13 @@ const ExploreMap = () => {
       className: 'custom-marker-wrapper',
       html: `
         <div class="relative flex flex-col items-center group cursor-pointer">
-          <div class="p-[2px] rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 shadow-md transition-transform group-hover:scale-110 ${isSelected ? 'ring-4 ring-amber-400' : ''}">
+          <div class="p-[2px] rounded-full bg-stone-900 shadow-md transition-transform group-hover:scale-110 ${isSelected ? 'ring-4 ring-amber-400' : ''}">
             <div class="w-9 h-9 rounded-full overflow-hidden border-2 border-white bg-stone-900">
               <img src="${spot.featuredImage}" class="w-full h-full object-cover" />
             </div>
           </div>
           <div class="mt-1 bg-white/95 backdrop-blur-sm border border-stone-200 text-stone-800 text-[10px] font-bold py-0.5 px-2.5 rounded-full whitespace-nowrap shadow-sm pointer-events-none flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             ${spot.name.split(',')[0]}
           </div>
         </div>
@@ -334,7 +365,9 @@ const ExploreMap = () => {
         {/* ── Page Header ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #d6cfc2', paddingBottom: '1.5rem', marginBottom: '2rem', gap: '1rem' }}>
           <div>
-            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">EXPLORE MAP & TOURISTS GALLERY</h1>
+            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">
+              EXPLORE MAP &amp; TOURIST GALLERY
+            </h1>
           </div>
 
           <button
@@ -348,37 +381,7 @@ const ExploreMap = () => {
           </button>
         </div>
 
-        {/* ── STORIES TRAY (Horizontal at Top) ── */}
-        <div style={{ marginBottom: '2.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontSize: '0.625rem', fontWeight: 600, color: '#3d3a34', letterSpacing: '0.18em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <Flame style={{ width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
-              Tourist Stories ({uploads.length})
-            </h3>
-            <span style={{ fontSize: '0.625rem', color: '#6b6255', letterSpacing: '0.04em' }}>Tap avatar to view</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-            {/* Add Story */}
-            <div onClick={() => setUploadModalOpen(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', flexShrink: 0, cursor: 'pointer' }}>
-              <div style={{ width: '3.25rem', height: '3.25rem', borderRadius: '50%', border: '1.5px dashed #b0a68e', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fcfbf9' }}>
-                <Plus style={{ width: '1.125rem', height: '1.125rem', color: '#6b6255' }} />
-              </div>
-              <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.04em' }}>Add Story</span>
-            </div>
-            {uploads.map((story, idx) => (
-              <div key={story.id} onClick={() => openStoryViewer(idx)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', flexShrink: 0, cursor: 'pointer' }}>
-                <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg, #c4b99a, #b0a68e, #6b6255)' }}>
-                  <div style={{ width: '2.875rem', height: '2.875rem', borderRadius: '50%', overflow: 'hidden', border: '2px solid #ffffff', background: '#ebe7df' }}>
-                    <img src={story.imageUrl || story.avatar} alt={story.touristName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#3d3a34', maxWidth: '3.5rem', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {story.touristName.split(' ')[0]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+
 
         {/* ── Side-by-Side Flex Layout ── */}
         <div style={{ display: 'flex', gap: '3rem' }} className="flex-col lg:flex-row">
@@ -393,6 +396,9 @@ const ExploreMap = () => {
                   <Grid style={{ width: '1rem', height: '1rem', color: '#6b6255' }} />
                   {selectedSpot ? `${selectedSpot.name.split(',')[0]} Photos` : 'Photo Gallery'}
                 </h2>
+                <p style={{ fontSize: '0.7rem', color: '#6b6255', marginTop: '0.125rem' }}>
+                  {galleryUploads.length} photo{galleryUploads.length !== 1 ? 's' : ''} found
+                </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {selectedSpot && (
@@ -415,7 +421,7 @@ const ExploreMap = () => {
 
             {/* Filter Controls container */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#fcfbf9', border: '1px solid #e0dbd0', borderRadius: '6px', padding: '1rem' }}>
-              
+
               {/* Search Bar */}
               <div style={{ position: 'relative' }}>
                 <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
@@ -481,13 +487,13 @@ const ExploreMap = () => {
                           <img src={up.imageUrl} alt={up.caption} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.7s' }} className="group-hover:scale-105" />
                         </div>
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4rem', background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)', pointerEvents: 'none' }} />
-                        
+
                         {/* Card Info */}
                         <div style={{ padding: '0.75rem 0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                           <p style={{ fontSize: '0.7rem', fontWeight: 500, color: '#2d2a24', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {up.caption}
                           </p>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginTop: '0.25rem' }}>
                             <span style={{ fontSize: '0.625rem', color: '#6b6255', fontWeight: 500 }}>{up.touristName}</span>
                             <button
                               onClick={e => handleLike(e, up.id)}
@@ -556,7 +562,7 @@ const ExploreMap = () => {
 
           {/* ── RIGHT COLUMN: Map & Destinations (45% width) ── */}
           <div style={{ flex: '1 1 45%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'sticky', top: '2rem' }}>
-            
+
             {/* Destinations Map Header */}
             <div>
               <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -568,7 +574,7 @@ const ExploreMap = () => {
             </div>
 
             {/* Map Container */}
-            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '480px', position: 'relative', zIndex: 0 }}>
+            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '460px', position: 'relative', zIndex: 0 }}>
               <MapContainer center={mapCenter} zoom={mapZoom} className="w-full h-full" zoomControl={true}>
                 <TileLayer
                   attribution='&copy; Esri &mdash; Source: Esri, USGS, NOAA'
@@ -576,26 +582,82 @@ const ExploreMap = () => {
                   maxZoom={19}
                 />
                 <MapFocusController center={mapCenter} zoom={mapZoom} />
-                <MapEventsController onMapClick={() => {}} />
+                <MapEventsController onMapClick={() => { }} />
                 {filteredSpots.map(spot => (
                   <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
                     <Popup className="custom-spot-popup">
-                      <div style={{ padding: '0.25rem', maxWidth: '200px' }}>
-                        <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5rem', objectFit: 'cover', borderRadius: '4px', marginBottom: '0.5rem' }} />
-                        <h4 style={{ fontWeight: 700, fontSize: '0.7rem', color: '#1a1a1a', lineHeight: 1.3 }}>{spot.name}</h4>
-                        <span style={{ display: 'inline-block', fontSize: '0.55rem', fontWeight: 600, color: '#6b6255', background: 'rgba(196,185,154,0.15)', border: '1px solid #d6cfc2', padding: '0.15rem 0.5rem', borderRadius: '2px', marginTop: '0.25rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{spot.category}</span>
-                        <button
-                          onClick={() => handleSpotClick(spot)}
-                          style={{ width: '100%', marginTop: '0.625rem', padding: '0.4rem 0.5rem', background: '#2d2a24', color: '#f7f4ef', fontWeight: 700, fontSize: '0.6rem', borderRadius: '2px', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-                        >
-                          View Destination Stories
-                        </button>
+                      <div style={{ padding: '0.375rem', maxWidth: '230px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5.5rem', objectFit: 'cover', borderRadius: '4px' }} />
+                        <div>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#855912', background: '#fef9c3', padding: '0.15rem 0.5rem', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {spot.category}
+                          </span>
+                          <h4 style={{ fontWeight: 700, fontSize: '0.75rem', color: '#1a1a1a', marginTop: '0.25rem', lineHeight: 1.2 }}>{spot.name}</h4>
+                        </div>
+                        <p style={{ fontSize: '0.65rem', color: '#4a453b', lineHeight: 1.3 }}>{spot.description}</p>
+                        {spot.travelTips && (
+                          <div style={{ fontSize: '0.6rem', background: '#f8f6f0', borderLeft: '2px solid #b0a68e', padding: '0.25rem 0.5rem', color: '#3d3a34' }}>
+                            <strong>Tip:</strong> {spot.travelTips}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.375rem', paddingTop: '0.25rem' }}>
+                          <button
+                            onClick={() => handleSpotClick(spot)}
+                            style={{ flex: 1, padding: '0.4rem', background: '#2d2a24', color: '#f7f4ef', fontWeight: 700, fontSize: '0.6rem', borderRadius: '2px', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}
+                          >
+                            View Photos
+                          </button>
+                        </div>
                       </div>
                     </Popup>
                   </Marker>
                 ))}
               </MapContainer>
             </div>
+
+            {/* Selected Spot Informative Guide Spotlight */}
+            {selectedSpot && (
+              <div style={{ background: '#fcfbf9', border: '1px solid #b0a68e', borderRadius: '6px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#855912', background: '#fef9c3', border: '1px solid #fef08a', padding: '0.15rem 0.5rem', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {selectedSpot.category} Spotlight
+                  </span>
+                  <button onClick={handleBackToAll} style={{ fontSize: '0.6rem', color: '#6b6255', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Reset Spot
+                  </button>
+                </div>
+
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif" }}>
+                  {selectedSpot.name}
+                </h3>
+
+                <p style={{ fontSize: '0.725rem', color: '#4a453b', lineHeight: 1.4 }}>
+                  {selectedSpot.description}
+                </p>
+
+                {selectedSpot.bestSeason && (
+                  <div style={{ fontSize: '0.65rem', color: '#3d3a34', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <strong>Best Time to Visit:</strong> <span>{selectedSpot.bestSeason}</span>
+                  </div>
+                )}
+
+                {selectedSpot.activities && selectedSpot.activities.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+                    {selectedSpot.activities.map((act, i) => (
+                      <span key={i} style={{ fontSize: '0.575rem', fontWeight: 600, color: '#45403a', background: '#f0ece1', border: '1px solid #e0dbd0', padding: '0.15rem 0.4rem', borderRadius: '2px' }}>
+                        {act}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {selectedSpot.travelTips && (
+                  <div style={{ fontSize: '0.65rem', background: 'rgba(196,185,154,0.12)', borderLeft: '3px solid #b0a68e', padding: '0.5rem', borderRadius: '2px', color: '#2d2a24', lineHeight: 1.35 }}>
+                    <strong>Pro Travel Tip:</strong> {selectedSpot.travelTips}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Map Legend / Destination Chip Selection */}
             <div>
@@ -694,7 +756,7 @@ const ExploreMap = () => {
       {/* Hidden canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* â”€â”€ UPLOAD MODAL â”€â”€ */}
+      {/* ── UPLOAD MODAL ── */}
       {uploadModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(29,26,20,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
           <div style={{ width: '100%', maxWidth: '28rem', background: '#ffffff', borderRadius: '6px', boxShadow: '0 24px 60px rgba(0,0,0,0.14)', overflow: 'hidden', border: '1px solid #e0dbd0' }}>
@@ -753,7 +815,7 @@ const ExploreMap = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Photo Source</label>
                 <div style={{ display: 'flex', gap: '0.25rem', background: '#f5f2ee', borderRadius: '4px', padding: '0.25rem' }}>
-                  {[{ id: 'camera', label: 'Camera', icon: Camera }, { id: 'gallery', label: 'Gallery', icon: ImageIcon }, { id: 'url', label: 'URL', icon: Link2 }].map(tab => (
+                  {[{ id: 'file', label: 'Device File', icon: ImageIcon }, { id: 'camera', label: 'Camera', icon: Camera }, { id: 'url', label: 'URL', icon: Link2 }].map(tab => (
                     <button
                       key={tab.id} type="button" onClick={() => setUploadTab(tab.id)}
                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.5rem', borderRadius: '3px', border: 'none', fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: uploadTab === tab.id ? '#ffffff' : 'transparent', color: uploadTab === tab.id ? '#1a1a1a' : '#6b6255', boxShadow: uploadTab === tab.id ? '0 1px 4px rgba(0,0,0,0.07)' : 'none' }}
@@ -766,13 +828,29 @@ const ExploreMap = () => {
 
               {/* Tab content */}
               <div style={{ minHeight: '10rem' }}>
+                {uploadTab === 'file' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', border: '1.5px dashed #b0a68e', borderRadius: '6px', background: '#fcfbf9', cursor: 'pointer', textAlign: 'center' }}>
+                      <ImageIcon style={{ width: '2rem', height: '2rem', color: '#b0a68e', marginBottom: '0.5rem' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2d2a24' }}>Click to Choose Photo File from Device</span>
+                      <span style={{ fontSize: '0.625rem', color: '#6b6255', marginTop: '0.25rem' }}>Supports JPG, PNG, WEBP (Up to 8MB)</span>
+                      <input type="file" accept="image/*" onChange={handleDeviceFileChange} style={{ display: 'none' }} />
+                    </label>
+                    {deviceFilePreview && (
+                      <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', height: '10rem' }}>
+                        <img src={deviceFilePreview} alt="Device File Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {uploadTab === 'camera' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {cameraError ? (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', background: '#f5f2ee', border: '1px solid #e0dbd0', borderRadius: '6px' }}>
                         <VideoOff style={{ width: '1.75rem', height: '1.75rem', color: '#b0a68e', marginBottom: '0.5rem' }} />
                         <p style={{ fontSize: '0.7rem', color: '#4a453b', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 600 }}>{cameraError}</p>
-                        <button type="button" onClick={() => setUploadTab('gallery')} style={{ fontSize: '0.65rem', fontWeight: 600, color: '#3d3a34', background: 'rgba(196,185,154,0.15)', border: '1px solid #b0a68e', padding: '0.375rem 0.875rem', borderRadius: '2px', cursor: 'pointer' }}>Switch to Gallery</button>
+                        <button type="button" onClick={() => setUploadTab('file')} style={{ fontSize: '0.65rem', fontWeight: 600, color: '#3d3a34', background: 'rgba(196,185,154,0.15)', border: '1px solid #b0a68e', padding: '0.375rem 0.875rem', borderRadius: '2px', cursor: 'pointer' }}>Switch to Device File Upload</button>
                       </div>
                     ) : capturedPhoto ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -791,7 +869,19 @@ const ExploreMap = () => {
                     )}
                   </div>
                 )}
- 
+
+                {uploadTab === 'gallery' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                    {PRESET_UPLOAD_IMAGES.map(img => (
+                      <button type="button" key={img.name} onClick={() => setSelectedPresetImage(img.url)}
+                        style={{ aspectRatio: '1', borderRadius: '4px', overflow: 'hidden', border: selectedPresetImage === img.url ? '2px solid #b0a68e' : '1px solid #e0dbd0', opacity: selectedPresetImage === img.url ? 1 : 0.65, cursor: 'pointer', background: 'none', padding: 0, transition: 'all 0.2s', transform: selectedPresetImage === img.url ? 'scale(1.04)' : 'scale(1)' }}
+                      >
+                        <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {uploadTab === 'url' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <input
@@ -831,4 +921,3 @@ const ExploreMap = () => {
 };
 
 export default ExploreMap;
-

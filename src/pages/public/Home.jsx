@@ -21,7 +21,7 @@ const Home = () => {
       setPackages(allPkgs);
       const updates = await tripUploadService.getAll();
       setLiveUpdates(updates.slice(0, 3)); // show top 3 updates
-      
+
       // Load all bookings and reviews
       try {
         const allBookings = await bookingService.getAll();
@@ -41,15 +41,15 @@ const Home = () => {
       const booking = bookings.find(b => b.id === String(review.booking_id));
       return booking && booking.packageId === String(packageId);
     });
-    
+
     if (packageReviews.length === 0) {
       return { averageRating: 0, reviewCount: 0 };
     }
-    
+
     const averageRating = (
       packageReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / packageReviews.length
     ).toFixed(1);
-    
+
     return {
       averageRating: parseFloat(averageRating),
       reviewCount: packageReviews.length
@@ -128,7 +128,7 @@ const Home = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search destinations (e.g. Palawan, Boracay, Siargao)..."
+                placeholder="Search destinations"
                 className="w-full bg-transparent border-0 text-slate-100 placeholder-slate-500 pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-0"
               />
             </div>

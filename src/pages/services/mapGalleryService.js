@@ -9,7 +9,11 @@ const INITIAL_SPOTS = [
     coords: [13.1391, 123.7438],
     description: 'Iconic 16th-century Franciscan church ruins with majestic views of Mayon Volcano, Earth\'s most perfect natural cone.',
     category: 'Historical Landmarks',
-    featuredImage: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'Best visited during early mornings for clear views of Mayon summit. Try the ATV trail adventure!',
+    bestSeason: 'Nov - May (Dry Season)',
+    activities: ['ATV Volcano Tour', 'Ruins Photography', 'Bicol Express Tasting'],
+    packageLink: '/packages'
   },
   {
     id: 'spot-caramoan',
@@ -17,7 +21,11 @@ const INITIAL_SPOTS = [
     coords: [13.7836, 123.8569],
     description: 'A rugged peninsula featuring secluded white-sand beaches, towering limestone cliffs, crystal lagoons, and Survivor filming locations.',
     category: 'Islands & Beaches',
-    featuredImage: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'Boat island hopping recommended between April and October when sea waters are calmest.',
+    bestSeason: 'March - June',
+    activities: ['Island Hopping', 'Snorkeling', 'Rock Climbing'],
+    packageLink: '/packages'
   },
   {
     id: 'spot-calaguas',
@@ -25,7 +33,11 @@ const INITIAL_SPOTS = [
     coords: [14.4716, 122.9366],
     description: 'Famous for the pristine Mahabang Buhangin beach, featuring powdery white sand, sparkling turquoise waters, and peaceful off-grid camping.',
     category: 'Islands & Beaches',
-    featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'Off-grid destination: bring power banks and dry bags. Overnight stargazing on Mahabang Buhangin is unforgettable.',
+    bestSeason: 'Feb - May',
+    activities: ['Beach Camping', 'Stargazing', 'Trekking Hilltop Viewpoints'],
+    packageLink: '/packages'
   },
   {
     id: 'spot-donsol',
@@ -33,7 +45,11 @@ const INITIAL_SPOTS = [
     coords: [12.9067, 123.5997],
     description: 'World-renowned eco-tourism destination for ethical swimming with gentle giant whale sharks (Butanding) in their natural habitat.',
     category: 'Eco Adventure',
-    featuredImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'Peak whale shark season is Feb to May. Respect interaction guidelines (no flash, no touching).',
+    bestSeason: 'Feb - May (Peak Butanding Season)',
+    activities: ['Whale Shark Swimming', 'Firefly River Cruise', 'Mangrove Kayaking'],
+    packageLink: '/packages'
   },
   {
     id: 'spot-matnog',
@@ -41,7 +57,11 @@ const INITIAL_SPOTS = [
     coords: [12.5852, 124.0853],
     description: 'The southern tip of Luzon featuring Subic Beach, famous for its unique pink-tinted sand composed of crushed red organ-pipe corals.',
     category: 'Islands & Beaches',
-    featuredImage: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'Combine with Juag Lagoon Fish Sanctuary for fish feeding and snorkeling.',
+    bestSeason: 'March - June',
+    activities: ['Pink Sand Photography', 'Fish Sanctuary Feeding', 'Island Hopping'],
+    packageLink: '/packages'
   },
   {
     id: 'spot-naga',
@@ -49,7 +69,11 @@ const INITIAL_SPOTS = [
     coords: [13.6218, 123.1948],
     description: 'The major Roman Catholic pilgrimage site in Bicol, housing the revered image of Our Lady of Peñafrancia.',
     category: 'Cultural & Heritage',
-    featuredImage: 'https://images.unsplash.com/photo-1548625361-18544e300185?auto=format&fit=crop&q=80&w=800'
+    featuredImage: 'https://images.unsplash.com/photo-1548625361-18544e300185?auto=format&fit=crop&q=80&w=800',
+    travelTips: 'September hosts the grand Peñafrancia Festival. Dress modestly when visiting religious sanctuaries.',
+    bestSeason: 'Year-round (Peñafrancia Fiesta in Sept)',
+    activities: ['Cultural Heritage Tour', 'Religious Pilgrimage', 'Naga Food Crawl'],
+    packageLink: '/packages'
   }
 ];
 
@@ -59,7 +83,7 @@ const INITIAL_UPLOADS = [
     spotId: 'spot-mayon',
     touristName: 'Maria Santos',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    caption: 'Mayon Volcano looking stunning today! Absolutely clear skies over Cagsawa Ruins 🌋',
+    caption: 'Mayon Volcano looking stunning today! Absolutely clear skies over Cagsawa Ruins.',
     imageUrl: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800',
     date: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 mins ago
     likesCount: 24,
@@ -70,7 +94,7 @@ const INITIAL_UPLOADS = [
     spotId: 'spot-caramoan',
     touristName: 'Jonas K.',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    caption: 'Island hopping in Caramoan. These limestone cliffs look like paradise! 🏝️',
+    caption: 'Island hopping in Caramoan. These limestone cliffs look like paradise!',
     imageUrl: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800',
     date: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 mins ago
     likesCount: 18,
@@ -81,7 +105,7 @@ const INITIAL_UPLOADS = [
     spotId: 'spot-calaguas',
     touristName: 'Anna L.',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    caption: 'Mahabang Buhabang sand is so white and fine! Best camping trip ever 🌊',
+    caption: 'Mahabang Buhabang sand is so white and fine! Best camping trip ever.',
     imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800',
     date: new Date(Date.now() - 1000 * 3600 * 2).toISOString(), // 2 hours ago
     likesCount: 42,
@@ -92,7 +116,7 @@ const INITIAL_UPLOADS = [
     spotId: 'spot-donsol',
     touristName: 'Mark R.',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    caption: 'Just swam alongside a giant Butanding in Donsol! Unbelievable experience 🐋',
+    caption: 'Just swam alongside a giant Butanding in Donsol! Unbelievable experience.',
     imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800',
     date: new Date(Date.now() - 1000 * 3600 * 4).toISOString(), // 4 hours ago
     likesCount: 31,
@@ -103,7 +127,7 @@ const INITIAL_UPLOADS = [
     spotId: 'spot-matnog',
     touristName: 'Kat P.',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-    caption: 'Pink sand is real! The Subic beach in Matnog is absolutely breathtaking 💕',
+    caption: 'Pink sand is real! The Subic beach in Matnog is absolutely breathtaking.',
     imageUrl: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800',
     date: new Date(Date.now() - 1000 * 3600 * 6).toISOString(), // 6 hours ago
     likesCount: 56,
@@ -165,6 +189,11 @@ export const mapGalleryService = {
     all.unshift(newUpload);
     localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(all));
     return newUpload;
+  },
+
+  clearSamplePhotos: async () => {
+    localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify([]));
+    return [];
   },
 
   likeUpload: async (uploadId) => {
