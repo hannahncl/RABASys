@@ -259,7 +259,60 @@ RABAS Travel & Tours Services
     }
 }
 
+// BOOKING CONFIRMATION EMAIL
+// Email delivery is intentionally best-effort: a temporary Gmail outage must
+// not undo a booking that was already saved to the database.
+async function sendBookingConfirmation(booking, type = "tour") {
+    const email = booking?.email;
+    if (!email) return false;
+
+    const transporter = getMailer();
+    if (!transporter) {
+        console.warn(`[mailer] Booking confirmation not sent; email delivery is not configured (${email}).`);
+        return false;
+    }
+
+    const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    }[char]));
+    const money = Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 });
+    const isRental = type === "rental";
+    const title = isRental ? "Car Rental Booking Confirmation" : "Tour Booking Confirmation";
+    const details = isRental
+        ? [
+            ["Vehicle", booking.vehicle_name],
+            ["Plate number", booking.plate_number],
+            ["Pickup date", booking.pickup_date],
+            ["Return date", booking.return_date],
+            ["Pickup location", booking.pickup_location],
+            ["Payment method", booking.payment_method],
+        ]
+        : [
+            ["Tour package", booking.package_name],
+            ["Destination", booking.destination],
+            ["Travel date", booking.travel_date],
+            ["Number of persons", booking.number_of_persons],
+        ];
+    const detailText = details.map(([label, value]) => `${label}: ${value || "-"}`).join("\n");
+    const detailHtml = details.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${esc(label)}</td><td style="padding:7px 12px;font-weight:bold">${esc(value || "-")}</td></tr>`).join("");
+    try {
+        await transporter.sendMail({
+            from: `"RABAS Travel & Tours Services" <${process.env.GMAIL_FROM || process.env.GMAIL_USER}>`,
+            to: email,
+            subject: `${title} - ${booking.booking_reference}`,
+            text: `Dear ${booking.first_name || "Customer"},\n\nThank you for booking with RABAS Travel & Tours Services. Your booking has been received.\n\nBooking reference: ${booking.booking_reference}\nStatus: ${booking.booking_status || "Pending"}\n${detailText}\nTotal amount: PHP ${money}\n\nPlease keep this email for your records. We will contact you with any updates.\n\nRABAS Travel & Tours Services`,
+            html: `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${esc(booking.first_name || "Customer")},</p><p>Thank you for booking with us. Your booking has been received and is currently <strong>${esc(booking.booking_status || "Pending")}</strong>.</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 8px"><strong>Booking reference:</strong> ${esc(booking.booking_reference)}</p><table style="width:100%;border-collapse:collapse">${detailHtml}</table><p style="margin:12px 0 0"><strong>Total amount:</strong> PHP ${esc(money)}</p></div><p>Please keep this email for your records. We will contact you with any updates.</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`
+        });
+        console.log(`[mailer] Booking confirmation sent to ${email}`);
+        return true;
+    } catch (error) {
+        console.error(`[mailer] Failed to send booking confirmation to ${email}:`, error.message);
+        return false;
+    }
+}
+
 module.exports = {
     sendPasswordResetOtp,
     sendTwoFactorOtp,
+    sendBookingConfirmation,
 };

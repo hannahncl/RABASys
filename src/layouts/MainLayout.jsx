@@ -1,12 +1,14 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark } from 'lucide-react';
+import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, CalendarDays } from 'lucide-react';
+import PublicCalendarModal from '../components/ui/PublicCalendarModal';
 
 const MainLayout = () => {
   const { user, logout } = useContext(AuthContext);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,7 +32,7 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white shadow-sm">
+      <header className="sticky top-0 z-40 w-full bg-white shadow-xs">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
@@ -42,11 +44,10 @@ const MainLayout = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${
-                  isActive(link.path)
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
-                }`}
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive(link.path)
+                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  }`}
               >
                 {link.name}
               </Link>
@@ -55,6 +56,15 @@ const MainLayout = () => {
 
           {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
           <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
+            {/* Calendar Icon Button (Beside / Left side of Profile icon) */}
+            <button
+              onClick={() => setCalendarOpen(true)}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-slate-300"
+              title="View Schedule Calendar"
+            >
+              <CalendarDays className="h-[18px] w-[18px] text-slate-700" />
+            </button>
+
             {user ? (
               <div className="relative">
                 <button
@@ -108,11 +118,10 @@ const MainLayout = () => {
             ) : (
               <Link
                 to="/login"
-                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${
-                  isActive('/login')
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
-                }`}
+                className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive('/login')
+                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  }`}
                 title="Sign In"
               >
                 <User className="h-[18px] w-[18px]" />
@@ -121,11 +130,18 @@ const MainLayout = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile Menu & Calendar Button */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setCalendarOpen(true)}
+              className="p-2 text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+              title="Schedule Calendar"
+            >
+              <CalendarDays className="h-5 w-5 text-yellow-600" />
+            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-slate-500 hover:text-slate-900 focus:outline-none transition-colors"
+              className="text-slate-500 hover:text-slate-900 focus:outline-none transition-colors p-1"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -142,17 +158,16 @@ const MainLayout = () => {
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all border ${
-                  isActive(link.path)
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                    : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
-                }`}
+                className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all border ${isActive(link.path)
+                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  }`}
               >
                 {link.name}
               </Link>
             ))}
           </nav>
-          
+
           <div className="border-t border-slate-100 pt-4 flex flex-col gap-3">
             {user ? (
               <>
@@ -191,11 +206,10 @@ const MainLayout = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all border ${
-                    isActive('/login')
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                      : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50/50 text-slate-700'
-                  }`}
+                  className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all border ${isActive('/login')
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                    : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50/50 text-slate-700'
+                    }`}
                 >
                   Sign In
                 </Link>
@@ -223,7 +237,7 @@ const MainLayout = () => {
                 Rabas Travel and Tours provides premium local and domestic tour packages across the Philippines. We support local guides, prioritize eco-tourism, and deliver unforgettable experiences.
               </p>
             </div>
-            
+
             <div>
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-200 mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm">
@@ -240,7 +254,7 @@ const MainLayout = () => {
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>Email: support@rabastravel.com</li>
                 <li>Phone: +63 917 123 4567</li>
-                <li>Address: Manila, Philippines</li>
+                <li>Address: Bicol, Philippines</li>
               </ul>
             </div>
           </div>
@@ -249,6 +263,9 @@ const MainLayout = () => {
           </div>
         </div>
       </footer>
+
+      {/* Public Calendar Modal */}
+      <PublicCalendarModal isOpen={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </div>
   );
 };

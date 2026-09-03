@@ -23,14 +23,15 @@ export const NotificationProvider = ({ children }) => {
     <NotificationContext.Provider value={{ showNotification: addToast }}>
       {children}
       
-      {/* Toast container */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      {/* Centered Toast container */}
+      <div className="fixed inset-0 flex flex-col items-center justify-center gap-6 z-[100] pointer-events-none">
         {toasts.map((toast) => {
+          // Subtle, elegant colors matching the luxury aesthetic
           const typeStyles = {
-            success: 'bg-emerald-950 border-emerald-800 text-emerald-200',
-            error: 'bg-rose-950 border-rose-800 text-rose-200',
-            warning: 'bg-amber-950 border-amber-800 text-amber-200',
-            info: 'bg-cyan-950 border-cyan-800 text-cyan-200',
+            success: { icon: '#2d4a3e', bg: '#f2f7f4', border: '#d5e6df', title: 'Success' },
+            error: { icon: '#6b2d2a', bg: '#f9f1f0', border: '#e8d2cf', title: 'Error' },
+            warning: { icon: '#785b24', bg: '#fcf8f0', border: '#e8dcba', title: 'Notice' },
+            info: { icon: '#2d3e52', bg: '#f0f4f8', border: '#d1dee8', title: 'Information' },
           }[toast.type];
 
           const Icon = {
@@ -43,16 +44,70 @@ export const NotificationProvider = ({ children }) => {
           return (
             <div
               key={toast.id}
-              className={`flex items-start gap-3 p-4 rounded-xl border glass-panel shadow-2xl pointer-events-auto transition-all duration-300 transform translate-y-0 ${typeStyles}`}
+              className="flex flex-col items-center text-center p-10 pointer-events-auto transition-all duration-300 transform translate-y-0 w-full max-w-[380px]"
+              style={{
+                background: '#ffffff',
+                border: `1px solid ${typeStyles.border}`,
+                borderRadius: '8px', // Slightly softer radius for a large prominent modal
+                boxShadow: '0 24px 60px rgba(0,0,0,0.12)',
+                fontFamily: "'Inter', 'Georgia', serif"
+              }}
               role="alert"
             >
-              <Icon className="h-5 w-5 shrink-0 mt-0.5" />
-              <div className="flex-1 text-sm font-medium">{toast.message}</div>
+              {/* Large Icon Box */}
+              <div 
+                className="flex items-center justify-center shrink-0 w-24 h-24 rounded-full mb-6"
+                style={{ background: typeStyles.bg }}
+              >
+                <Icon className="h-10 w-10" style={{ color: typeStyles.icon, strokeWidth: 1.5 }} />
+              </div>
+              
+              {/* Title */}
+              <h3 
+                className="text-xl font-semibold mb-3"
+                style={{
+                  color: '#1a1a1a',
+                  fontFamily: "'Outfit', Georgia, serif",
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {typeStyles.title}
+              </h3>
+
+              {/* Message */}
+              <div 
+                className="text-[13px] font-medium leading-relaxed mb-10 px-4"
+                style={{ color: '#4a453b' }}
+              >
+                {toast.message}
+              </div>
+
+              {/* Action Button */}
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
+                className="w-full py-4 text-[12px] font-semibold transition-all duration-300 cursor-pointer"
+                style={{
+                  background: '#1a1a1a',
+                  color: '#ffffff',
+                  borderRadius: '999px', // Pill-shaped button matching the reference image's large button
+                  letterSpacing: '0.04em',
+                  border: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#333333';
+                  e.target.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#1a1a1a';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+                onMouseDown={(e) => {
+                  e.target.style.transform = 'translateY(1px)';
+                }}
               >
-                <X className="h-4 w-4" />
+                Okay, got it
               </button>
             </div>
           );

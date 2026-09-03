@@ -53,6 +53,8 @@ const Profile = () => {
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   // Profile state
   const [accountRecord, setAccountRecord] = useState(null);
@@ -133,6 +135,18 @@ const Profile = () => {
       ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed)
       : allBookings.filter(b => b.status === activeTab);
 
+  // ── Reset to page 1 when tab changes ──
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  // ── Pagination calculations ──
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+
   // ── Save profile edits ──
   const handleSave = async (e) => {
     e.preventDefault();
@@ -212,10 +226,7 @@ const Profile = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="mb-10 border-b border-slate-100 pb-8">
-          <p className="text-xs text-slate-400 tracking-widest uppercase mb-1">My Account</p>
-          <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">
-            Profile Dashboard
-          </h1>
+          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">My Account</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -387,7 +398,7 @@ const Profile = () => {
                 {tabs.map(tab => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => handleTabChange(tab)}
                     className={`flex items-center gap-1.5 whitespace-nowrap text-xs px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                       activeTab === tab
                         ? 'bg-yellow-50 text-yellow-700 border border-yellow-200 font-medium'
@@ -418,6 +429,8 @@ const Profile = () => {
                     <p className="text-xs text-slate-300 mt-1 text-center max-w-[240px]">
                       {activeTab === 'All'
                         ? "You haven't made any bookings yet."
+                        : activeTab === 'To Review'
+                        ? "All caught up! You've reviewed all your trips."
                         : `No ${activeTab.toLowerCase()} trips.`}
                     </p>
                     {activeTab === 'All' && (
@@ -429,6 +442,70 @@ const Profile = () => {
                       </Link>
                     )}
                   </div>
+                ) : activeTab === 'To Review' ? (
+                  /* Pending Reviews Card View */
+                  <div>
+                    <div className="space-y-3">
+                      {paginatedBookings.map(booking => (
+                        <Link
+                          key={booking.id}
+                          to={`/review/${booking.id}`}
+                          className="block p-4 rounded-lg border border-yellow-100 bg-yellow-50/40 hover:bg-yellow-50 transition-all group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-700 group-hover:text-yellow-700 truncate">
+                                {booking.packageName}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Completed on {new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-yellow-600 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Pagination for To Review */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   /* Timeline-style log */
                   <div className="relative">
@@ -436,7 +513,7 @@ const Profile = () => {
                     <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-100" />
 
                     <div className="space-y-0">
-                      {filteredBookings.map((booking, idx) => (
+                      {paginatedBookings.map((booking, idx) => (
                         <div key={booking.id} className="relative flex gap-5 items-start py-5">
 
                           {/* Timeline dot */}
@@ -507,21 +584,49 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
-                                {booking.status === 'Confirmed' && !booking.hasReviewed && booking.type === 'Tour Packages' && (
-                                  <Link
-                                    to={`/review/${booking.id}`}
-                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-600 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 transition-all cursor-pointer"
-                                  >
-                                    <Star className="h-3.5 w-3.5" />
-                                    Review
-                                  </Link>
-                                )}
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -536,44 +641,45 @@ const Profile = () => {
       ════════════════════════════════ */}
       {viewingBooking && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
           onClick={() => setViewingBooking(null)}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl space-y-5 border border-slate-100"
+            className="w-full max-w-sm space-y-4 rounded-md border border-[#e0dbd0] bg-white p-5 shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-100 px-2 py-0.5 rounded font-mono">
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8576]">
                   {viewingBooking.id}
                 </span>
-                <h3 className="text-lg font-black text-slate-800 mt-1">Booking Invoice</h3>
+                <h3 className="mt-1 text-base font-bold tracking-[0.02em] text-[#1a1a1a]">Booking Invoice</h3>
               </div>
               <button
                 onClick={() => setViewingBooking(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-xl cursor-pointer transition-colors"
+                className="cursor-pointer rounded border border-[#e0dbd0] bg-white p-1.5 text-[#6b6255] transition-colors hover:bg-[#fcfbf9] hover:text-[#2d2a24]"
+                title="Close invoice"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Package */}
-            <div className="p-4 bg-yellow-50/50 rounded-xl border border-yellow-100">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tour Package</p>
-              <h4 className="text-base font-extrabold text-slate-800 mt-0.5">{viewingBooking.packageName}</h4>
+            <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Tour Package</p>
+              <h4 className="mt-1 text-sm font-semibold leading-snug text-[#1a1a1a]">{viewingBooking.packageName}</h4>
             </div>
 
             {/* Status + Date */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Status</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Status</p>
                 <StatusBadge status={viewingBooking.status} />
               </div>
               <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Tour Date</p>
-                <p className="text-sm font-bold text-slate-750">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Tour Date</p>
+                <p className="text-xs font-semibold text-[#1a1a1a]">
                   {new Date(viewingBooking.tourDate).toLocaleDateString('en-US', {
                     month: 'long', day: 'numeric', year: 'numeric'
                   })}
@@ -582,41 +688,78 @@ const Profile = () => {
             </div>
 
             {/* Guest info */}
-            <div className="border-t border-b border-slate-100 py-3 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 border-y border-[#eae5db] py-3">
               <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lead Guest</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">{viewingBooking.customerName}</p>
-                <p className="text-[10px] text-slate-500">{viewingBooking.customerPhone}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Lead Guest</p>
+                <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.customerName}</p>
+                <p className="text-[10px] text-[#8f8576]">{viewingBooking.customerPhone}</p>
               </div>
               <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Guests Count</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">{viewingBooking.guestsCount} pax</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Guests</p>
+                <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.guestsCount} pax</p>
               </div>
             </div>
 
             {/* Payment */}
-            <div className="bg-yellow-50/50 border border-yellow-100 p-4 rounded-xl space-y-2">
+            <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
               <Row label="Payment Mode" value={viewingBooking.paymentMethod} />
               {viewingBooking.gcashNumber && (
                 <Row label="GCash Mobile" value={viewingBooking.gcashNumber} />
               )}
               {viewingBooking.paymentRef && (
-                <div className="flex justify-between items-center text-xs text-slate-500">
+                <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
                   <span>Reference ID:</span>
-                  <strong className="font-mono text-[11px] bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                  <strong className="rounded border border-[#e0dbd0] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#2d2a24]">
                     {viewingBooking.paymentRef}
                   </strong>
                 </div>
               )}
-              <div className="border-t border-slate-200/50 my-2 pt-2 flex justify-between items-center text-sm font-black text-slate-800">
+              <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
                 <span>Grand Total Paid:</span>
-                <span className="text-yellow-600 text-base">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
+                <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
               </div>
             </div>
 
+            {/* Review Section */}
+            {viewingBooking.hasReviewed && viewingBooking.review && (
+              <div className="space-y-3 rounded border border-[#e0dbd0] bg-white p-3">
+                <div className="flex items-center gap-2">
+                  <Star className="h-3.5 w-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Your Review</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= viewingBooking.review.rating
+                            ? 'fill-[#c4b99a] text-[#c4b99a]'
+                            : 'fill-[#f5f2ee] text-[#d6cfc2]'
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-1 text-xs font-semibold text-[#4a453b]">
+                      {viewingBooking.review.rating}/5
+                    </span>
+                  </div>
+                  {viewingBooking.review.comment && (
+                    <p className="border-l-2 border-[#d6cfc2] pl-3 text-xs italic text-[#4a453b]">
+                      "{viewingBooking.review.comment}"
+                    </p>
+                  )}
+                  <p className="text-[10px] text-[#8f8576]">
+                    Reviewed on {new Date(viewingBooking.review.createdAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={() => setViewingBooking(null)}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs py-3 rounded-xl cursor-pointer transition-colors"
+              className="w-full cursor-pointer rounded border border-[#e0dbd0] bg-white py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#4a453b] transition-colors hover:bg-[#fcfbf9]"
             >
               Close
             </button>
@@ -657,9 +800,9 @@ const FormField = ({ label, value, onChange, type = 'text', placeholder = '', re
 );
 
 const Row = ({ label, value }) => (
-  <div className="flex justify-between items-center text-xs text-slate-500">
+  <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
     <span>{label}:</span>
-    <strong className="text-slate-800">{value}</strong>
+    <strong className="text-right font-semibold text-[#1a1a1a]">{value}</strong>
   </div>
 );
 
