@@ -92,12 +92,7 @@ async function ensureSchema() {
         CONSTRAINT fk_password_reset_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
     // 5. Login OTP
->>>>>>> 330b419b865c5f2a891d10887b588438b4e2241b
     await db.query(`CREATE TABLE IF NOT EXISTS login_otp (
         login_otp_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         account_id INT UNSIGNED NOT NULL,
@@ -112,11 +107,7 @@ async function ensureSchema() {
         CONSTRAINT fk_login_otp_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
-<<<<<<< HEAD
->>>>>>> 8fc067db244f7dc5aedbc1e06bdfb72a5f93c080
-=======
     // 6. Tour Package
->>>>>>> 330b419b865c5f2a891d10887b588438b4e2241b
     await db.query(`CREATE TABLE IF NOT EXISTS tour_package (
         package_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         package_name VARCHAR(255) NOT NULL,
@@ -129,20 +120,14 @@ async function ensureSchema() {
         meeting_location VARCHAR(255) NULL,
         itinerary JSON NULL,
         availability_status VARCHAR(50) NOT NULL DEFAULT 'Available',
-<<<<<<< HEAD
-        image VARCHAR(500) NULL,
-=======
         package_type VARCHAR(50) NOT NULL DEFAULT 'tour',
         image LONGTEXT NULL,
->>>>>>> 8fc067db244f7dc5aedbc1e06bdfb72a5f93c080
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (package_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
-<<<<<<< HEAD
-=======
     const [packageTypeColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'package_type'`);
     if (!packageTypeColumns.length) {
         await db.query(`ALTER TABLE tour_package ADD COLUMN package_type VARCHAR(50) NOT NULL DEFAULT 'tour'`);
@@ -153,11 +138,7 @@ async function ensureSchema() {
         await db.query(`ALTER TABLE tour_package ADD COLUMN image LONGTEXT NULL`);
     }
 
-<<<<<<< HEAD
->>>>>>> 8fc067db244f7dc5aedbc1e06bdfb72a5f93c080
-=======
     // 7. Vehicle
->>>>>>> 330b419b865c5f2a891d10887b588438b4e2241b
     await db.query(`CREATE TABLE IF NOT EXISTS vehicle (
         vehicle_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         media_id INT UNSIGNED NULL,
