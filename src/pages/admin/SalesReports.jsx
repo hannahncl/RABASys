@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
-<<<<<<< HEAD
+
+
 import { ArrowUpDown, Eye, Loader, Search, DollarSign, ReceiptText, CheckCircle2, XCircle } from 'lucide-react';
-=======
+
 import { Download, FileText, Loader, Printer, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
->>>>>>> 8e12330aa90a15e07b44399377e16516431eb629
+
 
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
 
@@ -696,14 +697,14 @@ const SalesReports = () => {
   }
 
   return (
-<<<<<<< HEAD
+
     <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-=======
+
     <div className="space-y-6">
-      {/* Print Specific CSS Rules */}
-      <style>{`
+            {/* Print Specific CSS Rules */}
+            <style>{`
         @media print {
           body * {
             visibility: hidden !important;
@@ -768,150 +769,150 @@ const SalesReports = () => {
         }
       `}</style>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left Side: Filter Dropdowns & Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Service:</label>
-            <select
-              value={activeType}
-              onChange={(e) => setActiveType(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-4 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
-            >
-              <option value="ALL">All Services</option>
-              <option value="Tour Packages">Tour Packages</option>
-              <option value="TukTrip">Tuktrip</option>
-              <option value="Car Rental">Car Rental</option>
-            </select>
-          </div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Left Side: Filter Dropdowns & Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Service:</label>
+                  <select
+                    value={activeType}
+                    onChange={(e) => setActiveType(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-4 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    <option value="ALL">All Services</option>
+                    <option value="Tour Packages">Tour Packages</option>
+                    <option value="TukTrip">Tuktrip</option>
+                    <option value="Car Rental">Car Rental</option>
+                  </select>
+                </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Date Range:</label>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-4 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
-            >
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="This Year">This Year</option>
-              <option value="Custom">Custom</option>
-            </select>
-          </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Date Range:</label>
+                  <select
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-4 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  >
+                    <option value="Today">Today</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                    <option value="This Year">This Year</option>
+                    <option value="Custom">Custom</option>
+                  </select>
+                </div>
 
-          {dateRange === 'Custom' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
-              />
-              <span className="text-xs text-slate-500 font-bold">to</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
-              />
+                {dateRange === 'Custom' && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                    />
+                    <span className="text-xs text-slate-500 font-bold">to</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                    />
+                  </div>
+                )}
+
+                {/* Action Buttons: Apply Filters, Reset, Generate Report & Export PDF */}
+                <div className="flex items-center gap-2 ml-1">
+                  <button
+                    onClick={handleApplyFilters}
+                    className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    Apply Filters
+                  </button>
+                  <button
+                    onClick={handleResetFilters}
+                    className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-750 transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Generate Report
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export PDF
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Side: Search Bar on the same line */}
+              <div className="relative min-w-[240px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search reports..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilters(); }}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+              </div>
             </div>
-          )}
 
-          {/* Action Buttons: Apply Filters, Reset, Generate Report & Export PDF */}
-          <div className="flex items-center gap-2 ml-1">
-            <button
-              onClick={handleApplyFilters}
-              className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Apply Filters
-            </button>
-            <button
-              onClick={handleResetFilters}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-750 transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
-            </button>
-            <button
-              onClick={() => setShowReportModal(true)}
-              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              Generate Report
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export PDF
-            </button>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
 
-        {/* Right Side: Search Bar on the same line */}
-        <div className="relative min-w-[240px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search reports..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilters(); }}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-          />
-        </div>
-      </div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Earnings</span><DollarSign className="h-4 w-4 text-[#1a1a1a]" />
+                </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-panel p-5 rounded-2xl border-slate-800 relative group transition-all hover:border-cyan-500/40">
->>>>>>> 8e12330aa90a15e07b44399377e16516431eb629
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Earnings</span><DollarSign className="h-4 w-4 text-[#1a1a1a]" />
-          </div>
-<<<<<<< HEAD
           <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
 =======
           <div className="text-2xl font-extrabold text-slate-100">
->>>>>>> 8e12330aa90a15e07b44399377e16516431eb629
-            PHP {totalEarnings.toLocaleString()}
-          </div>
-        </div>
 
-        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Bookings</span><ReceiptText className="h-4 w-4 text-[#1a1a1a]" />
-          </div>
-<<<<<<< HEAD
+      PHP {totalEarnings.toLocaleString()}
+    </div>
+  </div>
+
+    <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Total Bookings</span><ReceiptText className="h-4 w-4 text-[#1a1a1a]" />
+      </div>
+
           <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
 =======
           <div className="text-2xl font-extrabold text-slate-100">
->>>>>>> 8e12330aa90a15e07b44399377e16516431eb629
-            {totalBookings}
-          </div>
-        </div>
 
-        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Confirmed</span><CheckCircle2 className="h-4 w-4 text-[#1a1a1a]" />
-          </div>
-<<<<<<< HEAD
-          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
-            {confirmedCount}
-          </div>
-        </div>
+      {totalBookings}
+    </div>
+  </div>
 
-        <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Cancelled</span><XCircle className="h-4 w-4 text-[#1a1a1a]" />
-          </div>
-          <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
-            {cancelledCount}
-          </div>
-        </div>
+    <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Confirmed</span><CheckCircle2 className="h-4 w-4 text-[#1a1a1a]" />
       </div>
+
+  <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
+    {confirmedCount}
+  </div>
+        </div >
+
+  <div className="bg-white border border-[#e0dbd0] p-5 rounded-md relative group transition-all hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+    <div className="flex justify-between items-start mb-2">
+      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">Cancelled</span><XCircle className="h-4 w-4 text-[#1a1a1a]" />
+    </div>
+    <div className="text-2xl font-display font-extrabold text-[#1a1a1a]">
+      {cancelledCount}
+    </div>
+  </div>
+      </div >
 
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 py-2">
         <div className="flex flex-wrap items-center gap-3">
@@ -1040,404 +1041,404 @@ const SalesReports = () => {
                     </td>
 =======
           <div className="text-2xl font-extrabold text-slate-100">
-            {confirmedCount}
+          {confirmedCount}
+        </div>
+      </div>
+      </div>
+
+        {/* Table Section */}
+        <div className="glass-panel rounded-2xl overflow-hidden border-slate-900">
+          <div className="overflow-x-auto">
+            {appliedFilters.activeType === 'ALL' ? (
+              /* Services Breakdown Table for ALL button */
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
+                    <th className="p-4 font-bold uppercase">Service</th>
+                    <th className="p-4 font-bold uppercase text-center">Bookings</th>
+                    <th className="p-4 font-bold uppercase text-center">Customers</th>
+                    <th className="p-4 font-bold uppercase text-right">Total Sales</th>
+                    <th className="p-4 font-bold uppercase text-right">% of Total Sales</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-slate-300">
+                  {serviceStats.rows.map((row) => (
+                    <tr key={row.service} className="hover:bg-slate-900/20">
+                      <td className="p-4 font-bold text-slate-200">{row.service}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.bookingsCount}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.customersCount}</td>
+                      <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString()}</td>
+                      <td className="p-4 text-right font-bold text-cyan-400">{row.percentage}</td>
+
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
+                    <td className="p-4 font-extrabold text-cyan-400">{serviceStats.totalRow.service}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{serviceStats.totalRow.bookingsCount}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{serviceStats.totalRow.customersCount}</td>
+                    <td className="p-4 text-right font-extrabold text-slate-100">PHP {serviceStats.totalRow.totalSales.toLocaleString()}</td>
+                    <td className="p-4 text-right font-extrabold text-cyan-400">{serviceStats.totalRow.percentage}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : appliedFilters.activeType === 'Car Rental' ? (
+              /* Car Rental Table */
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
+                    <th className="p-4 font-bold uppercase">Vehicle</th>
+                    <th className="p-4 font-bold uppercase text-center">No. of Rentals</th>
+                    <th className="p-4 font-bold uppercase text-center">Total Rental Days</th>
+                    <th className="p-4 font-bold uppercase text-right">Rental Rate</th>
+                    <th className="p-4 font-bold uppercase text-right">Total Sales</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-slate-300">
+                  {carRentalStats.rows.map((row) => (
+                    <tr key={row.vehicleName} className="hover:bg-slate-900/20">
+                      <td className="p-4 font-bold text-slate-200">{row.vehicleName}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.rentalsCount}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.totalRentalDays}</td>
+                      <td className="p-4 text-right font-semibold text-slate-300">PHP {row.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
+                    <td className="p-4 font-extrabold text-cyan-400">{carRentalStats.totalRow.vehicleName}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{carRentalStats.totalRow.rentalsCount}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{carRentalStats.totalRow.totalRentalDays}</td>
+                    <td className="p-4 text-right font-extrabold text-slate-300">PHP {carRentalStats.totalRow.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="p-4 text-right font-extrabold text-cyan-400">PHP {carRentalStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              /* Tour Packages / TukTrip Table */
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
+                    <th className="p-4 font-bold uppercase">
+                      {appliedFilters.activeType === 'Tour Packages' ? 'Tour Package' : 'TukTrip Package'}
+                    </th>
+                    <th className="p-4 font-bold uppercase text-center">No. of Bookings</th>
+                    <th className="p-4 font-bold uppercase text-center">No. of Tourists</th>
+                    <th className="p-4 font-bold uppercase text-right">Price per Booking</th>
+                    <th className="p-4 font-bold uppercase text-right">Total Sales</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-slate-300">
+                  {tourPackageStats.rows.map((row) => (
+                    <tr key={row.packageName} className="hover:bg-slate-900/20">
+                      <td className="p-4 font-bold text-slate-200">{row.packageName}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.bookingsCount}</td>
+                      <td className="p-4 text-center font-medium text-slate-300">{row.touristsCount}</td>
+                      <td className="p-4 text-right font-semibold text-slate-300">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
+                    <td className="p-4 font-extrabold text-cyan-400">{tourPackageStats.totalRow.packageName}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{tourPackageStats.totalRow.bookingsCount}</td>
+                    <td className="p-4 text-center font-extrabold text-slate-100">{tourPackageStats.totalRow.touristsCount}</td>
+                    <td className="p-4 text-right font-extrabold text-slate-300">PHP {tourPackageStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="p-4 text-right font-extrabold text-cyan-400">PHP {tourPackageStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Table Section */}
-      <div className="glass-panel rounded-2xl overflow-hidden border-slate-900">
-        <div className="overflow-x-auto">
-          {appliedFilters.activeType === 'ALL' ? (
-            /* Services Breakdown Table for ALL button */
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
-                  <th className="p-4 font-bold uppercase">Service</th>
-                  <th className="p-4 font-bold uppercase text-center">Bookings</th>
-                  <th className="p-4 font-bold uppercase text-center">Customers</th>
-                  <th className="p-4 font-bold uppercase text-right">Total Sales</th>
-                  <th className="p-4 font-bold uppercase text-right">% of Total Sales</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-900 text-slate-300">
-                {serviceStats.rows.map((row) => (
-                  <tr key={row.service} className="hover:bg-slate-900/20">
-                    <td className="p-4 font-bold text-slate-200">{row.service}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.bookingsCount}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.customersCount}</td>
-                    <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString()}</td>
-                    <td className="p-4 text-right font-bold text-cyan-400">{row.percentage}</td>
->>>>>>> 8e12330aa90a15e07b44399377e16516431eb629
-                  </tr>
-                ))}
-                <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
-                  <td className="p-4 font-extrabold text-cyan-400">{serviceStats.totalRow.service}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{serviceStats.totalRow.bookingsCount}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{serviceStats.totalRow.customersCount}</td>
-                  <td className="p-4 text-right font-extrabold text-slate-100">PHP {serviceStats.totalRow.totalSales.toLocaleString()}</td>
-                  <td className="p-4 text-right font-extrabold text-cyan-400">{serviceStats.totalRow.percentage}</td>
-                </tr>
-              </tbody>
-            </table>
-          ) : appliedFilters.activeType === 'Car Rental' ? (
-            /* Car Rental Table */
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
-                  <th className="p-4 font-bold uppercase">Vehicle</th>
-                  <th className="p-4 font-bold uppercase text-center">No. of Rentals</th>
-                  <th className="p-4 font-bold uppercase text-center">Total Rental Days</th>
-                  <th className="p-4 font-bold uppercase text-right">Rental Rate</th>
-                  <th className="p-4 font-bold uppercase text-right">Total Sales</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-900 text-slate-300">
-                {carRentalStats.rows.map((row) => (
-                  <tr key={row.vehicleName} className="hover:bg-slate-900/20">
-                    <td className="p-4 font-bold text-slate-200">{row.vehicleName}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.rentalsCount}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.totalRentalDays}</td>
-                    <td className="p-4 text-right font-semibold text-slate-300">PHP {row.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  </tr>
-                ))}
-                <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
-                  <td className="p-4 font-extrabold text-cyan-400">{carRentalStats.totalRow.vehicleName}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{carRentalStats.totalRow.rentalsCount}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{carRentalStats.totalRow.totalRentalDays}</td>
-                  <td className="p-4 text-right font-extrabold text-slate-300">PHP {carRentalStats.totalRow.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="p-4 text-right font-extrabold text-cyan-400">PHP {carRentalStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-              </tbody>
-            </table>
-          ) : (
-            /* Tour Packages / TukTrip Table */
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-900/60 border-b border-slate-850 text-slate-400">
-                  <th className="p-4 font-bold uppercase">
-                    {appliedFilters.activeType === 'Tour Packages' ? 'Tour Package' : 'TukTrip Package'}
-                  </th>
-                  <th className="p-4 font-bold uppercase text-center">No. of Bookings</th>
-                  <th className="p-4 font-bold uppercase text-center">No. of Tourists</th>
-                  <th className="p-4 font-bold uppercase text-right">Price per Booking</th>
-                  <th className="p-4 font-bold uppercase text-right">Total Sales</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-900 text-slate-300">
-                {tourPackageStats.rows.map((row) => (
-                  <tr key={row.packageName} className="hover:bg-slate-900/20">
-                    <td className="p-4 font-bold text-slate-200">{row.packageName}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.bookingsCount}</td>
-                    <td className="p-4 text-center font-medium text-slate-300">{row.touristsCount}</td>
-                    <td className="p-4 text-right font-semibold text-slate-300">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="p-4 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  </tr>
-                ))}
-                <tr className="bg-slate-900/80 font-extrabold border-t border-slate-800 text-slate-100">
-                  <td className="p-4 font-extrabold text-cyan-400">{tourPackageStats.totalRow.packageName}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{tourPackageStats.totalRow.bookingsCount}</td>
-                  <td className="p-4 text-center font-extrabold text-slate-100">{tourPackageStats.totalRow.touristsCount}</td>
-                  <td className="p-4 text-right font-extrabold text-slate-300">PHP {tourPackageStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="p-4 text-right font-extrabold text-cyan-400">PHP {tourPackageStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {/* Formal Sales Report Preview Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden my-8 text-slate-200">
-            {/* Modal Header Bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-cyan-400" />
-                <h2 className="font-bold text-slate-100 text-sm tracking-wide">Formal Sales Report Preview</h2>
+        {/* Formal Sales Report Preview Modal */}
+        {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden my-8 text-slate-200">
+              {/* Modal Header Bar */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-cyan-400" />
+                  <h2 className="font-bold text-slate-100 text-sm tracking-wide">Formal Sales Report Preview</h2>
+                </div>
+                <div className="flex items-center gap-2 no-print">
+                  <button
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Print
+                  </button>
+                  <button
+                    onClick={() => setShowReportModal(false)}
+                    className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 no-print">
+
+              {/* Printable Report Document Container */}
+              <div id="printable-sales-report" className="p-6 md:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+                {/* Document Header */}
+                <div className="border-b border-slate-800 pb-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h1 className="text-2xl font-black tracking-tight text-slate-100 uppercase">RABAS Travel and Tours</h1>
+                      <p className="text-xs text-cyan-400 font-bold tracking-wider uppercase mt-0.5">Official Sales Report</p>
+                    </div>
+                    <div className="text-right text-xs text-slate-400">
+                      <div><span className="font-bold text-slate-300">Date Generated:</span> {new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                    </div>
+                  </div>
+
+                  {/* Filter Parameters Metadata Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 p-4 rounded-xl bg-slate-950/60 border border-slate-850 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Report Period</span>
+                      <span className="font-bold text-slate-200">
+                        {appliedFilters.dateRange === 'Custom'
+                          ? `${appliedFilters.startDate || 'Start'} to ${appliedFilters.endDate || 'End'}`
+                          : appliedFilters.dateRange}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Selected Service</span>
+                      <span className="font-bold text-slate-200">{appliedFilters.activeType === 'ALL' ? 'All Services' : appliedFilters.activeType}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Payment Status</span>
+                      <span className="font-bold text-emerald-400">Recognized Paid Sales</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Payment Method</span>
+                      <span className="font-bold text-slate-200">All (GCash / Card)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* High-level Sales Summary Banner */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Total Sales Revenue</span>
+                    <div className="text-xl font-black text-cyan-400 mt-1">PHP {totalEarnings.toLocaleString()}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Total Bookings</span>
+                    <div className="text-xl font-black text-slate-100 mt-1">{totalBookings}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Confirmed / Paid</span>
+                    <div className="text-xl font-black text-emerald-400 mt-1">{confirmedCount}</div>
+                  </div>
+                </div>
+
+                {/* Overall Sales Summary Breakdown */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Sales Summary Breakdown</h3>
+                  <div className="border border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
+                          <th className="p-3">Service</th>
+                          <th className="p-3 text-center">Number of Bookings</th>
+                          <th className="p-3 text-center">Number of Customers</th>
+                          <th className="p-3 text-right">Total Sales</th>
+                          <th className="p-3 text-right">% of Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850 text-slate-300">
+                        {serviceStats.rows.map((row) => (
+                          <tr key={row.service}>
+                            <td className="p-3 font-bold text-slate-200">{row.service}</td>
+                            <td className="p-3 text-center">{row.bookingsCount}</td>
+                            <td className="p-3 text-center">{row.customersCount}</td>
+                            <td className="p-3 text-right font-semibold text-slate-200">PHP {row.totalSales.toLocaleString()}</td>
+                            <td className="p-3 text-right font-bold text-cyan-400">{row.percentage}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
+                          <td className="p-3 text-cyan-400">{serviceStats.totalRow.service}</td>
+                          <td className="p-3 text-center">{serviceStats.totalRow.bookingsCount}</td>
+                          <td className="p-3 text-center">{serviceStats.totalRow.customersCount}</td>
+                          <td className="p-3 text-right">PHP {serviceStats.totalRow.totalSales.toLocaleString()}</td>
+                          <td className="p-3 text-right text-cyan-400">{serviceStats.totalRow.percentage}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Filtered Detailed Service Sections */}
+                {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Tour Packages') && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Tour Package Sales</h3>
+                    <div className="border border-slate-800 rounded-xl overflow-hidden">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
+                            <th className="p-3">Tour Package</th>
+                            <th className="p-3 text-center">Number of Bookings</th>
+                            <th className="p-3 text-center">Number of Tourists</th>
+                            <th className="p-3 text-right">Price per Booking</th>
+                            <th className="p-3 text-right">Total Sales</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850 text-slate-300">
+                          {tourPackageStats.rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching tour package sales found for applied filters.</td>
+                            </tr>
+                          ) : (
+                            tourPackageStats.rows.map((row) => (
+                              <tr key={row.packageName}>
+                                <td className="p-3 font-bold text-slate-200">{row.packageName}</td>
+                                <td className="p-3 text-center">{row.bookingsCount}</td>
+                                <td className="p-3 text-center">{row.touristsCount}</td>
+                                <td className="p-3 text-right">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))
+                          )}
+                          {tourPackageStats.rows.length > 0 && (
+                            <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
+                              <td className="p-3 text-cyan-400">{tourPackageStats.totalRow.packageName}</td>
+                              <td className="p-3 text-center">{tourPackageStats.totalRow.bookingsCount}</td>
+                              <td className="p-3 text-center">{tourPackageStats.totalRow.touristsCount}</td>
+                              <td className="p-3 text-right">PHP {tourPackageStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              <td className="p-3 text-right text-cyan-400">PHP {tourPackageStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'TukTrip') && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">TukTrip Sales</h3>
+                    <div className="border border-slate-800 rounded-xl overflow-hidden">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-950/80 border-b border-slate-850 text-slate-400 font-bold uppercase">
+                            <th className="p-3">TukTrip Package</th>
+                            <th className="p-3 text-center">Number of Bookings</th>
+                            <th className="p-3 text-center">Number of Tourists</th>
+                            <th className="p-3 text-right">Price per Booking</th>
+                            <th className="p-3 text-right">Total Sales</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850 text-slate-300">
+                          {tuktripStats.rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching TukTrip sales found for applied filters.</td>
+                            </tr>
+                          ) : (
+                            tuktripStats.rows.map((row) => (
+                              <tr key={row.packageName}>
+                                <td className="p-3 font-bold text-slate-200">{row.packageName}</td>
+                                <td className="p-3 text-center">{row.bookingsCount}</td>
+                                <td className="p-3 text-center">{row.touristsCount}</td>
+                                <td className="p-3 text-right">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))
+                          )}
+                          {tuktripStats.rows.length > 0 && (
+                            <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
+                              <td className="p-3 text-cyan-400">{tuktripStats.totalRow.packageName}</td>
+                              <td className="p-3 text-center">{tuktripStats.totalRow.bookingsCount}</td>
+                              <td className="p-3 text-center">{tuktripStats.totalRow.touristsCount}</td>
+                              <td className="p-3 text-right">PHP {tuktripStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              <td className="p-3 text-right text-cyan-400">PHP {tuktripStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Car Rental') && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Car Rental Sales</h3>
+                    <div className="border border-slate-800 rounded-xl overflow-hidden">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
+                            <th className="p-3">Vehicle</th>
+                            <th className="p-3 text-center">Number of Rentals</th>
+                            <th className="p-3 text-center">Total Rental Days</th>
+                            <th className="p-3 text-right">Rental Rate</th>
+                            <th className="p-3 text-right">Total Sales</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850 text-slate-300">
+                          {carRentalStats.rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching car rental sales found for applied filters.</td>
+                            </tr>
+                          ) : (
+                            carRentalStats.rows.map((row) => (
+                              <tr key={row.vehicleName}>
+                                <td className="p-3 font-bold text-slate-200">{row.vehicleName}</td>
+                                <td className="p-3 text-center">{row.rentalsCount}</td>
+                                <td className="p-3 text-center">{row.totalRentalDays}</td>
+                                <td className="p-3 text-right">PHP {row.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))
+                          )}
+                          {carRentalStats.rows.length > 0 && (
+                            <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
+                              <td className="p-3 text-cyan-400">{carRentalStats.totalRow.vehicleName}</td>
+                              <td className="p-3 text-center">{carRentalStats.totalRow.rentalsCount}</td>
+                              <td className="p-3 text-center">{carRentalStats.totalRow.totalRentalDays}</td>
+                              <td className="p-3 text-right">PHP {carRentalStats.totalRow.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              <td className="p-3 text-right text-cyan-400">PHP {carRentalStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Bar */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-950/50 no-print">
                 <button
                   onClick={handleExportPDF}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-4 h-4" />
                   Export PDF
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  Print
+                  <Printer className="w-4 h-4" />
+                  Print Report
                 </button>
                 <button
                   onClick={() => setShowReportModal(false)}
-                  className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  Close Preview
                 </button>
               </div>
             </div>
-
-            {/* Printable Report Document Container */}
-            <div id="printable-sales-report" className="p-6 md:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
-              {/* Document Header */}
-              <div className="border-b border-slate-800 pb-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h1 className="text-2xl font-black tracking-tight text-slate-100 uppercase">RABAS Travel and Tours</h1>
-                    <p className="text-xs text-cyan-400 font-bold tracking-wider uppercase mt-0.5">Official Sales Report</p>
-                  </div>
-                  <div className="text-right text-xs text-slate-400">
-                    <div><span className="font-bold text-slate-300">Date Generated:</span> {new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</div>
-                  </div>
-                </div>
-
-                {/* Filter Parameters Metadata Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 p-4 rounded-xl bg-slate-950/60 border border-slate-850 text-xs">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Report Period</span>
-                    <span className="font-bold text-slate-200">
-                      {appliedFilters.dateRange === 'Custom'
-                        ? `${appliedFilters.startDate || 'Start'} to ${appliedFilters.endDate || 'End'}`
-                        : appliedFilters.dateRange}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Selected Service</span>
-                    <span className="font-bold text-slate-200">{appliedFilters.activeType === 'ALL' ? 'All Services' : appliedFilters.activeType}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Payment Status</span>
-                    <span className="font-bold text-emerald-400">Recognized Paid Sales</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Payment Method</span>
-                    <span className="font-bold text-slate-200">All (GCash / Card)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* High-level Sales Summary Banner */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Total Sales Revenue</span>
-                  <div className="text-xl font-black text-cyan-400 mt-1">PHP {totalEarnings.toLocaleString()}</div>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Total Bookings</span>
-                  <div className="text-xl font-black text-slate-100 mt-1">{totalBookings}</div>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Confirmed / Paid</span>
-                  <div className="text-xl font-black text-emerald-400 mt-1">{confirmedCount}</div>
-                </div>
-              </div>
-
-              {/* Overall Sales Summary Breakdown */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Sales Summary Breakdown</h3>
-                <div className="border border-slate-800 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
-                        <th className="p-3">Service</th>
-                        <th className="p-3 text-center">Number of Bookings</th>
-                        <th className="p-3 text-center">Number of Customers</th>
-                        <th className="p-3 text-right">Total Sales</th>
-                        <th className="p-3 text-right">% of Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-850 text-slate-300">
-                      {serviceStats.rows.map((row) => (
-                        <tr key={row.service}>
-                          <td className="p-3 font-bold text-slate-200">{row.service}</td>
-                          <td className="p-3 text-center">{row.bookingsCount}</td>
-                          <td className="p-3 text-center">{row.customersCount}</td>
-                          <td className="p-3 text-right font-semibold text-slate-200">PHP {row.totalSales.toLocaleString()}</td>
-                          <td className="p-3 text-right font-bold text-cyan-400">{row.percentage}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
-                        <td className="p-3 text-cyan-400">{serviceStats.totalRow.service}</td>
-                        <td className="p-3 text-center">{serviceStats.totalRow.bookingsCount}</td>
-                        <td className="p-3 text-center">{serviceStats.totalRow.customersCount}</td>
-                        <td className="p-3 text-right">PHP {serviceStats.totalRow.totalSales.toLocaleString()}</td>
-                        <td className="p-3 text-right text-cyan-400">{serviceStats.totalRow.percentage}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Filtered Detailed Service Sections */}
-              {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Tour Packages') && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Tour Package Sales</h3>
-                  <div className="border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
-                          <th className="p-3">Tour Package</th>
-                          <th className="p-3 text-center">Number of Bookings</th>
-                          <th className="p-3 text-center">Number of Tourists</th>
-                          <th className="p-3 text-right">Price per Booking</th>
-                          <th className="p-3 text-right">Total Sales</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-850 text-slate-300">
-                        {tourPackageStats.rows.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching tour package sales found for applied filters.</td>
-                          </tr>
-                        ) : (
-                          tourPackageStats.rows.map((row) => (
-                            <tr key={row.packageName}>
-                              <td className="p-3 font-bold text-slate-200">{row.packageName}</td>
-                              <td className="p-3 text-center">{row.bookingsCount}</td>
-                              <td className="p-3 text-center">{row.touristsCount}</td>
-                              <td className="p-3 text-right">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                              <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                          ))
-                        )}
-                        {tourPackageStats.rows.length > 0 && (
-                          <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
-                            <td className="p-3 text-cyan-400">{tourPackageStats.totalRow.packageName}</td>
-                            <td className="p-3 text-center">{tourPackageStats.totalRow.bookingsCount}</td>
-                            <td className="p-3 text-center">{tourPackageStats.totalRow.touristsCount}</td>
-                            <td className="p-3 text-right">PHP {tourPackageStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="p-3 text-right text-cyan-400">PHP {tourPackageStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'TukTrip') && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">TukTrip Sales</h3>
-                  <div className="border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-950/80 border-b border-slate-850 text-slate-400 font-bold uppercase">
-                          <th className="p-3">TukTrip Package</th>
-                          <th className="p-3 text-center">Number of Bookings</th>
-                          <th className="p-3 text-center">Number of Tourists</th>
-                          <th className="p-3 text-right">Price per Booking</th>
-                          <th className="p-3 text-right">Total Sales</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-850 text-slate-300">
-                        {tuktripStats.rows.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching TukTrip sales found for applied filters.</td>
-                          </tr>
-                        ) : (
-                          tuktripStats.rows.map((row) => (
-                            <tr key={row.packageName}>
-                              <td className="p-3 font-bold text-slate-200">{row.packageName}</td>
-                              <td className="p-3 text-center">{row.bookingsCount}</td>
-                              <td className="p-3 text-center">{row.touristsCount}</td>
-                              <td className="p-3 text-right">PHP {row.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                              <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                          ))
-                        )}
-                        {tuktripStats.rows.length > 0 && (
-                          <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
-                            <td className="p-3 text-cyan-400">{tuktripStats.totalRow.packageName}</td>
-                            <td className="p-3 text-center">{tuktripStats.totalRow.bookingsCount}</td>
-                            <td className="p-3 text-center">{tuktripStats.totalRow.touristsCount}</td>
-                            <td className="p-3 text-right">PHP {tuktripStats.totalRow.pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="p-3 text-right text-cyan-400">PHP {tuktripStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Car Rental') && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Car Rental Sales</h3>
-                  <div className="border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase">
-                          <th className="p-3">Vehicle</th>
-                          <th className="p-3 text-center">Number of Rentals</th>
-                          <th className="p-3 text-center">Total Rental Days</th>
-                          <th className="p-3 text-right">Rental Rate</th>
-                          <th className="p-3 text-right">Total Sales</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-850 text-slate-300">
-                        {carRentalStats.rows.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-4 text-center text-slate-500 italic">No matching car rental sales found for applied filters.</td>
-                          </tr>
-                        ) : (
-                          carRentalStats.rows.map((row) => (
-                            <tr key={row.vehicleName}>
-                              <td className="p-3 font-bold text-slate-200">{row.vehicleName}</td>
-                              <td className="p-3 text-center">{row.rentalsCount}</td>
-                              <td className="p-3 text-center">{row.totalRentalDays}</td>
-                              <td className="p-3 text-right">PHP {row.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                              <td className="p-3 text-right font-bold text-slate-200">PHP {row.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                          ))
-                        )}
-                        {carRentalStats.rows.length > 0 && (
-                          <tr className="bg-slate-950/90 font-extrabold text-slate-100 border-t border-slate-800">
-                            <td className="p-3 text-cyan-400">{carRentalStats.totalRow.vehicleName}</td>
-                            <td className="p-3 text-center">{carRentalStats.totalRow.rentalsCount}</td>
-                            <td className="p-3 text-center">{carRentalStats.totalRow.totalRentalDays}</td>
-                            <td className="p-3 text-right">PHP {carRentalStats.totalRow.rentalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="p-3 text-right text-cyan-400">PHP {carRentalStats.totalRow.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer Bar */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-950/50 no-print">
-              <button
-                onClick={handleExportPDF}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                Export PDF
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                Print Report
-              </button>
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer"
-              >
-                Close Preview
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
-  );
+    );
 };
 
-export default SalesReports;
+    export default SalesReports;
