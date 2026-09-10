@@ -230,8 +230,7 @@ const MainLayout = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2 space-y-4">
               <Link to="/" className="inline-flex items-center gap-2 text-cyan-400 font-display font-bold text-xl tracking-wide">
-                <Compass className="h-6 w-6" />
-                RABAS TRAVEL & TOURS
+                RABAS TRAVEL & TOURS SERVICES
               </Link>
               <p className="text-slate-400 text-sm max-w-sm leading-relaxed">
                 Rabas Travel and Tours provides premium local and domestic tour packages across the Philippines. We support local guides, prioritize eco-tourism, and deliver unforgettable experiences.
@@ -239,14 +238,6 @@ const MainLayout = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-200 mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link to="/" className="text-slate-400 hover:text-cyan-400 transition-colors">Home</Link></li>
-                <li><Link to="/packages" className="text-slate-400 hover:text-cyan-400 transition-colors">Tour Packages</Link></li>
-                <li><Link to="/customize" className="text-slate-400 hover:text-cyan-400 transition-colors">Customize Trip</Link></li>
-                <li><Link to="/gallery" className="text-slate-400 hover:text-cyan-400 transition-colors">Spot Gallery</Link></li>
-                <li><Link to="/explore" className="text-slate-400 hover:text-cyan-400 transition-colors">Explore Map</Link></li>
-              </ul>
             </div>
 
             <div>

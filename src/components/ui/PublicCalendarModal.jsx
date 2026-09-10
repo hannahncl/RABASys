@@ -178,11 +178,7 @@ const PublicCalendarModal = ({ isOpen, onClose }) => {
             <div>
               <h2 className="text-lg font-bold tracking-tight text-stone-900 flex items-center gap-2 font-display">
                 Tour & Rental Schedule
-                <span className="text-[10px] uppercase tracking-widest font-semibold px-2.5 py-0.5 rounded-full bg-amber-200/70 text-amber-900 border border-amber-300">
-                  Live Calendar
-                </span>
               </h2>
-              <p className="text-xs text-stone-600">View upcoming tour dates, open joiner slots, and car rental schedules</p>
             </div>
           </div>
           <button
@@ -197,9 +193,6 @@ const PublicCalendarModal = ({ isOpen, onClose }) => {
         {/* Filter Navigation Bar */}
         <div className="px-6 py-3 bg-stone-100/70 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mr-2 flex items-center gap-1">
-              <Filter className="h-3 w-3 text-amber-600" /> Filter:
-            </span>
             <button
               onClick={() => setActiveFilter('all')}
               className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${activeFilter === 'all'
@@ -341,14 +334,10 @@ const PublicCalendarModal = ({ isOpen, onClose }) => {
             {/* Right Col: Selected Date Details Sidebar */}
             <div className="space-y-4">
               {/* Stat Counters */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 text-center">
                   <span className="text-xl font-extrabold text-emerald-700 block">{totalJoinerOpenings}</span>
                   <span className="text-[9px] text-stone-500 uppercase font-bold tracking-wider">Joiner Tours Open</span>
-                </div>
-                <div className="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200/60 text-center">
-                  <span className="text-xl font-extrabold text-amber-800 block">{totalExclusiveBooked}</span>
-                  <span className="text-[9px] text-amber-900 uppercase font-bold tracking-wider">Exclusive Tours</span>
                 </div>
               </div>
 
@@ -366,7 +355,7 @@ const PublicCalendarModal = ({ isOpen, onClose }) => {
                 <div className="p-4">
                   {!selectedDate ? (
                     <div className="text-center py-8 px-2 space-y-2">
-                      <Sparkles className="h-6 w-6 text-amber-500 mx-auto opacity-70" />
+
                       <p className="text-stone-500 text-xs leading-relaxed">
                         Click on any date in the calendar to view available joiner slots, tour details, and book your spot.
                       </p>
