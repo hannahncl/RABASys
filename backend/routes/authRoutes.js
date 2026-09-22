@@ -21,12 +21,13 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const isActiveAccount = (account) => String(account?.account_status || "").trim().toLowerCase() === "active";
 const verifyPassword = async (inputPassword, storedHash) => {
     if (!storedHash) return false;
+    if (storedHash === inputPassword) return true;
     try {
-        return await bcrypt.compare(String(inputPassword || ""), storedHash);
+        if (await bcrypt.compare(String(inputPassword || ""), storedHash)) return true;
     } catch {
-        // Invalid or legacy plaintext values are never accepted as passwords.
-        return false;
+        // Fall through to plaintext comparison for legacy or manually inserted records
     }
+    return storedHash === inputPassword;
 };
 
 const publicAccount = (account) => ({
@@ -130,6 +131,16 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
         if (!account || !isActiveAccount(account) || !passwordMatches) {
             return res.status(401).json({ message: "Invalid email/phone or password." });
+        }
+
+        if (account.password_hash === req.body.password) {
+            try {
+                const newHash = await bcrypt.hash(req.body.password, 12);
+                await db.execute("UPDATE account SET password_hash = ? WHERE account_id = ?", [newHash, account.account_id]);
+                account.password_hash = newHash;
+            } catch (err) {
+                console.warn("[auth] Failed to auto-hash plaintext password:", err.message);
+            }
         }
 
         if (Boolean(account.two_factor_enabled)) {
