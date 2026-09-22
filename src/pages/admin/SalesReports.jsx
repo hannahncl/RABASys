@@ -997,28 +997,12 @@ const SalesReports = () => {
                 <FileText className="w-5 h-5 text-cyan-400" />
                 <h2 className="font-bold text-slate-100 text-sm tracking-wide">Formal Sales Report Preview</h2>
               </div>
-              <div className="flex items-center gap-2 no-print">
-                <button
-                  onClick={handleExportPDF}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export PDF
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  Print
-                </button>
-                <button
-                  onClick={() => setShowReportModal(false)}
-                  className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer no-print"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {/* Printable Report Document Container */}
