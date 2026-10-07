@@ -147,6 +147,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (credential) => {
+    setLoading(true);
+    try {
+      const authResponse = await api('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential }),
+      });
+      const sessionUser = saveSession(authResponse);
+      return { success: true, user: sessionUser };
+    } catch (error) {
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     const token = localStorage.getItem('rabas_auth_token');
     if (token) {
@@ -168,7 +184,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verifyLoginOtp, register, logout, updateUserSession }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyLoginOtp, register, googleLogin, logout, updateUserSession }}>
       {children}
     </AuthContext.Provider>
   );

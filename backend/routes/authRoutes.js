@@ -3,12 +3,14 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
+const { OAuth2Client } = require("google-auth-library");
 const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
 const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
 const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, created_at, updated_at";
 const normalizeRole = (role) => {
     if (!role) return "Customer";
@@ -281,6 +283,64 @@ router.patch("/me", requireAuth, [
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_PROFILE", tableName: "account", recordId: req.user.accountId, oldValues: before[0], newValues: rows[0], req });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
+});
+
+// ── Google Sign-In ──────────────────────────────────────────────────────────
+router.post("/google", [body("credential").isString().notEmpty()], validate, async (req, res, next) => {
+    try {
+        // Verify the Google ID token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: req.body.credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const googleEmail = payload.email?.toLowerCase();
+        if (!googleEmail || !payload.email_verified) {
+            return res.status(400).json({ message: "Google account email is not verified." });
+        }
+
+        const firstName = sanitizeText(payload.given_name || payload.name?.split(" ")[0] || "User");
+        const lastName = sanitizeText(payload.family_name || payload.name?.split(" ").slice(1).join(" ") || "");
+
+        // Check if an account with this email already exists
+        const [existing] = await db.execute(
+            `SELECT ${accountFields} FROM account WHERE email = ? AND deleted_at IS NULL`,
+            [googleEmail]
+        );
+
+        let account;
+
+        if (existing.length > 0) {
+            account = existing[0];
+            if (!isActiveAccount(account)) {
+                return res.status(401).json({ message: "Your account has been deactivated. Please contact support." });
+            }
+        } else {
+            // Create a new account — use a random password hash since they sign in with Google
+            const randomPassword = crypto.randomBytes(32).toString("hex");
+            const [result] = await db.execute(
+                "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, '', 'Customer')",
+                [firstName, lastName || ".", googleEmail, await bcrypt.hash(randomPassword, 12)]
+            );
+            const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
+            account = rows[0];
+            await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, provider: "google" }, req });
+        }
+
+        // Create session (same as normal login)
+        const signedToken = tokenFor(account, 0);
+        const session = await createSession(account, signedToken, req);
+        const refreshedToken = tokenFor(account, session.sessionId);
+        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await logAudit({ accountId: account.account_id, sessionId: session.sessionId, action: "LOGIN_GOOGLE", tableName: "account", recordId: account.account_id, req });
+
+        res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: new Date(session.expiresAt).toISOString() });
+    } catch (error) {
+        if (error.message?.includes("Token used too late") || error.message?.includes("Invalid token")) {
+            return res.status(401).json({ message: "Google sign-in failed. Please try again." });
+        }
+        next(error);
+    }
 });
 
 module.exports = router;

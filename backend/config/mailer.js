@@ -311,8 +311,39 @@ async function sendBookingConfirmation(booking, type = "tour") {
     }
 }
 
+async function sendTripReminder(booking, type = "tour") {
+    const email = booking?.email;
+    if (!email) return false;
+    const transporter = getMailer();
+    if (!transporter) {
+        console.warn(`[mailer] Trip reminder not sent; email delivery is not configured (${email}).`);
+        return false;
+    }
+    const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+    const isRental = type === "rental";
+    const schedule = isRental ? booking.pickup_date : booking.travel_date;
+    const scheduleLabel = new Date(schedule).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+    const tripName = isRental ? booking.vehicle_name : booking.package_name;
+    const location = isRental ? booking.pickup_location : booking.destination;
+    try {
+        await transporter.sendMail({
+            from: `"RABAS Travel & Tours Services" <${process.env.GMAIL_FROM || process.env.GMAIL_USER}>`,
+            to: email,
+            subject: `Trip Reminder - Your ${isRental ? "car rental" : "tour"} is tomorrow`,
+            text: `Dear ${booking.first_name || "Customer"},\n\nThis is a friendly reminder that your ${isRental ? "car rental" : "trip"} is scheduled for tomorrow.\n\nBooking reference: ${booking.booking_reference}\n${isRental ? "Vehicle" : "Tour package"}: ${tripName || "-"}\nDate: ${scheduleLabel}\n${location ? `${isRental ? "Pickup location" : "Destination"}: ${location}\n` : ""}\nIf you need to change your schedule, use the rescheduling option in your RABAS account. Cancellation is not available.\n\nRABAS Travel & Tours Services`,
+            html: `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${esc(booking.first_name || "Customer")},</p><p>This is a friendly reminder that your ${isRental ? "car rental" : "trip"} is scheduled for <strong>tomorrow</strong>.</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${esc(booking.booking_reference)}</p><p><strong>${isRental ? "Vehicle" : "Tour package"}:</strong> ${esc(tripName || "-")}</p><p><strong>Date:</strong> ${esc(scheduleLabel)}</p>${location ? `<p><strong>${isRental ? "Pickup location" : "Destination"}:</strong> ${esc(location)}</p>` : ""}</div><p>If you need to change your schedule, use the rescheduling option in your RABAS account. Cancellation is not available.</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply to this message.</p></div>`
+        });
+        console.log(`[mailer] Trip reminder sent to ${email}`);
+        return true;
+    } catch (error) {
+        console.error(`[mailer] Failed to send trip reminder to ${email}:`, error.message);
+        return false;
+    }
+}
+
 module.exports = {
     sendPasswordResetOtp,
     sendTwoFactorOtp,
     sendBookingConfirmation,
+    sendTripReminder,
 };

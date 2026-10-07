@@ -25,9 +25,9 @@ const AVATARS = [
    Status badge helper
 ──────────────────────────────── */
 const StatusBadge = ({ status }) => {
-  if (status === 'Confirmed' || status === 'Completed') return (
+  if (status === 'Confirmed' || status === 'Completed' || status === 'Rescheduled') return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
-      <CheckCircle2 className="h-3.5 w-3.5" /> {status}
+      {status === 'Rescheduled' ? <RefreshCw className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />} {status}
     </span>
   );
   if (status === 'Cancelled') return (
@@ -127,7 +127,7 @@ const Profile = () => {
   }, [user]);
 
   // ── Filter bookings by tab ──
-  const tabs = ['All', 'Pending Verification', 'Confirmed', 'To Review', 'Cancelled'];
+  const tabs = ['All', 'Pending Verification', 'Confirmed', 'Rescheduled', 'To Review'];
 
   const filteredBookings = activeTab === 'All'
     ? allBookings
@@ -140,6 +140,7 @@ const Profile = () => {
     setActiveTab(tab);
     setCurrentPage(1);
   };
+
 
   // ── Pagination calculations ──
   const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE);
@@ -584,6 +585,15 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
+                                {booking.status !== 'Completed' && (
+                                  <Link
+                                    to={`/reschedule/${booking.id}`}
+                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-700 hover:text-yellow-800 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Reschedule
+                                  </Link>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -639,6 +649,8 @@ const Profile = () => {
       {/* ════════════════════════════════
           BOOKING INVOICE MODAL
       ════════════════════════════════ */}
+
+
       {viewingBooking && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
