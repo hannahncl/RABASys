@@ -72,8 +72,14 @@ async function requireAuth(req, res, next) {
 
 function allowRoles(...roles) {
     return (req, res, next) => {
-        const currentRole = String(req.user?.role || "").trim().toLowerCase();
-        const allowedRoles = roles.map((role) => String(role).trim().toLowerCase());
+        const normalize = (r) => {
+            const s = String(r || "").trim().toLowerCase();
+            if (["staff", "tour guide", "tour-guide", "tourguide", "guide"].includes(s)) return "tour guide";
+            if (["admin", "administrator", "superadmin"].includes(s)) return "admin";
+            return s;
+        };
+        const currentRole = normalize(req.user?.role);
+        const allowedRoles = roles.map(normalize);
 
         if (!allowedRoles.includes(currentRole)) {
             return res.status(403).json({ message: "You do not have permission for this action." });
