@@ -36,6 +36,7 @@ const rentalBookingFromApi = (item) => ({
   createdAt: item.created_at,
   paymentRef: item.booking_reference,
   plateNumber: item.plate_number,
+  hasReviewed: Boolean(item.has_reviewed),
 });
 
 export const bookingService = {

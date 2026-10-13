@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { notificationService } from '../services/api';
 import { 
-  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check
+  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check, MessageSquare
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -80,6 +80,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
+    { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
     { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
     { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
     { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },

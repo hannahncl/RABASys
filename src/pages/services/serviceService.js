@@ -45,6 +45,8 @@ const vehicleFromApi = (item) => ({
   fuelType: item.fuel_type || '',
   vehicleBrand: item.vehicle_brand || '',
   transmission: item.transmission || '',
+  rating: Number(item.rating || 0),
+  reviewsCount: Number(item.reviews_count || 0),
 });
 
 const packagePayload = (item) => ({

@@ -58,6 +58,7 @@ import TourPackageDetailPage from './pages/admin/TourPackageDetailPage';
 import AddServicePage from './pages/admin/AddServicePage';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
+import AdminReviews from './pages/admin/Reviews';
 
 // Pages - Staff Dashboard
 import StaffDashboard from './pages/staff/Dashboard';
@@ -145,6 +146,7 @@ function App() {
               <Route path="destinations" element={<AdminAnalytics />} />
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
+              <Route path="reviews" element={<AdminReviews />} />
               <Route path="services" element={<ManageServices />} />
               <Route path="services/:category/:id" element={<ServiceDetailPage />} />
               <Route path="tour-packages" element={<ManageTourPackages />} />

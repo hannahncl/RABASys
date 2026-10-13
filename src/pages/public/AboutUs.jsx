@@ -5,18 +5,18 @@ import { ArrowRight, Route, ShieldCheck, Globe, Users, X, Award, Languages } fro
 const features = [
   {
     icon: Route,
-    title: 'Tailored Trips',
-    text: 'Itineraries are shaped around pace, purpose, group size, and preferred destinations.',
+    title: 'Personalized Journeys',
+    text: 'Tailor-made itineraries are crafted around each traveler’s interests, schedule, pace, and purpose.',
   },
   {
     icon: ShieldCheck,
-    title: 'Reliable Care',
-    text: 'Trips are handled with practical planning, clear coordination, and safety in mind.',
+    title: 'Quality and Care',
+    text: 'We serve solo travelers, joiners, families, and groups with thoughtful planning, safety, and dependable coordination.',
   },
   {
     icon: Globe,
-    title: 'Local Network',
-    text: 'We work with regional guides and local partners who know the communities firsthand.',
+    title: 'Authentic Bicol',
+    text: 'Our accredited guides and trusted local partners share the natural beauty, culture, and people of Bicol.',
   },
 ];
 
@@ -65,7 +65,7 @@ const AboutUs = () => {
               RABAS Travel and Tour Services
             </h1>
             <p className="text-[15px] leading-[1.85] text-[#4a453b]">
-              Rabas Travel and Tours is headquartered in Albay, Philippines, creating personalized travel experiences for domestic and international travelers. We design guided trips, custom packages, and local routes built around comfort, clarity, and care.
+              RABAS Travel and Tours Services is a Bicol-based travel and tourism company headquartered in Albay, Philippines. Founded by Rikka, known as Bicolanang Rabas, the company grew from local tour guiding into a full-service travel and tours operation built on deep local knowledge and authentic experiences. As a sole proprietorship, we create personalized and premium journeys for domestic and international travelers through professional guiding, customized packages, and trusted local partners - with the warmth, professionalism, and excellence of Filipino hospitality.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
@@ -275,7 +275,7 @@ const AboutUs = () => {
               Our Team is Growing
             </h3>
             <p className="text-[13px] text-[#8a7e6e] max-w-md mx-auto">
-              We're building a team of experienced local guides who know Bicol inside and out. Check back soon to meet the people who'll make your trip unforgettable.
+              Our team brings together DOT-accredited regional tour guides, experienced local community guides, and dedicated travel professionals who share a passion for tourism, culture, and service excellence.
             </p>
           </div>
         )}
