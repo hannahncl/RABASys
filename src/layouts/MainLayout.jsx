@@ -32,11 +32,11 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full bg-white shadow-xs">
+      <header className="sticky top-0 z-40 w-full shadow-xs" style={{ backgroundColor: '#603524' }}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
-            <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-10 w-auto" />
+            <img src="/White RABAS Travel Logo.png" alt="RABAS Travel and Tours Services" className="h-12 w-auto" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-4">
@@ -45,8 +45,8 @@ const MainLayout = () => {
                 key={link.path}
                 to={link.path}
                 className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive(link.path)
-                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
                   }`}
               >
                 {link.name}
@@ -55,21 +55,21 @@ const MainLayout = () => {
           </nav>
 
           {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
-          <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
+          <div className="hidden md:flex items-center gap-5 border-l border-white/20 pl-6">
             {/* Calendar Icon Button (Beside / Left side of Profile icon) */}
             <button
               onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-slate-300"
+              className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3 py-2 rounded-full cursor-pointer border border-white/20 hover:border-white/30"
               title="View Schedule Calendar"
             >
-              <CalendarDays className="h-[18px] w-[18px] text-slate-700" />
+              <CalendarDays className="h-[18px] w-[18px] text-white" />
             </button>
 
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 transition-all px-3.5 py-2 rounded-full cursor-pointer"
+                  className="flex items-center gap-2 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3.5 py-2 rounded-full cursor-pointer"
                 >
                   <User className="h-[18px] w-[18px]" />
                   <span className="text-[11px] font-bold uppercase tracking-[0.15em] hidden lg:block">{user.name.split(' ')[0]}</span>
@@ -119,8 +119,8 @@ const MainLayout = () => {
               <Link
                 to="/login"
                 className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive('/login')
-                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
+                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
                   }`}
                 title="Sign In"
               >
@@ -134,14 +134,14 @@ const MainLayout = () => {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setCalendarOpen(true)}
-              className="p-2 text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
               title="Schedule Calendar"
             >
-              <CalendarDays className="h-5 w-5 text-yellow-600" />
+              <CalendarDays className="h-5 w-5 text-white" />
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-slate-500 hover:text-slate-900 focus:outline-none transition-colors p-1"
+              className="text-white/80 hover:text-white focus:outline-none transition-colors p-1"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>

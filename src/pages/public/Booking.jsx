@@ -177,6 +177,18 @@ const Booking = () => {
       showNotification('Please fill in all booking fields.', 'warning');
       return;
     }
+    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) {
+      showNotification('First Name must only contain letters.', 'warning');
+      return;
+    }
+    if (!/^[A-Za-z\s]+$/.test(lastName.trim())) {
+      showNotification('Last Name must only contain letters.', 'warning');
+      return;
+    }
+    if (!/^\d{11}$/.test(phone)) {
+      showNotification('Contact Number must be exactly 11 digits.', 'warning');
+      return;
+    }
     if (maxPax > 0 && totalGuests > maxPax) {
       showNotification(`The selected number of pax (${totalGuests}) exceeds the package capacity (${maxPax} pax).`, 'warning');
       return;
@@ -586,7 +598,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
+                            onChange={(e) => setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -603,7 +615,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
+                            onChange={(e) => setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -638,7 +650,9 @@ const Booking = () => {
                           type="text"
                           required
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                          maxLength={11}
+                          inputMode="numeric"
                           className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
                           style={inputStyle}
                           {...inputFocusHandlers}

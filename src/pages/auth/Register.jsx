@@ -176,7 +176,7 @@ const Register = () => {
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => { setFirstName(e.target.value); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
+                onChange={(e) => { setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
                 className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.firstName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
                 placeholder="First name"
               />
@@ -187,7 +187,7 @@ const Register = () => {
               <input
                 type="text"
                 value={lastName}
-                onChange={(e) => { setLastName(e.target.value); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
+                onChange={(e) => { setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
                 className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.lastName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
                 placeholder="Last name"
               />
@@ -200,15 +200,16 @@ const Register = () => {
             <input
               type="tel"
               autoComplete="tel"
-              inputMode="tel"
+              inputMode="numeric"
               value={contactNumber}
               onChange={(e) => {
-                const nextValue = e.target.value.replace(/[^0-9+\-()\s]/g, '');
+                const nextValue = e.target.value.replace(/\D/g, '').slice(0, 11);
                 setContactNumber(nextValue);
                 if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
               }}
+              maxLength={11}
               className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-              placeholder="e.g. +63"
+              placeholder="e.g. 09171234567"
             />
             {fieldErrors.contactNumber && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.contactNumber}</p>}
           </div>

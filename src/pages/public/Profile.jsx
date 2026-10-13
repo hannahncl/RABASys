@@ -152,6 +152,9 @@ const Profile = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!firstName.trim()) return;
+    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) return;
+    if (lastName.trim() && !/^[A-Za-z\s]+$/.test(lastName.trim())) return;
+    if (contactNumber.trim() && !/^\d{11}$/.test(contactNumber.trim())) return;
     setSaving(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
@@ -318,6 +321,7 @@ const Profile = () => {
                     label="First Name"
                     value={firstName}
                     onChange={setFirstName}
+                    sanitize={v => v.replace(/[^a-zA-Z\s]/g, '')}
                     capitalize
                     required
                   />
@@ -325,6 +329,7 @@ const Profile = () => {
                     label="Last Name"
                     value={lastName}
                     onChange={setLastName}
+                    sanitize={v => v.replace(/[^a-zA-Z\s]/g, '')}
                     capitalize
                   />
                 </div>
@@ -344,6 +349,9 @@ const Profile = () => {
                   placeholder="e.g. 09171234567"
                   value={contactNumber}
                   onChange={setContactNumber}
+                  sanitize={v => v.replace(/\D/g, '').slice(0, 11)}
+                  maxLength={11}
+                  inputMode="numeric"
                 />
 
 
@@ -795,7 +803,7 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const FormField = ({ label, value, onChange, type = 'text', placeholder = '', required = false, capitalize = false }) => (
+const FormField = ({ label, value, onChange, type = 'text', placeholder = '', required = false, capitalize = false, sanitize, maxLength, inputMode }) => (
   <div>
     <label className="block text-sm font-semibold text-gray-600 mb-2">
       {label}
@@ -803,9 +811,11 @@ const FormField = ({ label, value, onChange, type = 'text', placeholder = '', re
     <input
       type={type}
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={e => onChange(sanitize ? sanitize(e.target.value) : e.target.value)}
       placeholder={placeholder}
       required={required}
+      maxLength={maxLength}
+      inputMode={inputMode}
       className={`w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all ${capitalize ? 'capitalize' : ''}`}
     />
   </div>

@@ -126,9 +126,13 @@ const StaffLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="relative text-slate-400 hover:text-white p-1">
+            <button 
+              className="relative p-2 rounded-full transition-colors text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 cursor-pointer"
+              title="Notifications"
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500"></span>
             </button>
             
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
