@@ -150,7 +150,11 @@ const Login = () => {
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">RABAS Travel &amp; Tours</h2>
         <p className="text-xs font-medium text-[#6b6255] mt-1.5">
           Don't have an account?{' '}
-          <Link to="/register" className="font-semibold text-amber-700 transition-colors hover:text-amber-900 hover:underline">
+          <Link
+            to="/register"
+            state={location.state}
+            className="font-semibold text-amber-700 transition-colors hover:text-amber-900 hover:underline"
+          >
             Sign up
           </Link>
         </p>

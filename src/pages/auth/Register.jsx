@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
@@ -18,7 +18,9 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const googleBtnRef = useRef(null);
+  const from = location.state?.from?.pathname || '/';
 
   // Initialize Google Sign-In button
   useEffect(() => {
@@ -35,11 +37,11 @@ const Register = () => {
           setError('');
           const result = await googleLogin(response.credential);
           if (result.requiresTwoFactor) {
-            navigate('/login');
+            navigate('/login', { state: location.state });
             return;
           }
           if (result.success) {
-            navigate('/');
+            navigate(from, { replace: true });
           } else {
             setError(result.error || 'Google sign-up failed.');
           }
@@ -101,7 +103,7 @@ const Register = () => {
     try {
       const result = await register(cleanedFirstName, cleanedLastName, cleanedEmail, cleanedPassword, cleanedContactNumber);
       if (result.success) {
-        navigate('/');
+        navigate(from, { replace: true });
       } else {
         setError(result.error || 'Registration failed.');
       }
@@ -119,7 +121,11 @@ const Register = () => {
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">Create Account</h2>
         <p className="text-xs font-medium text-[#6b6255] mt-1.5">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-amber-700 transition-colors hover:text-amber-900 hover:underline">
+          <Link
+            to="/login"
+            state={location.state}
+            className="font-semibold text-amber-700 transition-colors hover:text-amber-900 hover:underline"
+          >
             Back to Log In
           </Link>
         </p>
