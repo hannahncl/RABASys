@@ -60,7 +60,6 @@ const Profile = () => {
   const [accountRecord, setAccountRecord] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
 
   // Edit fields  — match Register.jsx fields exactly
   const [firstName, setFirstName]         = useState('');
@@ -82,10 +81,7 @@ const Profile = () => {
             id: String(match.id), name: match.name, email: match.email,
             phone: match.contactNumber, contactNumber: match.contactNumber,
           };
-          setAccountRecord({
-            ...account,
-            twoFactorEnabled: Boolean(match.twoFactorEnabled),
-          });
+          setAccountRecord(account);
           const parts = (match.name || user.name || '').split(' ');
           setFirstName(parts[0] || '');
           setLastName(parts.slice(1).join(' ') || '');
@@ -110,10 +106,27 @@ const Profile = () => {
     const loadBookings = async () => {
       setLoadingBookings(true);
       try {
-        const all = await bookingService.getAll();
+        const [all, reviews] = await Promise.all([
+          bookingService.getAll(),
+          api('/reviews').catch(() => [])
+        ]);
         const mine = all.filter(
-          b => b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-        );
+          b => b.customerEmail?.toLowerCase() === user.email?.toLowerCase()
+        ).map(b => {
+          const userRev = reviews.find(r => 
+            (b.type === 'Car Rental' && String(r.rental_booking_id) === String(b.id)) ||
+            (b.type !== 'Car Rental' && String(r.booking_id) === String(b.id))
+          );
+          return {
+            ...b,
+            hasReviewed: b.hasReviewed || Boolean(userRev),
+            review: userRev ? {
+              rating: userRev.rating,
+              comment: userRev.comment,
+              createdAt: userRev.created_at,
+            } : null
+          };
+        });
         setAllBookings(mine);
       } catch (e) {
         console.error(e);
@@ -129,10 +142,15 @@ const Profile = () => {
   // ── Filter bookings by tab ──
   const tabs = ['All', 'Pending Verification', 'Confirmed', 'Rescheduled', 'To Review'];
 
+  const isEligibleToReview = (b) => {
+    const s = String(b.status || '').toLowerCase();
+    return (s === 'confirmed' || s === 'completed') && !b.hasReviewed;
+  };
+
   const filteredBookings = activeTab === 'All'
     ? allBookings
     : activeTab === 'To Review'
-      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed)
+      ? allBookings.filter(isEligibleToReview)
       : allBookings.filter(b => b.status === activeTab);
 
   // ── Reset to page 1 when tab changes ──
@@ -171,7 +189,6 @@ const Profile = () => {
           email: updated.email,
           phone: updated.contactNumber,
           contactNumber: updated.contactNumber,
-          twoFactorEnabled: Boolean(prev?.twoFactorEnabled ?? updated.twoFactorEnabled),
         }));
       }
       updateUserSession({
@@ -197,32 +214,11 @@ const Profile = () => {
     setEditing(false);
   };
 
-  const handleTwoFactorToggle = async () => {
-    if (!accountRecord) return;
-    setTwoFactorSaving(true);
-    try {
-      const { user: updated } = await api('/auth/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ twoFactorEnabled: !accountRecord.twoFactorEnabled }),
-      });
-      const refreshed = {
-        ...accountRecord,
-        twoFactorEnabled: Boolean(updated.twoFactorEnabled),
-      };
-      setAccountRecord(refreshed);
-      updateUserSession({ twoFactorEnabled: Boolean(updated.twoFactorEnabled) });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTwoFactorSaving(false);
-    }
-  };
-
   // ── Counts for tab badges ──
   const countFor = (tab) => tab === 'All'
     ? allBookings.length
     : tab === 'To Review'
-      ? allBookings.filter(b => b.status === 'Confirmed' && !b.hasReviewed).length
+      ? allBookings.filter(isEligibleToReview).length
       : allBookings.filter(b => b.status === tab).length;
 
   return (
@@ -262,23 +258,6 @@ const Profile = () => {
 
                 <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
                 <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">Two-factor authentication</p>
-                      <p className="text-xs text-slate-500">Receive a 6-digit code by email when you sign in.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleTwoFactorToggle}
-                      disabled={twoFactorSaving}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${accountRecord?.twoFactorEnabled ? 'bg-yellow-500' : 'bg-slate-300'}`}
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-all ${accountRecord?.twoFactorEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-                </div>
 
                 <button
                   onClick={() => setEditing(true)}
@@ -459,20 +438,37 @@ const Profile = () => {
                         <Link
                           key={booking.id}
                           to={`/review/${booking.id}`}
-                          className="block p-4 rounded-lg border border-yellow-100 bg-yellow-50/40 hover:bg-yellow-50 transition-all group"
+                          className="block p-4 rounded-lg border border-yellow-200/70 bg-yellow-50/50 hover:bg-yellow-50 hover:border-yellow-300 transition-all group shadow-sm"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-700 group-hover:text-yellow-700 truncate">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                  booking.type === 'Car Rental'
+                                    ? 'bg-amber-100/80 text-amber-900 border border-amber-300/60'
+                                    : 'bg-yellow-100 text-yellow-900 border border-yellow-300/60'
+                                }`}>
+                                  {booking.type === 'Car Rental' ? 'Car Rental' : 'Tour Package'}
+                                </span>
+                                <span className="text-[10px] font-mono text-slate-400">#{booking.id}</span>
+                              </div>
+                              <p className="text-sm font-semibold text-slate-800 group-hover:text-yellow-800 truncate">
                                 {booking.packageName}
                               </p>
-                              <p className="text-xs text-slate-500 mt-1">
-                                Completed on {new Date(booking.tourDate).toLocaleDateString('en-US', {
-                                  month: 'short', day: 'numeric', year: 'numeric'
-                                })}
+                              <p className="text-xs text-slate-500">
+                                {booking.type === 'Car Rental' ? (
+                                  <>Rental Date: {booking.tourDate} {booking.returnDate ? `— ${booking.returnDate}` : ''}</>
+                                ) : (
+                                  <>Trip Date: {booking.tourDate && new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                    month: 'short', day: 'numeric', year: 'numeric'
+                                  })}</>
+                                )}
                               </p>
                             </div>
-                            <ArrowRight className="h-4 w-4 text-yellow-600 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-800 text-xs font-semibold group-hover:bg-yellow-400 group-hover:text-slate-900 transition-colors shrink-0">
+                              <span>Write Review</span>
+                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
                           </div>
                         </Link>
                       ))}

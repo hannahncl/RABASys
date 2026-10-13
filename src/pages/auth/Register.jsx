@@ -34,10 +34,6 @@ const Register = () => {
           setLoading(true);
           setError('');
           const result = await googleLogin(response.credential);
-          if (result.requiresTwoFactor) {
-            navigate('/login');
-            return;
-          }
           if (result.success) {
             navigate('/');
           } else {
@@ -114,7 +110,7 @@ const Register = () => {
 
   return (
     <div className="w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="mb-7 text-center">
+      <div className="mb-4 text-center">
         <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto mx-auto mb-3" />
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">Create Account</h2>
         <p className="text-xs font-medium text-[#6b6255] mt-1.5">
@@ -126,20 +122,20 @@ const Register = () => {
       </div>
 
         {error && (
-          <div className="mb-6 flex items-start gap-2.5 rounded border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700">
+          <div className="mb-3 flex items-start gap-2.5 rounded border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2.5">
           <div>
             <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4a453b]">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' })); }}
-              className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.email ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+              className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.email ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
               placeholder="Enter your email"
               autoComplete="email"
             />
@@ -153,7 +149,7 @@ const Register = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' })); }}
-                className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none pr-12 ${fieldErrors.password ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+                className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none pr-12 ${fieldErrors.password ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
                 minLength="8"
                 autoComplete="new-password"
                 placeholder="Enter your password"
@@ -176,8 +172,13 @@ const Register = () => {
               <input
                 type="text"
                 value={firstName}
+<<<<<<< HEAD
                 onChange={(e) => { setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
                 className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.firstName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+=======
+                onChange={(e) => { setFirstName(e.target.value); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
+                className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.firstName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+>>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
                 placeholder="First name"
               />
               {fieldErrors.firstName && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.firstName}</p>}
@@ -187,8 +188,13 @@ const Register = () => {
               <input
                 type="text"
                 value={lastName}
+<<<<<<< HEAD
                 onChange={(e) => { setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
                 className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.lastName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+=======
+                onChange={(e) => { setLastName(e.target.value); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
+                className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.lastName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+>>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
                 placeholder="Last name"
               />
               {fieldErrors.lastName && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.lastName}</p>}
@@ -207,9 +213,14 @@ const Register = () => {
                 setContactNumber(nextValue);
                 if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
               }}
+<<<<<<< HEAD
               maxLength={11}
               className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
               placeholder="e.g. 09171234567"
+=======
+              className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
+              placeholder="e.g. +63"
+>>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
             />
             {fieldErrors.contactNumber && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.contactNumber}</p>}
           </div>
@@ -217,7 +228,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded border border-yellow-200/80 bg-yellow-50 py-3 text-xs font-bold uppercase tracking-[0.14em] text-yellow-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:bg-yellow-100 hover:border-yellow-300/80 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded border border-yellow-200/80 bg-yellow-50 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-yellow-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:bg-yellow-100 hover:border-yellow-300/80 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin text-yellow-700" /> : 'Sign Up'}
           </button>

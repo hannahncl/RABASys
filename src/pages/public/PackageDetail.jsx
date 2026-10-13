@@ -52,34 +52,20 @@ const PackageDetail = () => {
   const loadReviewsForPackage = async (packageId) => {
     setLoadingReviews(true);
     try {
-      // Fetch all reviews
-      const allReviewsData = await api('/reviews').catch(() => []);
+      const allReviewsData = await api(`/reviews?package_id=${packageId}`).catch(() => []);
 
-      // Fetch all bookings to match reviews with booking info
-      const allBookings = await bookingService.getAll();
+      const packageReviews = allReviewsData
+        .filter(r => String(r.package_id) === String(packageId))
+        .map(review => ({
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.created_at,
+          customerName: review.customer_name || 'Anonymous Tourist',
+          bookingId: review.booking_id
+        }))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Filter reviews for this specific package
-      const packageReviews = [];
-      for (const review of allReviewsData) {
-        // Find the booking for this review
-        const booking = allBookings.find(b => b.id === String(review.booking_id));
-
-        // Check if this review belongs to our package
-        if (booking && booking.packageId === String(packageId)) {
-          packageReviews.push({
-            rating: review.rating,
-            comment: review.comment,
-            createdAt: review.created_at,
-            customerName: booking.customerName || 'Anonymous',
-            bookingId: booking.id
-          });
-        }
-      }
-
-      // Sort by most recent first
-      packageReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setReviews(packageReviews);
-      console.log(`[PackageDetail] Loaded ${packageReviews.length} reviews for package ${packageId}`);
     } catch (err) {
       console.error('Failed to load reviews:', err);
     } finally {

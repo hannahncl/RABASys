@@ -45,6 +45,8 @@ const Review = () => {
     fetchBooking();
   }, [id, navigate, showNotification]);
 
+  const isCarRental = booking?.type === 'Car Rental';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating === 0) {
@@ -54,14 +56,23 @@ const Review = () => {
     
     setSubmitting(true);
     try {
+      const payload = {
+        rating,
+        comment,
+        ...(isCarRental
+          ? { rental_booking_id: Number(booking.id) }
+          : { booking_id: Number(booking.id) })
+      };
+
       await api('/reviews', {
         method: 'POST',
-        body: JSON.stringify({ booking_id: Number(booking.id), rating, comment }),
+        body: JSON.stringify(payload),
       });
       setIsSuccess(true);
       showNotification('Thank you for your review!', 'success');
+      setTimeout(() => navigate('/profile'), 2000);
     } catch (err) {
-      showNotification('Failed to submit review. Please try again.', 'error');
+      showNotification(err.message || 'Failed to submit review. Please try again.', 'error');
       setSubmitting(false);
     }
   };
@@ -89,7 +100,16 @@ const Review = () => {
 
         <div className="overflow-hidden rounded-md border border-[#e0dbd0] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.04)]">
           <div className="border-b border-[#eae5db] px-5 py-5 sm:px-6">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e]">Review</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e]">
+                {isCarRental ? 'Car Rental Review' : 'Tour Review'}
+              </span>
+              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                isCarRental ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+              }`}>
+                {isCarRental ? 'Car Rental' : 'Tour Package'}
+              </span>
+            </div>
             <h1 className="text-xl font-bold tracking-[0.02em] text-[#1a1a1a]">Share Your Experience</h1>
             <p className="mt-2 text-xs font-medium leading-relaxed text-[#6b6255]">
               Feedback for <span className="font-semibold text-[#2d2a24]">{booking?.packageName}</span>
@@ -99,17 +119,28 @@ const Review = () => {
           <div className="border-b border-[#eae5db] bg-[#fcfbf9] px-5 py-4 sm:px-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Your Trip</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">
+                  {isCarRental ? 'Vehicle Rented' : 'Your Trip'}
+                </p>
                 <p className="text-sm font-semibold text-[#1a1a1a]">{booking?.packageName}</p>
                 <p className="text-[11px] text-[#6b6255]">
-                  {new Date(booking?.tourDate).toLocaleDateString('en-US', {
+                  {booking?.tourDate && new Date(booking.tourDate).toLocaleDateString('en-US', {
                     month: 'long', day: 'numeric', year: 'numeric'
                   })}
+                  {isCarRental && booking?.returnDate && (
+                    <span> — {new Date(booking.returnDate).toLocaleDateString('en-US', {
+                      month: 'long', day: 'numeric', year: 'numeric'
+                    })}</span>
+                  )}
                 </p>
               </div>
               <div className="space-y-1 text-left sm:text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Guests</p>
-                <p className="text-sm font-semibold text-[#1a1a1a]">{booking?.guestsCount} {booking?.guestsCount > 1 ? 'guests' : 'guest'}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">
+                  {isCarRental ? 'Plate Number' : 'Guests'}
+                </p>
+                <p className="text-sm font-semibold text-[#1a1a1a]">
+                  {isCarRental ? (booking?.plateNumber || 'Rental') : `${booking?.guestsCount} ${booking?.guestsCount > 1 ? 'guests' : 'guest'}`}
+                </p>
               </div>
             </div>
           </div>
@@ -122,7 +153,8 @@ const Review = () => {
                 </div>
                 <div>
                   <h3 className="mb-1 text-lg font-bold text-[#1a1a1a]">Review Submitted</h3>
-                  <p className="text-xs font-medium text-[#6b6255]">Thank you for sharing your feedback.</p>
+                  <p className="text-xs font-medium text-[#6b6255]">Thank you for sharing your feedback!</p>
+                  <p className="text-[11px] text-[#8f8576] mt-1">Redirecting to your profile...</p>
                 </div>
               </div>
             ) : submitting ? (

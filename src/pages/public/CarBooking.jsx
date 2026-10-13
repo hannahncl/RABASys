@@ -4,7 +4,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceService } from '../services/serviceService';
 import { bookingService } from '../services/bookingService';
-import { Loader, ArrowLeft, Calendar, ShieldCheck } from 'lucide-react';
+import { Loader, ArrowLeft, Calendar, ShieldCheck, Star } from 'lucide-react';
+import { api } from '../../services/api';
 
 // Shared style constants
 const colors = {
@@ -62,6 +63,8 @@ const CarBooking = () => {
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -91,7 +94,21 @@ const CarBooking = () => {
         setLoading(false);
       }
     };
+
+    const loadReviews = async () => {
+      setLoadingReviews(true);
+      try {
+        const data = await api(`/reviews?vehicle_id=${id}`).catch(() => []);
+        setReviews(Array.isArray(data) ? data.filter(r => String(r.vehicle_id) === String(id)) : []);
+      } catch (err) {
+        console.error('Failed to load reviews for vehicle:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
     fetchCar();
+    loadReviews();
   }, [id, user, navigate, showNotification]);
 
   const handleBookCar = async (e) => {
@@ -234,7 +251,22 @@ const CarBooking = () => {
                   { label: 'Vehicle Type:', value: car.vehicleType },
                   { label: 'Plate Number:', value: car.plateNumber },
                   { label: 'Seating Capacity:', value: car.capacity },
-                  { label: 'Daily Rate:', value: `₱${Number(car.price).toLocaleString()}` }
+                  { label: 'Daily Rate:', value: `₱${Number(car.price).toLocaleString()}` },
+                  { 
+                    label: 'Rating:', 
+                    value: (
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <Star className="w-3.5 h-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                        <span>
+                          {car.rating > 0 
+                            ? `${Number(car.rating).toFixed(1)} (${car.reviewsCount || reviews.length} ${car.reviewsCount === 1 ? 'review' : 'reviews'})`
+                            : reviews.length > 0
+                              ? `${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)} (${reviews.length} reviews)`
+                              : 'No reviews yet'}
+                        </span>
+                      </span>
+                    )
+                  }
                 ].map(item => (
                   <div className="grid grid-cols-2" key={item.label}>
                     <span
@@ -512,6 +544,97 @@ const CarBooking = () => {
             </form>
           </div>
 
+        </div>
+
+        {/* Customer Reviews Section */}
+        <div className="mt-16 pt-12 border-t border-[#eae5db]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2
+                className="text-[13px] font-semibold"
+                style={{
+                  color: colors.textPrimary,
+                  fontFamily: "'Outfit', Georgia, serif",
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Customer Reviews & Ratings
+              </h2>
+              <p className="text-xs text-[#8f8576] mt-1">Verified feedback from customers who rented this vehicle</p>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 bg-[#faf9f6] px-4 py-2 rounded-full border border-[#eae5db] self-start sm:self-auto">
+                <Star className="w-4 h-4 fill-[#c4b99a] text-[#c4b99a]" />
+                <span className="text-sm font-bold text-[#1a1a1a]">
+                  {(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)}
+                </span>
+                <span className="text-xs text-[#6b6255]">
+                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {loadingReviews ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#eae5db] border-t-[#2d2a24]" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <div
+              className="text-center py-14"
+              style={{
+                background: colors.subtleBg,
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: '4px',
+              }}
+            >
+              <Star className="w-7 h-7 mx-auto mb-3 text-[#d6cfc2]" />
+              <p className="text-[13px] font-medium text-[#4a453b]">
+                No reviews yet for this vehicle.
+              </p>
+              <p className="text-[11px] text-[#8f8576] mt-1">
+                Be the first to rent and share your rental experience!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reviews.map((rev) => (
+                <div
+                  key={rev.review_id}
+                  className="p-5 border border-[#eae5db] bg-white rounded-md hover:border-[#d6cfc2] hover:shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-[13px] font-semibold text-[#1a1a1a]">
+                        {rev.customer_name || `${rev.first_name || ''} ${rev.last_name || ''}`.trim() || 'Verified Renter'}
+                      </p>
+                      <p className="text-[11px] text-[#8f8576] mt-0.5">
+                        {rev.created_at && new Date(rev.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= (rev.rating || 0) ? 'fill-[#c4b99a] text-[#c4b99a]' : 'fill-[#f5f2ee] text-[#d6cfc2]'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {rev.comment && (
+                    <p className="text-[13px] text-[#4a453b] leading-relaxed italic">
+                      "{rev.comment}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

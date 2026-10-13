@@ -35,7 +35,7 @@ const AuthLayout = () => {
         </div>
 
         {/* Right Panel — Form */}
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 md:px-10 md:py-12">
+        <div className="flex-1 flex flex-col justify-center px-8 py-6 md:px-10 md:py-7">
           <Outlet />
         </div>
       </div>
