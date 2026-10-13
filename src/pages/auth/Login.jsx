@@ -107,15 +107,6 @@ const Login = () => {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="w-full">
-        {/* Title */}
-        <div className="mb-8">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a68e] mb-1.5">Sign In</p>
-          <h1 className="text-2xl font-bold tracking-[0.02em] text-[#1a1a1a]">Welcome Back</h1>
-          <p className="mt-1 text-xs font-medium text-[#6b6255]">Sign in to your account</p>
-        </div>
-=======
     <div className="w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="text-center mb-7">
         <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto mx-auto mb-3" />
@@ -131,7 +122,6 @@ const Login = () => {
           </Link>
         </p>
       </div>
->>>>>>> 0383e5ed2c762967a4249dc08adf1d463fe5b88f
 
         {error && (
           <div className="mb-6 flex items-start gap-2.5 rounded border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700">

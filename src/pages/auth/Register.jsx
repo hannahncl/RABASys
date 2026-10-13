@@ -36,13 +36,10 @@ const Register = () => {
           setLoading(true);
           setError('');
           const result = await googleLogin(response.credential);
-<<<<<<< HEAD
-=======
           if (result.requiresTwoFactor) {
             navigate('/login', { state: location.state });
             return;
           }
->>>>>>> 0383e5ed2c762967a4249dc08adf1d463fe5b88f
           if (result.success) {
             navigate(from, { replace: true });
           } else {
@@ -185,13 +182,8 @@ const Register = () => {
               <input
                 type="text"
                 value={firstName}
-<<<<<<< HEAD
                 onChange={(e) => { setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
-                className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.firstName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-=======
-                onChange={(e) => { setFirstName(e.target.value); if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' })); }}
                 className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.firstName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
->>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
                 placeholder="First name"
               />
               {fieldErrors.firstName && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.firstName}</p>}
@@ -201,13 +193,8 @@ const Register = () => {
               <input
                 type="text"
                 value={lastName}
-<<<<<<< HEAD
                 onChange={(e) => { setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
-                className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.lastName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-=======
-                onChange={(e) => { setLastName(e.target.value); if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' })); }}
                 className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] capitalize transition-all outline-none ${fieldErrors.lastName ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
->>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
                 placeholder="Last name"
               />
               {fieldErrors.lastName && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.lastName}</p>}
@@ -226,14 +213,9 @@ const Register = () => {
                 setContactNumber(nextValue);
                 if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
               }}
-<<<<<<< HEAD
               maxLength={11}
-              className={`w-full rounded border px-4 py-3 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-              placeholder="e.g. 09171234567"
-=======
               className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-              placeholder="e.g. +63"
->>>>>>> 3fba4caaadffc08e115c0b80f1283a798857a6ac
+              placeholder="e.g. 09171234567"
             />
             {fieldErrors.contactNumber && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.contactNumber}</p>}
           </div>

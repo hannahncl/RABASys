@@ -4,13 +4,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceService } from '../services/serviceService';
 import { bookingService } from '../services/bookingService';
-<<<<<<< HEAD
 import { Loader, ArrowLeft, Calendar, ShieldCheck, Star } from 'lucide-react';
 import { api } from '../../services/api';
-=======
-import { ArrowLeft, Calendar } from 'lucide-react';
-import { weatherService } from '../../services/weatherService';
->>>>>>> 0383e5ed2c762967a4249dc08adf1d463fe5b88f
 
 // Shared style constants
 const colors = {
@@ -530,7 +525,6 @@ const CarBooking = () => {
                   { label: 'Vehicle Type:', value: car.vehicleType },
                   { label: 'Plate Number:', value: car.plateNumber },
                   { label: 'Seating Capacity:', value: car.capacity },
-<<<<<<< HEAD
                   { label: 'Daily Rate:', value: `₱${Number(car.price).toLocaleString()}` },
                   { 
                     label: 'Rating:', 
@@ -547,9 +541,6 @@ const CarBooking = () => {
                       </span>
                     )
                   }
-=======
-                  { label: 'Daily Rate:', value: `â‚±${Number(car.price).toLocaleString()}` }
->>>>>>> 0383e5ed2c762967a4249dc08adf1d463fe5b88f
                 ].map(item => (
                   <div className="grid grid-cols-2" key={item.label}>
                     <span
