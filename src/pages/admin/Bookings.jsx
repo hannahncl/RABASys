@@ -13,14 +13,13 @@ import {
   Search,
   UserRound,
   Users,
-  XCircle
 } from 'lucide-react';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'Pending Verification', label: 'Pending' },
   { key: 'Confirmed', label: 'Booked' },
-  { key: 'Cancelled', label: 'Cancelled' }
+  { key: 'Rescheduled', label: 'Rescheduled' }
 ];
 
 const statusStyle = (status) => {
@@ -85,7 +84,7 @@ const Bookings = () => {
     all: typeFilteredBookings.length,
     pending: typeFilteredBookings.filter(b => b.status === 'Pending Verification').length,
     booked: typeFilteredBookings.filter(b => b.status === 'Confirmed').length,
-    cancelled: typeFilteredBookings.filter(b => b.status === 'Cancelled').length
+    rescheduled: typeFilteredBookings.filter(b => b.status === 'Rescheduled').length
   }), [typeFilteredBookings]);
 
   const filteredBookings = useMemo(() => {
@@ -106,7 +105,11 @@ const Bookings = () => {
   }, [typeFilteredBookings, activeFilter, search]);
 
   const handleStatusUpdate = async (booking, status) => {
+<<<<<<< HEAD
     const actionLabel = status === 'Confirmed' ? 'confirm this booking' : 'cancel this booking';
+=======
+    const actionLabel = 'confirm this booking';
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
     if (!confirmation) {
       setConfirmation({ booking, status, actionLabel });
       return;
@@ -118,7 +121,7 @@ const Bookings = () => {
       const updated = await bookingService.updateStatus(booking.id, status, booking.type);
       setBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification(status === 'Confirmed' ? 'Booking confirmed as booked' : 'Booking cancelled', 'success');
+      showNotification('Booking confirmed as booked', 'success');
     } catch {
       showNotification('Failed to update booking status', 'error');
     } finally {
@@ -171,7 +174,11 @@ const Bookings = () => {
         <SummaryCard label="Total" value={counts.all} icon={ReceiptText} tone="text-cyan-400" bgTone="bg-cyan-500/10 border-cyan-500/20" />
         <SummaryCard label="Pending Review" value={counts.pending} icon={Clock3} tone="text-amber-400" bgTone="bg-amber-500/10 border-amber-500/20" />
         <SummaryCard label="Booked" value={counts.booked} icon={CheckCircle2} tone="text-emerald-400" bgTone="bg-emerald-500/10 border-emerald-500/20" />
+<<<<<<< HEAD
         <SummaryCard label="Cancelled" value={counts.cancelled} icon={XCircle} tone="text-rose-400" bgTone="bg-rose-500/10 border-rose-500/20" />
+=======
+        <SummaryCard label="Rescheduled" value={counts.rescheduled} icon={CalendarDays} tone="text-blue-400" bgTone="bg-blue-500/10 border-blue-500/20" />
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
       </div>
 
       {/* Status Filter Chips with Pops of Color */}
@@ -266,7 +273,6 @@ const Bookings = () => {
           booking={selectedBooking}
           updatingId={updatingId}
           onConfirm={(booking) => handleStatusUpdate(booking, 'Confirmed')}
-          onCancel={(booking) => handleStatusUpdate(booking, 'Cancelled')}
         />
       </div>
       {confirmation && (
@@ -298,7 +304,7 @@ const SummaryCard = ({ label, value, icon: Icon, tone = 'text-cyan-400', bgTone 
   </div>
 );
 
-const BookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
+const BookingReview = ({ booking, updatingId, onConfirm }) => {
   if (!booking) {
     return (
     <aside className="bg-white border border-[#e0dbd0] rounded-md p-8 text-center xl:sticky xl:top-24 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -360,6 +366,7 @@ const BookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
           >
             <CheckCircle2 className="h-4 w-4" /> Confirm
           </button>
+<<<<<<< HEAD
           <button
             onClick={() => onCancel(booking)}
             disabled={booking.status === 'Cancelled' || updatingId === booking.id}
@@ -367,6 +374,8 @@ const BookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
           >
             <XCircle className="h-4 w-4" /> Cancel
           </button>
+=======
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
         </div>
       </div>
     </aside>

@@ -41,6 +41,22 @@ const formatGuide = (row) => ({
     createdAt: row.created_at,
 });
 
+// GET active tour guides for public About Us page (no auth required)
+router.get("/about", async (req, res, next) => {
+    try {
+        const [rows] = await db.query(`${guideSelect} AND tg.availability_status = 'Available' AND tg.employment_status = 'Active' AND a.account_status = 'Active' ORDER BY tg.years_of_experience DESC`);
+        res.json(rows.map(row => ({
+            id: String(row.account_id),
+            firstName: row.first_name,
+            lastName: row.last_name,
+            name: `${row.first_name} ${row.last_name}`,
+            yearsExperience: row.years_of_experience ?? 0,
+            description: row.description || '',
+            languageSpoken: row.languages_spoken || '',
+        })));
+    } catch (e) { next(e); }
+});
+
 // GET all tour guides
 router.get("/", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => {
     try {

@@ -8,6 +8,7 @@ import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> ad862ad748519c2d2ee7f9516014e8fcffc906e6
 import { Star, ArrowLeft, Send } from 'lucide-react';
 =======
@@ -16,6 +17,9 @@ import { Star, ArrowLeft } from 'lucide-react';
 =======
 import { Star, ArrowLeft } from 'lucide-react';
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
+import { Star, ArrowLeft } from 'lucide-react';
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
 
 const Review = () => {
   const { id } = useParams();

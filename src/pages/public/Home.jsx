@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
+
 import { packageService } from '../services/packageService';
 import { tripUploadService } from '../services/tripUploadService';
-=======
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { tripUploadService } from '../../services/tripUploadService';
-import { api } from '../../services/api';
-<<<<<<< HEAD
->>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
-=======
->>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { Compass, Search, Star, MapPin, Sparkles, Activity, Clock, Users } from 'lucide-react';
 
 const Home = () => {
@@ -29,40 +23,9 @@ const Home = () => {
       setPackages(allPkgs);
       const updates = await tripUploadService.getAll();
       setLiveUpdates(updates.slice(0, 3)); // show top 3 updates
-      
-      // Load all bookings and reviews
-      try {
-        const allBookings = await bookingService.getAll();
-        setBookings(allBookings);
-        const reviewData = await api('/reviews');
-        setReviews(reviewData);
-      } catch (err) {
-        console.error('Failed to load reviews/bookings', err);
-      }
     };
     loadData();
   }, []);
-
-  // Helper function to get review stats for a package
-  const getPackageReviewStats = (packageId) => {
-    const packageReviews = reviews.filter(review => {
-      const booking = bookings.find(b => b.id === String(review.booking_id));
-      return booking && booking.packageId === String(packageId);
-    });
-    
-    if (packageReviews.length === 0) {
-      return { averageRating: 0, reviewCount: 0 };
-    }
-    
-    const averageRating = (
-      packageReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / packageReviews.length
-    ).toFixed(1);
-    
-    return {
-      averageRating: parseFloat(averageRating),
-      reviewCount: packageReviews.length
-    };
-  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -136,7 +99,7 @@ const Home = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search destinations (e.g. Palawan, Boracay, Siargao)..."
+                placeholder="Search Destinations"
                 className="w-full bg-transparent border-0 text-slate-100 placeholder-slate-500 pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-0"
               />
             </div>

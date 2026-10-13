@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { bookingService } from '../services/bookingService';
 import { customizationService } from '../services/customizationService';
 =======
 =======
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
 import { customizationService } from '../../services/customizationService';
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
 import { ChevronLeft, ChevronRight, Loader, Calendar } from 'lucide-react';

@@ -3,32 +3,39 @@ import { Outlet } from 'react-router-dom';
 
 const AuthLayout = () => {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white text-slate-800 font-sans">
-      {/* Left split - Logo Area */}
-      <div className="hidden lg:flex lg:w-1/2 h-full items-center justify-center bg-white">
-        <div className="w-full h-full">
-          {/* We use an image tag assuming the user will place the logo image in the public folder.
-              If the image is not available, we show a fallback styled text block. */}
-          <img 
-            src="/iwant/login-photo.jpg" 
-            alt="RABAS Travel and Tours Services" 
-            className="w-full h-full object-cover"
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#f0ece4] p-4 sm:p-6 font-sans">
+      {/* Floating Card */}
+      <div
+        className="w-full max-w-[820px] bg-white rounded-2xl border border-[#ddd7ce] overflow-hidden flex flex-col md:flex-row items-stretch"
+        style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.08)', minHeight: '520px' }}
+      >
+        {/* Left Panel — Photo stretches full card height */}
+        <div className="hidden md:flex md:w-[45%] shrink-0 relative self-stretch">
+          <img
+            src="/iwant/login-photo.jpg"
+            alt="RABAS Travel and Tours"
+            className="absolute inset-0 w-full h-full object-cover object-center"
             onError={(e) => {
               e.target.onerror = null;
               e.target.style.display = 'none';
-              e.target.nextElementSibling.style.display = 'block';
+              if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
             }}
           />
-          <div className="hidden text-center" style={{ display: 'none' }}>
-            <h1 className="text-6xl font-black text-yellow-400 tracking-tighter mb-2">RABAS</h1>
-            <p className="text-xl font-semibold text-yellow-400 tracking-wider">TRAVEL AND TOURS SERVICES</p>
+          {/* Fallback if no photo */}
+          <div
+            className="absolute inset-0 bg-[#fef8e7] items-center justify-center flex-col text-center p-8"
+            style={{ display: 'none' }}
+          >
+            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-16 w-auto mb-4 opacity-90" />
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">RABAS Travel</p>
+            <p className="text-[10px] text-[#6b6255] mt-1">Bicol Region Exploration</p>
           </div>
+          {/* Subtle gradient at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
         </div>
-      </div>
 
-      {/* Right split - Form content */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 md:px-12 bg-white">
-        <div className="w-full max-w-md">
+        {/* Right Panel — Form */}
+        <div className="flex-1 flex flex-col justify-center px-8 py-10 md:px-10 md:py-12">
           <Outlet />
         </div>
       </div>

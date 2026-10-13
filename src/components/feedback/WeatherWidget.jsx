@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { weatherService } from '../../pages/services/weatherService';
 import { CloudSun, Wind, Droplets, Thermometer, AlertCircle, CloudRain, Sun, Cloud, CloudLightning } from 'lucide-react';
 =======
@@ -11,6 +12,10 @@ import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLigh
 import { weatherService } from '../../services/weatherService';
 import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';
 >>>>>>> 44ad24f098897339e6f1ec785ced06dfa05fa61a
+=======
+import { weatherService } from '../../services/weatherService';
+import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';
+>>>>>>> 6904a87239dc0282a971fe7c8f11fb00325a7798
 
 const WeatherWidget = ({ destination, tourDate, durationDays = 3, theme = 'light' }) => {
   const [weatherData, setWeatherData] = useState(null);
