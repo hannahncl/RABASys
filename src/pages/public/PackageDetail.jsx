@@ -132,12 +132,17 @@ const PackageDetail = () => {
     }
   };
 
-  const totalPrice = pkg ? pkg.price * guestsCount : 0;
+  const totalPrice = pkg ? Number(pkg.price || 0) : 0;
 
   const handleOpenPayment = (e) => {
     e.preventDefault();
     if (!name || !email || !phone || !tourDate || !guestsCount) {
       showNotification('Please fill in all booking fields.', 'warning');
+      return;
+    }
+    const maxPax = Number(pkg?.maximumCapacity || pkg?.max_capacity || 0);
+    if (maxPax > 0 && Number(guestsCount) > maxPax) {
+      showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
       return;
     }
     setPaymentModalOpen(true);

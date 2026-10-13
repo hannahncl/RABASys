@@ -134,8 +134,25 @@ const Booking = () => {
     );
   }
 
+  const maxPax = Number(pkg.maximumCapacity || pkg.max_capacity || 0);
   const totalGuests = adultsCount + childrenCount;
-  const totalPrice = pkg.price * totalGuests;
+  const totalPrice = Number(pkg.price || 0);
+
+  const handleIncreaseAdults = () => {
+    if (maxPax > 0 && totalGuests >= maxPax) {
+      showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
+      return;
+    }
+    setAdultsCount((prev) => prev + 1);
+  };
+
+  const handleIncreaseChildren = () => {
+    if (maxPax > 0 && totalGuests >= maxPax) {
+      showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
+      return;
+    }
+    setChildrenCount((prev) => prev + 1);
+  };
 
   const getPackageDurationInDays = () => {
     if (!pkg?.duration) return 1;
@@ -158,6 +175,10 @@ const Booking = () => {
     e.preventDefault();
     if (!firstName || !lastName || !email || !phone || !tourDate || totalGuests === 0) {
       showNotification('Please fill in all booking fields.', 'warning');
+      return;
+    }
+    if (maxPax > 0 && totalGuests > maxPax) {
+      showNotification(`The selected number of pax (${totalGuests}) exceeds the package capacity (${maxPax} pax).`, 'warning');
       return;
     }
     setCurrentStep(2);
@@ -470,7 +491,13 @@ const Booking = () => {
 
                   {/* Number of Pax */}
                   <div>
-                    <SectionLabel>Number of pax</SectionLabel>
+                    <SectionLabel>
+                      Number of pax {maxPax > 0 && (
+                        <span className="text-[11px] font-normal lowercase tracking-normal text-[#8a7f70] ml-1.5">
+                          (max {maxPax} pax)
+                        </span>
+                      )}
+                    </SectionLabel>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Adult */}
                       <div
@@ -492,10 +519,11 @@ const Booking = () => {
                           <span className="text-[14px] font-bold w-4 text-center" style={{ color: colors.textPrimary }}>{adultsCount}</span>
                           <button
                             type="button"
-                            onClick={() => setAdultsCount(adultsCount + 1)}
-                            className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
+                            onClick={handleIncreaseAdults}
+                            disabled={maxPax > 0 && totalGuests >= maxPax}
+                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${maxPax > 0 && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
                             style={{ color: colors.textMuted }}
-                            onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
+                            onMouseEnter={(e) => { if (!(maxPax > 0 && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
                             onMouseLeave={(e) => (e.target.style.color = colors.textMuted)}
                           >
                             +
@@ -523,10 +551,11 @@ const Booking = () => {
                           <span className="text-[14px] font-bold w-4 text-center" style={{ color: colors.textPrimary }}>{childrenCount}</span>
                           <button
                             type="button"
-                            onClick={() => setChildrenCount(childrenCount + 1)}
-                            className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
+                            onClick={handleIncreaseChildren}
+                            disabled={maxPax > 0 && totalGuests >= maxPax}
+                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${maxPax > 0 && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
                             style={{ color: colors.textMuted }}
-                            onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
+                            onMouseEnter={(e) => { if (!(maxPax > 0 && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
                             onMouseLeave={(e) => (e.target.style.color = colors.textMuted)}
                           >
                             +
@@ -534,6 +563,11 @@ const Booking = () => {
                         </div>
                       </div>
                     </div>
+                    {maxPax > 0 && (
+                      <p className="text-[11px] mt-1.5 text-[#8a7f70]">
+                        {totalGuests} / {maxPax} total pax selected (package rate is fixed regardless of pax)
+                      </p>
+                    )}
                   </div>
 
                   {/* Contact Information */}

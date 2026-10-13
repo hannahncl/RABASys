@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Camera, MapPin, X, ArrowLeft,
   Image as ImageIcon, Send, RefreshCw, Search,
   Link2, VideoOff, Heart,
-  Sparkles, Flame, Plus, Grid, List
+  Sparkles, Flame, Plus, Grid, List,
+  Navigation, Compass, Crosshair, LocateFixed, Locate,
+  Play, Pause, RotateCcw, Car, Footprints
 } from 'lucide-react';
 import mapGalleryService from '../../services/mapGalleryService';
 import { useNotification } from '../../hooks/useNotification';
@@ -21,6 +23,77 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   shadowUrl: markerShadow,
 });
+
+// Geometry & GPS Math Helpers
+const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const calculateBearing = (lat1, lon1, lat2, lon2) => {
+  const toRad = Math.PI / 180;
+  const toDeg = 180 / Math.PI;
+  const y = Math.sin((lon2 - lon1) * toRad) * Math.cos(lat2 * toRad);
+  const x =
+    Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) -
+    Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos((lon2 - lon1) * toRad);
+  const brng = (Math.atan2(y, x) * toDeg + 360) % 360;
+  return Math.round(brng);
+};
+
+const getCompassDirection = (bearing) => {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(bearing / 45) % 8;
+  return directions[index];
+};
+
+const formatDistance = (distKm) => {
+  if (distKm === null || distKm === undefined) return '--';
+  if (distKm < 1) {
+    return `${Math.round(distKm * 1000)} m`;
+  }
+  return `${distKm.toFixed(1)} km`;
+};
+
+const formatEta = (distKm, speedKmh) => {
+  if (!distKm || distKm <= 0.04) return 'Arrived';
+  const speed = (speedKmh && Number(speedKmh) > 5) ? Number(speedKmh) : 45;
+  const hours = distKm / speed;
+  const minutes = Math.round(hours * 60);
+  if (minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''}`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${m}m`;
+};
+
+// Custom user location marker with radar wave beacon
+const getUserMarkerIcon = (heading) => {
+  return L.divIcon({
+    className: 'live-user-marker',
+    html: `
+      <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+        <!-- Pulsing radar wave -->
+        <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(37, 99, 235, 0.35); animation: gps-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <!-- Inner glow circle -->
+        <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(59, 130, 246, 0.35);"></div>
+        <!-- Center core dot with heading pointer -->
+        <div style="position: relative; width: 16px; height: 16px; border-radius: 50%; background: #2563eb; border: 2.5px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; transform: rotate(${heading || 0}deg); transition: transform 0.4s ease;">
+          <div style="width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 6px solid #ffffff; margin-bottom: 1px;"></div>
+        </div>
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+  });
+};
 
 const PRESET_UPLOAD_IMAGES = [
   { name: 'Cagsawa Ruins', url: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800' },
@@ -46,6 +119,38 @@ const MapFocusController = ({ center, zoom }) => {
   return null;
 };
 
+// Map controller for following live GPS location and fitting route
+const MapLiveNavigationController = ({ userLocation, followUser, navigationTarget, fitBoundsTrigger }) => {
+  const map = useMap();
+  const lastFitRef = useRef(0);
+  const hasCenteredInitiallyRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasCenteredInitiallyRef.current && userLocation) {
+      hasCenteredInitiallyRef.current = true;
+      map.setView([userLocation.lat, userLocation.lng], 13, { animate: true });
+    }
+  }, [userLocation, map]);
+
+  useEffect(() => {
+    if (fitBoundsTrigger && fitBoundsTrigger !== lastFitRef.current && userLocation && navigationTarget) {
+      lastFitRef.current = fitBoundsTrigger;
+      map.fitBounds([
+        [userLocation.lat, userLocation.lng],
+        navigationTarget.coords
+      ], { padding: [60, 60], maxZoom: 14, animate: true });
+    }
+  }, [fitBoundsTrigger, userLocation, navigationTarget, map]);
+
+  useEffect(() => {
+    if (followUser && userLocation) {
+      map.panTo([userLocation.lat, userLocation.lng], { animate: true, duration: 0.6 });
+    }
+  }, [userLocation, followUser, map]);
+
+  return null;
+};
+
 const MapEventsController = ({ onMapClick }) => {
   useMapEvents({
     click: (e) => {
@@ -64,6 +169,14 @@ const ExploreMap = () => {
   const [mapCenter, setMapCenter] = useState([13.4, 123.6]);
   const [mapZoom, setMapZoom] = useState(8.5);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Real Device GPS Tracking & Navigation state
+  const [userLocation, setUserLocation] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState('locating'); // 'locating' | 'connected' | 'denied' | 'unsupported' | 'error'
+  const [gpsErrorMsg, setGpsErrorMsg] = useState('');
+  const [navigationTarget, setNavigationTarget] = useState(null);
+  const [followUser, setFollowUser] = useState(true);
+  const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
 
   // Gallery filter state
   const [galleryFilterValue, setGalleryFilterValue] = useState('All');
@@ -261,6 +374,100 @@ const ExploreMap = () => {
     setMapZoom(8.5);
   };
 
+  // Real Device Geolocation Watcher
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus('unsupported');
+      setGpsErrorMsg('Geolocation is not supported by your browser.');
+      showNotification('Geolocation is not supported by your browser.', 'error');
+      return;
+    }
+
+    setGpsStatus('locating');
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy, heading, speed } = pos.coords;
+        setGpsStatus('connected');
+        setGpsErrorMsg('');
+
+        setUserLocation(prev => {
+          let calculatedHeading = 0;
+          if (heading !== null && !isNaN(heading)) {
+            calculatedHeading = Math.round(heading);
+          } else if (prev) {
+            calculatedHeading = calculateBearing(prev.lat, prev.lng, latitude, longitude);
+          }
+          const speedKmh = (speed !== null && !isNaN(speed) && speed > 0)
+            ? (speed * 3.6).toFixed(1)
+            : '0';
+
+          return {
+            lat: latitude,
+            lng: longitude,
+            accuracy: Math.round(accuracy) || 10,
+            heading: calculatedHeading,
+            speed: speedKmh,
+            timestamp: Date.now()
+          };
+        });
+
+        // Arrival alert if within 50 meters of destination
+        if (navigationTarget) {
+          const distKm = calculateDistanceKm(latitude, longitude, navigationTarget.coords[0], navigationTarget.coords[1]);
+          if (distKm <= 0.05) {
+            showNotification(`🎉 You have arrived at ${navigationTarget.name.split(',')[0]}!`, 'success');
+          }
+        }
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        if (err.code === 1) {
+          setGpsStatus('denied');
+          setGpsErrorMsg('GPS location permission denied. Please allow location access in your browser.');
+        } else {
+          setGpsStatus('error');
+          setGpsErrorMsg(err.message || 'Unable to retrieve GPS signal.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 15000
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [navigationTarget, showNotification]);
+
+  const startNavigationToSpot = (spot) => {
+    setSelectedSpot(spot);
+    setNavigationTarget(spot);
+    setFollowUser(true);
+    setFitBoundsTrigger(prev => prev + 1);
+    if (!userLocation) {
+      showNotification(`Starting GPS route to ${spot.name.split(',')[0]}. Acquiring your location...`, 'info');
+    } else {
+      showNotification(`Live GPS route started to ${spot.name.split(',')[0]}!`, 'info');
+    }
+  };
+
+  const cancelNavigation = () => {
+    setNavigationTarget(null);
+  };
+
+  const recenterOnUser = () => {
+    if (userLocation) {
+      setMapCenter([userLocation.lat, userLocation.lng]);
+      setMapZoom(14);
+      setFollowUser(true);
+    } else {
+      showNotification('Acquiring device GPS satellite signal...', 'info');
+    }
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!touristName.trim()) { setUploadError('Please enter your name.'); return; }
@@ -357,6 +564,19 @@ const ExploreMap = () => {
     const spot = spots.find(s => s.id === up.spotId);
     return spot?.name.split(',')[0] === galleryFilterValue;
   });
+
+  // Calculate live navigation metrics
+  const remainingDistanceKm = (userLocation && navigationTarget)
+    ? calculateDistanceKm(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1])
+    : null;
+
+  const currentBearing = (userLocation && navigationTarget)
+    ? calculateBearing(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1])
+    : (userLocation?.heading || 0);
+
+  const estimatedTime = (remainingDistanceKm !== null)
+    ? formatEta(remainingDistanceKm, Number(userLocation?.speed) || 45)
+    : '--';
 
   return (
     <div style={{ background: '#ffffff', minHeight: '100vh', paddingBottom: '7rem', paddingTop: '2.5rem', fontFamily: "'Inter', 'Outfit', Georgia, serif" }}>
@@ -574,7 +794,62 @@ const ExploreMap = () => {
             </div>
 
             {/* Map Container */}
-            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '460px', position: 'relative', zIndex: 0 }}>
+            <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '510px', position: 'relative', zIndex: 0 }}>
+              {/* Floating Top GPS Status Bar */}
+              <div style={{ position: 'absolute', top: '10px', left: '10px', right: '10px', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', pointerEvents: 'none' }}>
+                {/* GPS Status Badge */}
+                <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)', padding: '0.35rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                  <span style={{ position: 'relative', display: 'flex', width: '8px', height: '8px' }}>
+                    <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: gpsStatus === 'connected' ? '#10b981' : gpsStatus === 'locating' ? '#f59e0b' : '#ef4444', opacity: 0.75, animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}></span>
+                    <span style={{ position: 'relative', borderRadius: '50%', width: '8px', height: '8px', background: gpsStatus === 'connected' ? '#059669' : gpsStatus === 'locating' ? '#d97706' : '#dc2626' }}></span>
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.02em', lineHeight: 1.1 }}>
+                      {gpsStatus === 'connected' ? 'LIVE GPS CONNECTED' : gpsStatus === 'locating' ? 'ACQUIRING DEVICE GPS...' : gpsStatus === 'denied' ? 'LOCATION ACCESS DENIED' : 'GPS UNAVAILABLE'}
+                    </span>
+                    <span style={{ fontSize: '0.52rem', color: '#64748b' }}>
+                      {userLocation ? `${userLocation.lat.toFixed(3)}, ${userLocation.lng.toFixed(3)} • ${userLocation.speed || '0'} km/h • ±${userLocation.accuracy}m` : (gpsErrorMsg || 'Waiting for device satellite lock...')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Quick Controls */}
+                <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  {/* Recenter on User Button */}
+                  <button
+                    onClick={recenterOnUser}
+                    title="Recenter view on your live GPS location"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.65rem', borderRadius: '20px', cursor: 'pointer', transition: 'all 0.2s',
+                      background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.08)', color: '#1e293b', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: '0.6rem', fontWeight: 700
+                    }}
+                  >
+                    <Locate style={{ width: '0.75rem', height: '0.75rem', color: '#2563eb' }} />
+                    <span>Recenter</span>
+                  </button>
+
+                  {/* Follow User Toggle */}
+                  <button
+                    onClick={() => {
+                      setFollowUser(prev => !prev);
+                      showNotification(`Auto-center lock ${!followUser ? 'Enabled' : 'Disabled'}`, 'info');
+                    }}
+                    title={followUser ? "Auto-follow is ON (Map stays centered on you)" : "Auto-follow is OFF"}
+                    style={{
+                      width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      background: followUser ? '#2563eb' : 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      color: followUser ? '#ffffff' : '#475569',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                    }}
+                  >
+                    <LocateFixed style={{ width: '0.85rem', height: '0.85rem' }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Leaflet MapContainer */}
               <MapContainer center={mapCenter} zoom={mapZoom} className="w-full h-full" zoomControl={true}>
                 <TileLayer
                   attribution='&copy; Esri &mdash; Source: Esri, USGS, NOAA'
@@ -582,11 +857,71 @@ const ExploreMap = () => {
                   maxZoom={19}
                 />
                 <MapFocusController center={mapCenter} zoom={mapZoom} />
+                <MapLiveNavigationController userLocation={userLocation} followUser={followUser} navigationTarget={navigationTarget} fitBoundsTrigger={fitBoundsTrigger} />
                 <MapEventsController onMapClick={() => { }} />
+
+                {/* User Accuracy Glow Ring */}
+                {userLocation && (
+                  <Circle
+                    center={[userLocation.lat, userLocation.lng]}
+                    radius={userLocation.accuracy || 20}
+                    pathOptions={{
+                      color: '#2563eb',
+                      fillColor: '#3b82f6',
+                      fillOpacity: 0.12,
+                      weight: 1,
+                    }}
+                  />
+                )}
+
+                {/* Live User Position Marker */}
+                {userLocation && (
+                  <Marker
+                    position={[userLocation.lat, userLocation.lng]}
+                    icon={getUserMarkerIcon(userLocation.heading)}
+                    zIndexOffset={1000}
+                  >
+                    <Popup className="custom-user-popup">
+                      <div style={{ padding: '0.35rem', minWidth: '170px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', fontWeight: 800, color: '#1e3a8a' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                          Your Live Location
+                        </div>
+                        <p style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.15rem' }}>
+                          Connected to Device GPS
+                        </p>
+                        <div style={{ marginTop: '0.35rem', fontSize: '0.62rem', color: '#1e293b', background: '#f8fafc', padding: '0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', lineHeight: 1.4 }}>
+                          <strong>Lat:</strong> {userLocation.lat.toFixed(4)}, <strong>Lng:</strong> {userLocation.lng.toFixed(4)}
+                          <br />
+                          <strong>Speed:</strong> {userLocation.speed || '0'} km/h • <strong>Accuracy:</strong> ±{userLocation.accuracy}m
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+
+                {/* Active Navigation Polyline Route */}
+                {userLocation && navigationTarget && (
+                  <Polyline
+                    positions={[
+                      [userLocation.lat, userLocation.lng],
+                      navigationTarget.coords
+                    ]}
+                    pathOptions={{
+                      color: '#2563eb',
+                      weight: 4,
+                      dashArray: '8, 8',
+                      opacity: 0.85
+                    }}
+                    className="leaflet-route-animated"
+                  />
+                )}
+
+                {/* Destination Spots Markers */}
                 {filteredSpots.map(spot => (
                   <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
                     <Popup className="custom-spot-popup">
-                      <div style={{ padding: '0.375rem', maxWidth: '230px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ padding: '0.375rem', maxWidth: '240px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5.5rem', objectFit: 'cover', borderRadius: '4px' }} />
                         <div>
                           <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#855912', background: '#fef9c3', padding: '0.15rem 0.5rem', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -607,12 +942,107 @@ const ExploreMap = () => {
                           >
                             View Photos
                           </button>
+                          <button
+                            onClick={() => startNavigationToSpot(spot)}
+                            style={{
+                              flex: 1,
+                              padding: '0.4rem',
+                              background: '#2563eb',
+                              color: '#ffffff',
+                              fontWeight: 700,
+                              fontSize: '0.6rem',
+                              borderRadius: '2px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem',
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            <Navigation style={{ width: '0.65rem', height: '0.65rem' }} />
+                            Navigate Here
+                          </button>
                         </div>
                       </div>
                     </Popup>
                   </Marker>
                 ))}
               </MapContainer>
+
+              {/* Bottom Floating Navigation HUD (Active when travelling to a destination) */}
+              {navigationTarget && (
+                <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', zIndex: 500, pointerEvents: 'auto' }}>
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.94)',
+                    backdropFilter: 'blur(10px)',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.55rem'
+                  }}>
+                    {/* Header: Destination & Cancel */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                        <div style={{ width: '1.75rem', height: '1.75rem', borderRadius: '6px', background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Navigation style={{ width: '0.95rem', height: '0.95rem', color: '#ffffff' }} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: '0.525rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#93c5fd', fontWeight: 700 }}>
+                            LIVE GPS NAVIGATION • HEADING TO
+                          </span>
+                          <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                            {navigationTarget.name.split(',')[0]}
+                          </h4>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <button
+                          onClick={() => setFitBoundsTrigger(p => p + 1)}
+                          style={{ padding: '0.3rem 0.5rem', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '4px', color: '#93c5fd', fontSize: '0.55rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                          title="Fit whole route in view"
+                        >
+                          <Compass style={{ width: '0.7rem', height: '0.7rem' }} /> Fit Route
+                        </button>
+                        <button
+                          onClick={cancelNavigation}
+                          style={{ padding: '0.3rem', background: 'rgba(239, 68, 68, 0.25)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '4px', color: '#fca5a5', cursor: 'pointer' }}
+                          title="End Navigation"
+                        >
+                          <X style={{ width: '0.85rem', height: '0.85rem' }} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Metrics Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', background: 'rgba(255,255,255,0.06)', padding: '0.45rem', borderRadius: '6px' }}>
+                      <div>
+                        <span style={{ fontSize: '0.5rem', color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Distance</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#38bdf8' }}>{formatDistance(remainingDistanceKm)}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.5rem', color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Est. Time</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#facc15' }}>{estimatedTime}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.5rem', color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>GPS Speed</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4ade80' }}>{userLocation?.speed || '0'} <span style={{ fontSize: '0.55rem' }}>km/h</span></span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.5rem', color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Heading</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#c084fc' }}>{getCompassDirection(currentBearing)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
             </div>
 
             {/* Selected Spot Informative Guide Spotlight */}
@@ -656,6 +1086,55 @@ const ExploreMap = () => {
                     <strong>Pro Travel Tip:</strong> {selectedSpot.travelTips}
                   </div>
                 )}
+
+                {/* Live Navigation CTA Button */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                  <button
+                    onClick={() => startNavigationToSpot(selectedSpot)}
+                    style={{
+                      flex: 1,
+                      padding: '0.6rem 1rem',
+                      background: navigationTarget?.id === selectedSpot.id ? '#15803d' : '#2563eb',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <Navigation style={{ width: '0.85rem', height: '0.85rem' }} />
+                    {navigationTarget?.id === selectedSpot.id ? 'Live Route Active' : 'Start Live Travel Route'}
+                  </button>
+                  {navigationTarget?.id === selectedSpot.id && (
+                    <button
+                      onClick={cancelNavigation}
+                      style={{
+                        padding: '0.6rem 0.85rem',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '0.65rem',
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      <X style={{ width: '0.75rem', height: '0.75rem' }} />
+                      Stop
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
