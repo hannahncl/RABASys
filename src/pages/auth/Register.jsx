@@ -1,11 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
 
 const Register = () => {
-  const { register } = useContext(AuthContext);
+  const { register, googleLogin } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -18,6 +18,59 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const googleBtnRef = useRef(null);
+
+  // Initialize Google Sign-In button
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') return;
+
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          setLoading(true);
+          setError('');
+          const result = await googleLogin(response.credential);
+          if (result.requiresTwoFactor) {
+            navigate('/login');
+            return;
+          }
+          if (result.success) {
+            navigate('/');
+          } else {
+            setError(result.error || 'Google sign-up failed.');
+          }
+          setLoading(false);
+        },
+      });
+
+      const btnWidth = Math.min(Math.max(googleBtnRef.current?.offsetWidth || 360, 200), 400);
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'signup_with',
+        shape: 'rectangular',
+        width: btnWidth,
+      });
+    };
+
+    // GSI script may still be loading
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          initGoogle();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -167,6 +220,16 @@ const Register = () => {
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin text-yellow-700" /> : 'Sign Up'}
           </button>
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-3 my-2">
+            <div className="flex-1 h-px bg-[#e0d9ce]"></div>
+            <span className="text-[11px] font-medium text-[#8f8576] uppercase tracking-wider">or</span>
+            <div className="flex-1 h-px bg-[#e0d9ce]"></div>
+          </div>
+
+          {/* ── Google Sign-Up Button (rendered by Google GSI) ── */}
+          <div ref={googleBtnRef} className="w-full flex justify-center" />
         </form>
     </div>
   );

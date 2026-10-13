@@ -26,6 +26,7 @@ import CarBooking from './pages/public/CarBooking';
 import AboutUs from './pages/public/AboutUs';
 import Profile from './pages/public/Profile';
 import Review from './pages/public/Review';
+import RescheduleTrip from './pages/public/RescheduleTrip';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -95,6 +96,15 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['customer']}>
                     <Review />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="reschedule/:id" 
+                element={
+                  <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+                    <RescheduleTrip />
                   </ProtectedRoute>
                 } 
               />

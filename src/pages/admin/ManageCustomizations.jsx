@@ -20,7 +20,6 @@ import {
   Trash2,
   UserRound,
   Users,
-  XCircle,
   X
 } from 'lucide-react';
 
@@ -139,7 +138,7 @@ const ManageCustomizations = () => {
   };
 
   const handleBookingStatus = async (booking, status) => {
-    const action = status === 'Confirmed' ? 'confirm this customized booking' : 'cancel this customized booking';
+    const action = 'confirm this customized booking';
     if (!window.confirm(`Are you sure you want to ${action}?`)) return;
 
     setUpdatingBookingId(booking.id);
@@ -147,7 +146,7 @@ const ManageCustomizations = () => {
       const updated = await bookingService.updateStatus(booking.id, status);
       setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification(status === 'Confirmed' ? 'Customized booking confirmed' : 'Customized booking cancelled', 'success');
+      showNotification('Customized booking confirmed', 'success');
     } catch {
       showNotification('Failed to update customized booking', 'error');
     } finally {
@@ -486,7 +485,6 @@ const ManageCustomizations = () => {
             booking={selectedBooking}
             updatingId={updatingBookingId}
             onConfirm={(booking) => handleBookingStatus(booking, 'Confirmed')}
-            onCancel={(booking) => handleBookingStatus(booking, 'Cancelled')}
           />
         </div>
       ) : (
@@ -659,7 +657,7 @@ const ManageCustomizations = () => {
   );
 };
 
-const CustomBookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
+const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
   if (!booking) {
     return (
       <aside className="bg-white rounded-md border border-[#e0dbd0] p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] xl:sticky xl:top-24">
@@ -729,13 +727,6 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm, onCancel }) => {
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CheckCircle2 className="h-4 w-4" /> Confirm
-          </button>
-          <button
-            onClick={() => onCancel(booking)}
-            disabled={booking.status === 'Cancelled' || updatingId === booking.id}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <XCircle className="h-4 w-4" /> Cancel
           </button>
         </div>
       </div>

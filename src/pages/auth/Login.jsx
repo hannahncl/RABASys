@@ -1,11 +1,11 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmailOrPhone, validateRequired } from '../../utils/validation';
 
 const Login = () => {
-  const { login, verifyLoginOtp, user } = useContext(AuthContext);
+  const { login, verifyLoginOtp, googleLogin, user } = useContext(AuthContext);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -18,6 +18,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const googleBtnRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -27,6 +28,59 @@ const Login = () => {
     else if (normalizedRole === 'staff') navigate('/staff/dashboard', { replace: true });
     else navigate(from, { replace: true });
   }, [user, navigate, location]);
+
+  // Initialize Google Sign-In button
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') return;
+
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          setLoading(true);
+          setError('');
+          const result = await googleLogin(response.credential);
+          if (result.requiresTwoFactor) {
+            setTwoFactorRequired(true);
+            setTwoFactorEmail(result.email || '');
+            setError(result.message || 'A verification code was sent to your email.');
+            setLoading(false);
+            return;
+          }
+          if (!result.success) {
+            setError(result.error || 'Google sign-in failed.');
+          }
+          setLoading(false);
+        },
+      });
+
+      const btnWidth = Math.min(Math.max(googleBtnRef.current?.offsetWidth || 360, 200), 400);
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        width: btnWidth,
+      });
+    };
+
+    // GSI script may still be loading
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          initGoogle();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [twoFactorRequired]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -195,6 +249,16 @@ const Login = () => {
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin text-yellow-700" /> : 'Log In'}
             </button>
+
+            {/* ── Divider ── */}
+            <div className="flex items-center gap-3 my-2">
+              <div className="flex-1 h-px bg-[#e0d9ce]"></div>
+              <span className="text-[11px] font-medium text-[#8f8576] uppercase tracking-wider">or</span>
+              <div className="flex-1 h-px bg-[#e0d9ce]"></div>
+            </div>
+
+            {/* ── Google Sign-In Button (rendered by Google GSI) ── */}
+            <div ref={googleBtnRef} className="w-full flex justify-center" />
           </form>
         )}
     </div>
