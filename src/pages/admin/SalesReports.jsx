@@ -4,12 +4,15 @@ import { CheckCircle2, DollarSign, Download, FileText, Loader, Printer, ReceiptT
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
+
 
 const isRecognizedSale = (status = '') => {
   const s = normalizeStatus(status);
   return s === 'confirmed' || s === 'completed' || s === 'rescheduled';
 };
+
 
 const getBookingType = (booking) => {
   if (!booking) return 'Tour Packages';
@@ -24,6 +27,7 @@ const getBookingType = (booking) => {
   return 'Tour Packages';
 };
 
+
 const getRentalDays = (booking) => {
   if (!booking.tourDate || !booking.returnDate) return 1;
   const start = new Date(booking.tourDate.replace(/-/g, '/'));
@@ -33,6 +37,7 @@ const getRentalDays = (booking) => {
   return diffDays > 0 ? diffDays : 1;
 };
 
+
 const getBookingDate = (b) => {
   const dateStr = b.createdAt || b.created_at || b.tourDate || b.travel_date || b.pickup_date;
   if (!dateStr) return null;
@@ -41,12 +46,15 @@ const getBookingDate = (b) => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+
 const filterByDateRange = (booking, rangeType, startDate, endDate) => {
   if (!rangeType) return true;
   const d = getBookingDate(booking);
   if (!d) return true;
 
+
   const now = new Date();
+
 
   if (rangeType === 'Today') {
     return (
@@ -56,18 +64,22 @@ const filterByDateRange = (booking, rangeType, startDate, endDate) => {
     );
   }
 
+
   if (rangeType === 'This Week') {
     const startOfWeek = new Date(now);
     const day = now.getDay();
     startOfWeek.setDate(now.getDate() - day);
     startOfWeek.setHours(0, 0, 0, 0);
 
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+
     return d >= startOfWeek && d <= endOfWeek;
   }
+
 
   if (rangeType === 'This Month') {
     return (
@@ -76,9 +88,11 @@ const filterByDateRange = (booking, rangeType, startDate, endDate) => {
     );
   }
 
+
   if (rangeType === 'This Year') {
     return d.getFullYear() === now.getFullYear();
   }
+
 
   if (rangeType === 'Custom') {
     if (startDate && endDate) {
@@ -101,10 +115,13 @@ const filterByDateRange = (booking, rangeType, startDate, endDate) => {
     return true;
   }
 
+
   return true;
 };
 
+
 const serviceCategories = ['Tour Packages', 'TukTrip', 'Car Rental'];
+
 
 const getCategoryPackageStats = (searchFilteredBookings, categoryType) => {
   const categoryBookings = searchFilteredBookings.filter((b) => getBookingType(b) === categoryType);
@@ -131,6 +148,7 @@ const getCategoryPackageStats = (searchFilteredBookings, categoryType) => {
     }
   });
 
+
   const rows = Array.from(map.values()).map((pkg) => {
     const pricePerBooking = pkg.prices.length > 0
       ? pkg.prices.reduce((a, b) => a + b, 0) / pkg.prices.length
@@ -144,10 +162,12 @@ const getCategoryPackageStats = (searchFilteredBookings, categoryType) => {
     };
   });
 
+
   const totalBookingsCount = rows.reduce((acc, r) => acc + r.bookingsCount, 0);
   const totalTouristsCount = rows.reduce((acc, r) => acc + r.touristsCount, 0);
   const grandTotalSales = rows.reduce((acc, r) => acc + r.totalSales, 0);
   const overallPricePerBooking = totalBookingsCount > 0 ? grandTotalSales / totalBookingsCount : 0;
+
 
   const totalRow = {
     packageName: 'TOTAL',
@@ -157,13 +177,16 @@ const getCategoryPackageStats = (searchFilteredBookings, categoryType) => {
     totalSales: grandTotalSales,
   };
 
+
   return { rows, totalRow };
 };
+
 
 const SalesReports = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
+
 
   // Filter input controls state
   const [activeType, setActiveType] = useState('ALL');
@@ -171,6 +194,7 @@ const SalesReports = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
 
   // Applied filter state (drives data calculations when "Apply Filters" is clicked)
   const [appliedFilters, setAppliedFilters] = useState({
@@ -180,6 +204,7 @@ const SalesReports = () => {
     endDate: '',
     searchTerm: '',
   });
+
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -191,6 +216,7 @@ const SalesReports = () => {
     loadBookings();
   }, []);
 
+
   const handleApplyFilters = () => {
     setAppliedFilters({
       activeType,
@@ -200,6 +226,7 @@ const SalesReports = () => {
       searchTerm,
     });
   };
+
 
   const handleResetFilters = () => {
     setActiveType('ALL');
@@ -216,11 +243,13 @@ const SalesReports = () => {
     });
   };
 
+
   const dateFilteredBookings = useMemo(() => {
     return bookings.filter((b) =>
       filterByDateRange(b, appliedFilters.dateRange, appliedFilters.startDate, appliedFilters.endDate)
     );
   }, [bookings, appliedFilters.dateRange, appliedFilters.startDate, appliedFilters.endDate]);
+
 
   const searchFilteredBookings = useMemo(() => {
     if (!appliedFilters.searchTerm.trim()) return dateFilteredBookings;
@@ -245,11 +274,13 @@ const SalesReports = () => {
     });
   }, [dateFilteredBookings, appliedFilters.searchTerm]);
 
+
   // Summary breakdown for ALL services
   const serviceStats = useMemo(() => {
     const totalConfirmedSalesAll = searchFilteredBookings
       .filter((b) => isRecognizedSale(b.status))
       .reduce((acc, b) => acc + (Number(b.totalPrice) || 0), 0);
+
 
     const rows = serviceCategories.map((serviceName) => {
       const bList = searchFilteredBookings.filter((b) => getBookingType(b) === serviceName);
@@ -258,13 +289,16 @@ const SalesReports = () => {
         bList.map((b) => (b.customerEmail || b.customerName || b.customerPhone || '').toLowerCase()).filter(Boolean)
       ).size;
 
+
       const totalSales = bList
         .filter((b) => isRecognizedSale(b.status))
         .reduce((acc, b) => acc + (Number(b.totalPrice) || 0), 0);
 
+
       const percentage = totalConfirmedSalesAll > 0
         ? ((totalSales / totalConfirmedSalesAll) * 100).toFixed(1)
         : '0.0';
+
 
       return {
         service: serviceName,
@@ -275,6 +309,7 @@ const SalesReports = () => {
       };
     });
 
+
     const totalBookingsCount = rows.reduce((acc, r) => acc + r.bookingsCount, 0);
     const totalCustomersCount = new Set(
       searchFilteredBookings.map((b) => (b.customerEmail || b.customerName || b.customerPhone || '').toLowerCase()).filter(Boolean)
@@ -284,6 +319,7 @@ const SalesReports = () => {
       ? ((grandTotalSales / totalConfirmedSalesAll) * 100).toFixed(1)
       : '0.0';
 
+
     const totalRow = {
       service: 'TOTAL',
       bookingsCount: totalBookingsCount,
@@ -292,8 +328,10 @@ const SalesReports = () => {
       percentage: `${totalPercentage}%`,
     };
 
+
     return { rows, totalRow };
   }, [searchFilteredBookings]);
+
 
   // Package-level breakdown for Tour Packages
   const tourPackageStats = useMemo(() => {
@@ -301,14 +339,17 @@ const SalesReports = () => {
     return getCategoryPackageStats(searchFilteredBookings, targetType);
   }, [searchFilteredBookings, appliedFilters.activeType]);
 
+
   // Specific TukTrip breakdown for report preview
   const tuktripStats = useMemo(() => {
     return getCategoryPackageStats(searchFilteredBookings, 'TukTrip');
   }, [searchFilteredBookings]);
 
+
   // Car Rental breakdown
   const carRentalStats = useMemo(() => {
     const carBookings = searchFilteredBookings.filter((b) => getBookingType(b) === 'Car Rental');
+
 
     const map = new Map();
     carBookings.forEach((b) => {
@@ -335,6 +376,7 @@ const SalesReports = () => {
       }
     });
 
+
     const rows = Array.from(map.values()).map((car) => {
       const rentalRate = car.rates.length > 0
         ? car.rates.reduce((a, b) => a + b, 0) / car.rates.length
@@ -348,10 +390,12 @@ const SalesReports = () => {
       };
     });
 
+
     const totalRentalsCount = rows.reduce((acc, r) => acc + r.rentalsCount, 0);
     const grandTotalRentalDays = rows.reduce((acc, r) => acc + r.totalRentalDays, 0);
     const grandTotalSales = rows.reduce((acc, r) => acc + r.totalSales, 0);
     const overallRentalRate = grandTotalRentalDays > 0 ? grandTotalSales / grandTotalRentalDays : 0;
+
 
     const totalRow = {
       vehicleName: 'TOTAL',
@@ -361,13 +405,16 @@ const SalesReports = () => {
       totalSales: grandTotalSales,
     };
 
+
     return { rows, totalRow };
   }, [searchFilteredBookings]);
+
 
   const filteredBookings = searchFilteredBookings.filter((booking) => {
     if (appliedFilters.activeType === 'ALL') return true;
     return getBookingType(booking) === appliedFilters.activeType;
   });
+
 
   const totalEarnings = filteredBookings
     .filter((booking) => isRecognizedSale(booking.status))
@@ -375,11 +422,13 @@ const SalesReports = () => {
   const totalBookings = filteredBookings.length;
   const confirmedCount = filteredBookings.filter((booking) => isRecognizedSale(booking.status)).length;
 
+
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const currentDate = new Date();
     const formattedGenDate = currentDate.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
     const filenameDate = currentDate.toISOString().slice(0, 10);
+
 
     // Title & Header
     doc.setFontSize(18);
@@ -387,18 +436,22 @@ const SalesReports = () => {
     doc.setTextColor(15, 23, 42);
     doc.text('RABAS TRAVEL AND TOURS', 14, 20);
 
+
     doc.setFontSize(11);
     doc.setTextColor(2, 132, 199);
     doc.text('OFFICIAL SALES REPORT', 14, 27);
+
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139);
     doc.text(`Generated: ${formattedGenDate}`, 196, 27, { align: 'right' });
 
+
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
     doc.line(14, 31, 196, 31);
+
 
     // Parameters Grid
     const dateRangeLabel = appliedFilters.dateRange === 'Custom'
@@ -406,34 +459,41 @@ const SalesReports = () => {
       : appliedFilters.dateRange;
     const serviceLabel = appliedFilters.activeType === 'ALL' ? 'All Services' : appliedFilters.activeType;
 
+
     doc.setFontSize(9);
     doc.setTextColor(15, 23, 42);
+
 
     doc.setFont('helvetica', 'bold');
     doc.text('Report Period:', 14, 38);
     doc.setFont('helvetica', 'normal');
     doc.text(dateRangeLabel, 40, 38);
 
+
     doc.setFont('helvetica', 'bold');
     doc.text('Selected Service:', 14, 44);
     doc.setFont('helvetica', 'normal');
     doc.text(serviceLabel, 42, 44);
+
 
     doc.setFont('helvetica', 'bold');
     doc.text('Payment Status:', 110, 38);
     doc.setFont('helvetica', 'normal');
     doc.text('Recognized Paid Sales', 138, 38);
 
+
     doc.setFont('helvetica', 'bold');
     doc.text('Payment Method:', 110, 44);
     doc.setFont('helvetica', 'normal');
     doc.text('All (GCash / Card)', 139, 44);
+
 
     // High-Level Summary Card Banner
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(14, 49, 182, 16, 2, 2, 'F');
     doc.setDrawColor(226, 232, 240);
     doc.roundedRect(14, 49, 182, 16, 2, 2, 'D');
+
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
@@ -442,24 +502,30 @@ const SalesReports = () => {
     doc.text('TOTAL BOOKINGS', 85, 54);
     doc.text('CONFIRMED / PAID', 145, 54);
 
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(2, 132, 199);
     doc.text(`PHP ${totalEarnings.toLocaleString()}`, 20, 61);
 
+
     doc.setTextColor(15, 23, 42);
     doc.text(`${totalBookings}`, 85, 61);
+
 
     doc.setTextColor(5, 150, 105);
     doc.text(`${confirmedCount}`, 145, 61);
 
+
     let currentY = 72;
+
 
     // 1. Sales Summary Breakdown Table
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
     doc.text('Sales Summary Breakdown', 14, currentY);
+
 
     const summaryHead = [['Service', 'Number of Bookings', 'Number of Customers', 'Total Sales', '% of Total']];
     const summaryBody = serviceStats.rows.map(r => [
@@ -476,6 +542,7 @@ const SalesReports = () => {
       `PHP ${serviceStats.totalRow.totalSales.toLocaleString()}`,
       serviceStats.totalRow.percentage
     ]);
+
 
     autoTable(doc, {
       startY: currentY + 3,
@@ -499,7 +566,9 @@ const SalesReports = () => {
       }
     });
 
+
     currentY = doc.lastAutoTable.finalY + 10;
+
 
     // 2. Tour Package Sales Table
     if (appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Tour Packages') {
@@ -508,10 +577,12 @@ const SalesReports = () => {
         currentY = 20;
       }
 
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(15, 23, 42);
       doc.text('Tour Package Sales Details', 14, currentY);
+
 
       const tourHead = [['Tour Package', 'Number of Bookings', 'Number of Tourists', 'Price per Booking', 'Total Sales']];
       const tourBody = tourPackageStats.rows.map(r => [
@@ -532,6 +603,7 @@ const SalesReports = () => {
       } else {
         tourBody.push(['No matching tour package records', '-', '-', '-', '-']);
       }
+
 
       autoTable(doc, {
         startY: currentY + 3,
@@ -555,8 +627,10 @@ const SalesReports = () => {
         }
       });
 
+
       currentY = doc.lastAutoTable.finalY + 10;
     }
+
 
     // 3. TukTrip Sales Table
     if (appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'TukTrip') {
@@ -565,10 +639,12 @@ const SalesReports = () => {
         currentY = 20;
       }
 
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(15, 23, 42);
       doc.text('TukTrip Sales Details', 14, currentY);
+
 
       const tukHead = [['TukTrip Package', 'Number of Bookings', 'Number of Tourists', 'Price per Booking', 'Total Sales']];
       const tukBody = tuktripStats.rows.map(r => [
@@ -589,6 +665,7 @@ const SalesReports = () => {
       } else {
         tukBody.push(['No matching TukTrip records', '-', '-', '-', '-']);
       }
+
 
       autoTable(doc, {
         startY: currentY + 3,
@@ -612,8 +689,10 @@ const SalesReports = () => {
         }
       });
 
+
       currentY = doc.lastAutoTable.finalY + 10;
     }
+
 
     // 4. Car Rental Sales Table
     if (appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Car Rental') {
@@ -622,10 +701,12 @@ const SalesReports = () => {
         currentY = 20;
       }
 
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(15, 23, 42);
       doc.text('Car Rental Sales Details', 14, currentY);
+
 
       const carHead = [['Vehicle', 'Number of Rentals', 'Total Rental Days', 'Rental Rate', 'Total Sales']];
       const carBody = carRentalStats.rows.map(r => [
@@ -646,6 +727,7 @@ const SalesReports = () => {
       } else {
         carBody.push(['No matching car rental records', '-', '-', '-', '-']);
       }
+
 
       autoTable(doc, {
         startY: currentY + 3,
@@ -670,6 +752,7 @@ const SalesReports = () => {
       });
     }
 
+
     // Footer Page Numbers
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -680,8 +763,10 @@ const SalesReports = () => {
       doc.text(`RABAS Travel and Tours - Sales Report | Page ${i} of ${totalPages}`, 105, 287, { align: 'center' });
     }
 
+
     doc.save(`RABAS-Sales-Report-${filenameDate}.pdf`);
   };
+
 
   if (loading) {
     return (
@@ -690,6 +775,7 @@ const SalesReports = () => {
       </div>
     );
   }
+
 
   return (
     <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
@@ -748,6 +834,7 @@ const SalesReports = () => {
         }
       `}</style>
 
+
       {/* Header Filter & Actions Toolbar */}
       <div className="bg-white border border-[#e0dbd0] p-4 rounded-md shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -767,6 +854,7 @@ const SalesReports = () => {
               </select>
             </div>
 
+
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Period</span>
               <select
@@ -781,6 +869,7 @@ const SalesReports = () => {
                 <option value="Custom">Custom</option>
               </select>
             </div>
+
 
             {dateRange === 'Custom' && (
               <div className="flex items-center gap-1.5">
@@ -799,6 +888,7 @@ const SalesReports = () => {
                 />
               </div>
             )}
+
 
             {/* Filter Buttons */}
             <div className="flex items-center gap-1.5 ml-1">
@@ -820,6 +910,7 @@ const SalesReports = () => {
             </div>
           </div>
 
+
           {/* Right: Search & Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 sm:w-56">
@@ -833,6 +924,7 @@ const SalesReports = () => {
                 className="w-full bg-white border border-[#d6cfc2] focus:border-[#1a1a1a] rounded-sm pl-8 pr-3 py-1.5 text-xs text-[#1a1a1a] placeholder:text-[#8a8275] outline-none transition-colors"
               />
             </div>
+
 
             <button
               onClick={() => setShowReportModal(true)}
@@ -852,6 +944,7 @@ const SalesReports = () => {
         </div>
       </div>
 
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -867,6 +960,7 @@ const SalesReports = () => {
           </span>
         </div>
 
+
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Bookings</span>
@@ -877,6 +971,7 @@ const SalesReports = () => {
             Filtered bookings count
           </span>
         </div>
+
 
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-[#b0a68e] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
@@ -889,6 +984,7 @@ const SalesReports = () => {
           </span>
         </div>
       </div>
+
 
       {/* Table Section */}
       <div className="bg-white border border-[#e0dbd0] rounded-md overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -1024,6 +1120,7 @@ const SalesReports = () => {
         </div>
       </div>
 
+
       {/* Formal Sales Report Preview Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs overflow-y-auto">
@@ -1058,6 +1155,7 @@ const SalesReports = () => {
               </div>
             </div>
 
+
             {/* Printable Report Document Container */}
             <div id="printable-sales-report" className="p-6 md:p-8 space-y-6 max-h-[75vh] overflow-y-auto bg-white">
               {/* Document Header */}
@@ -1071,6 +1169,7 @@ const SalesReports = () => {
                     <div><span className="font-semibold text-[#1a1a1a]">Date Generated:</span> {new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</div>
                   </div>
                 </div>
+
 
                 {/* Filter Parameters Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 p-3.5 rounded-sm bg-[#faf9f6] border border-[#eae5db] text-xs">
@@ -1097,6 +1196,7 @@ const SalesReports = () => {
                 </div>
               </div>
 
+
               {/* High-level Sales Summary Banner */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-3.5 rounded-sm bg-[#faf9f6] border border-[#eae5db]">
@@ -1112,6 +1212,7 @@ const SalesReports = () => {
                   <div className="text-lg font-bold text-emerald-600 mt-1">{confirmedCount}</div>
                 </div>
               </div>
+
 
               {/* Sales Summary Breakdown */}
               <div className="space-y-2.5">
@@ -1148,6 +1249,7 @@ const SalesReports = () => {
                   </table>
                 </div>
               </div>
+
 
               {/* Tour Packages Detail */}
               {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Tour Packages') && (
@@ -1203,6 +1305,7 @@ const SalesReports = () => {
                 </div>
               )}
 
+
               {/* TukTrip Detail */}
               {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'TukTrip') && (
                 <div className="space-y-2.5">
@@ -1256,6 +1359,7 @@ const SalesReports = () => {
                   </div>
                 </div>
               )}
+
 
               {/* Car Rental Detail */}
               {(appliedFilters.activeType === 'ALL' || appliedFilters.activeType === 'Car Rental') && (
@@ -1312,6 +1416,7 @@ const SalesReports = () => {
               )}
             </div>
 
+
             {/* Modal Footer Bar */}
             <div className="flex items-center justify-end gap-2 px-6 py-3.5 border-t border-[#eae5db] bg-[#faf9f6] no-print">
               <button
@@ -1342,4 +1447,8 @@ const SalesReports = () => {
   );
 };
 
+
 export default SalesReports;
+
+
+
