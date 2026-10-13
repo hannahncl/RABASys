@@ -154,6 +154,9 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify({ credential }),
       });
+      if (authResponse.requiresTwoFactor) {
+        return { success: true, requiresTwoFactor: true, email: authResponse.email, message: authResponse.message };
+      }
       const sessionUser = saveSession(authResponse);
       return { success: true, user: sessionUser };
     } catch (error) {

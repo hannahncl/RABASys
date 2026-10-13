@@ -24,6 +24,21 @@ async function ensureSchema() {
         await db.query(`ALTER TABLE account ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0`);
     }
 
+    // Google sign-in support: add google_id column and index
+    const [googleIdCol] = await db.query(`SHOW COLUMNS FROM account LIKE 'google_id'`);
+    if (!googleIdCol.length) {
+        await db.query(`ALTER TABLE account ADD COLUMN google_id VARCHAR(255) NULL DEFAULT NULL`);
+    }
+
+    const [googleIdIndex] = await db.query(`SHOW INDEX FROM account WHERE Column_name = 'google_id'`);
+    if (!googleIdIndex.length) {
+        await db.query(`ALTER TABLE account ADD INDEX idx_account_google_id (google_id)`);
+    }
+
+    // Allow Google-created accounts to have no password or contact number
+    await db.query(`ALTER TABLE account MODIFY COLUMN password_hash VARCHAR(255) NULL DEFAULT NULL`);
+    await db.query(`ALTER TABLE account MODIFY COLUMN contact_number VARCHAR(50) NULL DEFAULT NULL`);
+
     // 2. Session Log table
     await db.query(`CREATE TABLE IF NOT EXISTS session_log (
         session_id INT UNSIGNED NOT NULL AUTO_INCREMENT,

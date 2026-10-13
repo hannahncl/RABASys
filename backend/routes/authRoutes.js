@@ -11,7 +11,7 @@ const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, created_at, updated_at";
+const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, created_at, updated_at";
 const normalizeRole = (role) => {
     if (!role) return "Customer";
     const normalized = String(role).trim().toLowerCase();
@@ -35,8 +35,8 @@ const verifyPassword = async (inputPassword, storedHash) => {
 const publicAccount = (account) => ({
     id: account.account_id,
     firstName: account.first_name,
-    lastName: account.last_name,
-    name: `${account.first_name} ${account.last_name}`,
+    lastName: account.last_name || "",
+    name: [account.first_name, account.last_name].filter(Boolean).join(" "),
     email: account.email,
     contactNumber: account.contact_number,
     role: normalizeRole(account.role),
@@ -299,12 +299,13 @@ router.patch("/me", requireAuth, [
 // ── Google Sign-In ──────────────────────────────────────────────────────────
 router.post("/google", [body("credential").isString().notEmpty()], validate, async (req, res, next) => {
     try {
-        // Verify the Google ID token
+        // 1. Verify the Google ID token
         const ticket = await googleClient.verifyIdToken({
             idToken: req.body.credential,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
+        const googleId = payload.sub; // unique Google account ID
         const googleEmail = payload.email?.toLowerCase();
         if (!googleEmail || !payload.email_verified) {
             return res.status(400).json({ message: "Google account email is not verified." });
@@ -313,32 +314,55 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
         const firstName = sanitizeText(payload.given_name || payload.name?.split(" ")[0] || "User");
         const lastName = sanitizeText(payload.family_name || payload.name?.split(" ").slice(1).join(" ") || "");
 
-        // Check if an account with this email already exists
-        const [existing] = await db.execute(
-            `SELECT ${accountFields} FROM account WHERE email = ? AND deleted_at IS NULL`,
-            [googleEmail]
-        );
-
         let account;
 
-        if (existing.length > 0) {
-            account = existing[0];
+        // 2. Look up by google_id first (fastest match for returning Google users)
+        const [byGoogleId] = await db.execute(
+            `SELECT ${accountFields} FROM account WHERE google_id = ? AND deleted_at IS NULL`,
+            [googleId]
+        );
+
+        if (byGoogleId.length > 0) {
+            account = byGoogleId[0];
+        } else {
+            // 3. Fall back to email match (links existing manual account to Google)
+            const [byEmail] = await db.execute(
+                `SELECT ${accountFields} FROM account WHERE email = ? AND deleted_at IS NULL`,
+                [googleEmail]
+            );
+
+            if (byEmail.length > 0) {
+                account = byEmail[0];
+                // Link the Google ID to this existing account
+                await db.execute("UPDATE account SET google_id = ? WHERE account_id = ?", [googleId, account.account_id]);
+            }
+        }
+
+        if (account) {
             if (!isActiveAccount(account)) {
                 return res.status(401).json({ message: "Your account has been deactivated. Please contact support." });
             }
         } else {
-            // Create a new account — use a random password hash since they sign in with Google
-            const randomPassword = crypto.randomBytes(32).toString("hex");
+            // 4. Create a new account with Google identity (no password needed)
             const [result] = await db.execute(
-                "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, '', 'Customer')",
-                [firstName, lastName || ".", googleEmail, await bcrypt.hash(randomPassword, 12)]
+                "INSERT INTO account (first_name, last_name, email, google_id, role) VALUES (?, ?, ?, ?, 'Customer')",
+                [firstName, lastName || "", googleEmail, googleId]
             );
             const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
             account = rows[0];
-            await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, provider: "google" }, req });
+            await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, googleId, provider: "google" }, req });
         }
 
-        // Create session (same as normal login)
+        // 5. Check 2FA if enabled
+        if (Boolean(account.two_factor_enabled)) {
+            const otp = crypto.randomInt(100000, 1000000).toString();
+            await db.execute("UPDATE login_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
+            await db.execute("INSERT INTO login_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
+            await sendTwoFactorOtp(account.email, otp);
+            return res.status(202).json({ requiresTwoFactor: true, message: "A verification code was sent to your email.", email: account.email });
+        }
+
+        // 6. Create session (same as normal login)
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
