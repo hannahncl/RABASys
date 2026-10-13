@@ -80,4 +80,12 @@ export const bookingService = {
     });
     return type === 'Car Rental' ? rentalBookingFromApi(res) : bookingFromApi(res);
   },
+  reschedule: async (id, date, type = 'Tour Packages') => {
+    const endpoint = type === 'Car Rental' ? `/rental-bookings/${id}/reschedule` : `/bookings/${id}/reschedule`;
+    const res = await api(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ requested_schedule_date: date }),
+    });
+    return type === 'Car Rental' ? rentalBookingFromApi(res) : bookingFromApi(res);
+  },
 };

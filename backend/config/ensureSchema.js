@@ -310,6 +310,19 @@ async function ensureSchema() {
         PRIMARY KEY (reschedule_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
+    // 14b. Trip reminder delivery log (prevents duplicate reminder emails)
+    await db.query(`CREATE TABLE IF NOT EXISTS trip_reminder (
+        reminder_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        reminder_key VARCHAR(150) NOT NULL,
+        booking_id INT UNSIGNED NULL DEFAULT NULL,
+        rental_booking_id INT UNSIGNED NULL DEFAULT NULL,
+        reminder_date DATE NOT NULL,
+        sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (reminder_id),
+        UNIQUE KEY uq_trip_reminder_key (reminder_key),
+        KEY idx_trip_reminder_date (reminder_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
     // 15. Recommendation Preference
     await db.query(`CREATE TABLE IF NOT EXISTS recommendation_preference (
         preference_id INT UNSIGNED NOT NULL AUTO_INCREMENT,

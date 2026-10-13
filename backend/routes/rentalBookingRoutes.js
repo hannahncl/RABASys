@@ -16,6 +16,7 @@ const bookingSelect = `SELECT b.*,
 
 router.get("/", requireAuth, async (req, res, next) => {
     try {
+        await db.execute("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE return_date <= NOW() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
         const admin = ["Admin", "Tour Guide"].includes(req.user.role);
         const [rows] = await db.execute(
             `${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = ?"} ORDER BY b.created_at DESC`,
@@ -29,6 +30,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
+        await db.execute("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE rental_booking_id = ? AND return_date <= NOW() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);
         const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ? AND b.deleted_at IS NULL`, [req.params.id]);
         const booking = rows[0];
         if (!booking) return res.status(404).json({ message: "Booking not found." });
@@ -88,9 +90,42 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 });
 
+router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
+    try {
+        const { requested_schedule_date } = req.body;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(requested_schedule_date || ""))) {
+            return res.status(422).json({ message: "A valid new pickup date is required." });
+        }
+        const [existingRows] = await db.execute("SELECT * FROM car_rental_booking WHERE rental_booking_id = ? AND deleted_at IS NULL", [req.params.id]);
+        const booking = existingRows[0];
+        if (!booking) return res.status(404).json({ message: "Booking not found." });
+        if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
+        if (["Completed"].includes(booking.booking_status)) return res.status(422).json({ message: "Completed bookings cannot be rescheduled." });
+
+        const oldStart = new Date(booking.pickup_date);
+        const oldEnd = new Date(booking.return_date);
+        const rentalDays = Math.max(1, Math.ceil((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+        const nextStart = new Date(`${requested_schedule_date}T00:00:00`);
+        const nextEnd = new Date(nextStart);
+        nextEnd.setDate(nextEnd.getDate() + rentalDays);
+        const nextEndDate = nextEnd.toISOString().slice(0, 10);
+
+        const [conflicts] = await db.execute(
+            "SELECT rental_booking_id FROM car_rental_booking WHERE vehicle_id = ? AND rental_booking_id <> ? AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL AND pickup_date < ? AND return_date > ? LIMIT 1",
+            [booking.vehicle_id, req.params.id, nextEndDate, requested_schedule_date]
+        );
+        if (conflicts.length) return res.status(409).json({ message: "That date is not available for this vehicle." });
+
+        await db.execute("UPDATE car_rental_booking SET pickup_date = ?, return_date = ?, booking_status = 'Rescheduled' WHERE rental_booking_id = ? AND deleted_at IS NULL", [requested_schedule_date, nextEndDate, req.params.id]);
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.rental_booking_id = ?`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "RESCHEDULE", tableName: "car_rental_booking", recordId: req.params.id, oldValues: booking, newValues: rows[0], req });
+        res.json(rows[0]);
+    } catch (e) { next(e); }
+});
+
 router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => {
     try {
-        const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed", "Cancelled"];
+        const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed"];
         if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." });
 
         const [before] = await db.execute("SELECT * FROM car_rental_booking WHERE rental_booking_id = ? AND deleted_at IS NULL", [req.params.id]);

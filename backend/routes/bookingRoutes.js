@@ -13,10 +13,22 @@ const bookingSelect = `SELECT b.*, p.package_name, p.destination, a.first_name, 
     LEFT JOIN tour_guide g ON g.guide_id = b.guide_id LEFT JOIN account ga ON ga.account_id = g.account_id`;
 
 router.get("/", requireAuth, async (req, res, next) => {
-    try { const admin = ["Admin", "Tour Guide"].includes(req.user.role); const [rows] = await db.execute(`${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = ?"} ORDER BY b.created_at DESC`, admin ? [] : [req.user.accountId]); res.json(rows); } catch (e) { next(e); }
+    try {
+        await db.execute("UPDATE booking SET booking_status = 'Completed' WHERE travel_date < CURDATE() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
+        const admin = ["Admin", "Tour Guide"].includes(req.user.role);
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = ?"} ORDER BY b.created_at DESC`, admin ? [] : [req.user.accountId]);
+        res.json(rows);
+    } catch (e) { next(e); }
 });
 router.get("/:id", requireAuth, async (req, res, next) => {
-    try { const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ? AND b.deleted_at IS NULL`, [req.params.id]); const booking = rows[0]; if (!booking) return res.status(404).json({ message: "Booking not found." }); if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." }); res.json(booking); } catch (e) { next(e); }
+    try {
+        await db.execute("UPDATE booking SET booking_status = 'Completed' WHERE booking_id = ? AND travel_date < CURDATE() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ? AND b.deleted_at IS NULL`, [req.params.id]);
+        const booking = rows[0];
+        if (!booking) return res.status(404).json({ message: "Booking not found." });
+        if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
+        res.json(booking);
+    } catch (e) { next(e); }
 });
 router.post("/", requireAuth, async (req, res, next) => {
     try { const { package_id, travel_date, number_of_persons } = req.body; if (!package_id || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) return res.status(422).json({ message: "package_id, travel_date, and a positive number_of_persons are required." }); const [packages] = await db.execute("SELECT price, max_capacity FROM tour_package WHERE package_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]); const pkg = packages[0]; if (!pkg) return res.status(404).json({ message: "Available tour package not found." }); if (Number(number_of_persons) > pkg.max_capacity) return res.status(422).json({ message: "Number of persons exceeds package capacity." }); const reference = `RBT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`; const [result] = await db.execute("INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount) VALUES (?, ?, ?, NOW(), ?, ?, ?)", [req.user.accountId, package_id, reference, travel_date, number_of_persons, Number(pkg.price) * Number(number_of_persons)]); const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [result.insertId]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "booking", recordId: result.insertId, newValues: rows[0], req }); 
@@ -29,6 +41,36 @@ router.post("/", requireAuth, async (req, res, next) => {
     // Do not await/fail the request on mail-provider errors.
     try { await sendBookingConfirmation(rows[0], "tour"); } catch (error) { console.error("[booking] confirmation email error:", error.message); }
     res.status(201).json(rows[0]); } catch (e) { next(e); }
+});
+router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
+    try {
+        const { requested_schedule_date } = req.body;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(requested_schedule_date || ""))) {
+            return res.status(422).json({ message: "A valid new travel date is required." });
+        }
+
+        const [existingRows] = await db.execute(
+            "SELECT b.*, p.max_capacity FROM booking b JOIN tour_package p ON p.package_id = b.package_id WHERE b.booking_id = ? AND b.deleted_at IS NULL",
+            [req.params.id]
+        );
+        const booking = existingRows[0];
+        if (!booking) return res.status(404).json({ message: "Booking not found." });
+        if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
+        if (["Completed"].includes(booking.booking_status)) return res.status(422).json({ message: "Completed bookings cannot be rescheduled." });
+
+        const [capacityRows] = await db.execute(
+            "SELECT COALESCE(SUM(number_of_persons), 0) AS reserved FROM booking WHERE package_id = ? AND travel_date = ? AND booking_id <> ? AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
+            [booking.package_id, requested_schedule_date, req.params.id]
+        );
+        if (Number(capacityRows[0].reserved) + Number(booking.number_of_persons) > Number(booking.max_capacity)) {
+            return res.status(409).json({ message: "That date is not available for the selected number of guests." });
+        }
+
+        await db.execute("UPDATE booking SET travel_date = ?, booking_status = 'Rescheduled' WHERE booking_id = ? AND deleted_at IS NULL", [requested_schedule_date, req.params.id]);
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "RESCHEDULE", tableName: "booking", recordId: req.params.id, oldValues: booking, newValues: rows[0], req });
+        res.json(rows[0]);
+    } catch (e) { next(e); }
 });
 router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => { try { const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed"]; if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." }); const [before] = await db.execute("SELECT * FROM booking WHERE booking_id = ? AND deleted_at IS NULL", [req.params.id]); const [result] = await db.execute("UPDATE booking SET booking_status = ? WHERE booking_id = ? AND deleted_at IS NULL", [req.body.booking_status, req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Booking not found." }); const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req }); res.json(rows[0]); } catch (e) { next(e); } });
 module.exports = router;
