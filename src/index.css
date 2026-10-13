@@ -189,3 +189,40 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Live GPS Radar Beacon & Map Animations */
+@keyframes gps-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes live-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.live-user-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-route-animated path {
+  stroke-dasharray: 8, 8;
+  animation: live-dash 1.2s linear infinite;
+}
