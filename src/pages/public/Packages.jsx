@@ -1,7 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
-import { Compass, Search, Star, Heart, Clock, Users, SlidersHorizontal } from 'lucide-react';
+import { Compass, Clock, SlidersHorizontal, Tags, Users } from 'lucide-react';
+import { previewPackages } from './packagePreviewData';
+
+const packageCategories = [
+  {
+    key: 'exclusive',
+    label: 'Exclusive Tour Package',
+    shortLabel: 'Exclusive Tours',
+  },
+  {
+    key: 'tuktrip',
+    label: 'Tuktrip',
+    shortLabel: 'Tuktrip Package',
+  },
+  {
+    key: 'joiner',
+    label: 'Joiner Tour Package',
+    shortLabel: 'Joiner Tours',
+  },
+];
+
+const getPackageVisualCategory = (pkg = {}) => {
+  const text = [
+    pkg.category,
+    pkg.packageType,
+    pkg.package_type,
+    pkg.title,
+    pkg.packageName,
+    pkg.duration,
+    pkg.description,
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  if (text.includes('tuktrip') || text.includes('tuk trip')) return 'tuktrip';
+  if (text.includes('joiner') || text.includes('shared') || text.includes('open tour')) return 'joiner';
+  return 'exclusive';
+};
 
 const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -10,13 +45,8 @@ const Packages = () => {
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedTag, setSelectedTag] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('exclusive');
   const [priceRange, setPriceRange] = useState([0, 100000]);
-
-  // Mock data for the bars in the price range chart
-  const priceBars = [
-    3, 5, 4, 7, 5, 8, 12, 10, 15, 20, 16, 25, 22, 18, 14, 10, 16, 12, 8, 6, 4, 3, 5, 4, 2, 3, 2, 1
-  ];
 
   useEffect(() => {
     const loadPackages = async () => {
@@ -40,21 +70,22 @@ const Packages = () => {
   };
 
   // Perform filtering
-  const filteredPackages = packages.filter((pkg) => {
-    const matchesSearch = pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pkg.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pkg.description.toLowerCase().includes(searchQuery.toLowerCase());
+  const displayPackages = [...packages, ...previewPackages];
 
-    const matchesTag = selectedTag === 'All' || pkg.tags.includes(selectedTag);
+  const filteredPackages = displayPackages.filter((pkg) => {
+    const searchableText = [pkg.title, pkg.destination, pkg.description]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    const matchesSearch = searchableText.includes(searchQuery.toLowerCase());
+    const matchesCategory = getPackageVisualCategory(pkg) === selectedCategory;
     const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
 
-    return matchesSearch && matchesTag && matchesPrice;
+    return matchesSearch && matchesCategory && matchesPrice;
   });
 
-  const allTags = ['All', 'Beach', 'Adventure', 'Cultural', 'Nature'];
-
-  // Badges to rotate across cards
-  const badges = ['Top Rated', 'Best Sale', '25% Off'];
+  const selectedCategoryConfig = packageCategories.find((category) => category.key === selectedCategory) || packageCategories[0];
 
   return (
     <div className="min-h-screen pt-10 pb-28" style={{ background: '#ffffffff', fontFamily: "'Inter', 'Georgia', serif" }}>
@@ -76,7 +107,7 @@ const Packages = () => {
               <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: '#4a453b' }} /> Search Filters
             </h3>
 
-            {/* Keyword Search */}
+                        {/* Keyword Search */}
             <div className="mb-10">
               <h4
                 className="text-[10px] font-semibold mb-3"
@@ -111,6 +142,45 @@ const Packages = () => {
                 }}
               />
             </div>
+
+            {/* Package Category */}
+            <div className="mb-10">
+              <h4
+                className="text-[10px] font-semibold mb-3 flex items-center gap-2"
+                style={{
+                  color: '#4a453b',
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <Tags className="w-3.5 h-3.5" /> Category
+              </h4>
+              <div className="flex flex-col gap-2">
+                {packageCategories.map((category) => {
+                  const isSelected = selectedCategory === category.key;
+                  return (
+                    <button
+                      key={category.key}
+                      type="button"
+                      onClick={() => setSelectedCategory(category.key)}
+                      className="w-full px-4 py-3 text-left transition-all"
+                      style={{
+                        borderRadius: '4px',
+                        border: isSelected ? '1px solid #2d2a24' : '1px solid #e0dbd0',
+                        background: isSelected ? '#2d2a24' : 'rgba(255,255,255,0.55)',
+                        color: isSelected ? '#f7f4ef' : '#45403a',
+                      }}
+                    >
+                      <span className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em]">
+                        {category.shortLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+
 
 
             {/* Price Range */}
@@ -170,6 +240,18 @@ const Packages = () => {
 
           {/* Main Content Grid */}
           <div className="flex-1">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <h2
+                className="text-lg font-semibold"
+                style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+              >
+                {selectedCategoryConfig.label}
+              </h2>
+              <span className="text-[11px] font-medium" style={{ color: '#6b6255' }}>
+                {filteredPackages.length} package{filteredPackages.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
                 {[...Array(6)].map((_, i) => (
@@ -182,7 +264,7 @@ const Packages = () => {
               </div>
             ) : filteredPackages.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
-                {filteredPackages.map((pkg, index) => (
+                {filteredPackages.map((pkg) => (
                   <div
                     key={pkg.id}
                     className="overflow-hidden flex flex-col relative group transition-all duration-500"
@@ -292,7 +374,7 @@ const Packages = () => {
                             e.target.style.color = '#2d2a24';
                           }}
                         >
-                          Book Now
+                          View Details
                         </Link>
                       </div>
                     </div>
@@ -324,7 +406,7 @@ const Packages = () => {
                   No Packages Found
                 </h3>
                 <p className="text-[13px]" style={{ color: '#4a453b' }}>
-                  Try changing your search or filters.
+                  Try another category, search, or price range.
                 </p>
               </div>
             )}

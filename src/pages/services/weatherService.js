@@ -276,7 +276,66 @@ export const weatherService = {
       primary: fallbackDays[0],
       days: fallbackDays,
     };
-  }
+  },
+
+  /**
+   * Fetch daily weather forecast for a range of dates (up to 16 days from today).
+   * Returns a Map-like object keyed by "YYYY-MM-DD" with { description, icon } for each day.
+   * Dates beyond the 16-day forecast window get seasonal estimates.
+   */
+  getMonthForecast: async (destinationName, year, month) => {
+    const { lat, lon } = getCoordsForDestination(destinationName);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month, daysInMonth);
+
+    // If entire month is in the past, return empty
+    if (monthEnd < today) return {};
+
+    // Clamp start to today if month starts in the past
+    const fetchStart = monthStart < today ? today : monthStart;
+
+    // Open-Meteo gives max 16 days from today
+    const maxForecastDate = new Date(today);
+    maxForecastDate.setDate(maxForecastDate.getDate() + 15);
+    const fetchEnd = monthEnd > maxForecastDate ? maxForecastDate : monthEnd;
+
+    if (fetchStart > fetchEnd) return {};
+
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const startStr = fmt(fetchStart);
+    const endStr = fmt(fetchEnd);
+
+    const result = {};
+
+    try {
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,precipitation_probability_max&timezone=Asia%2FManila&start_date=${startStr}&end_date=${endStr}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const daily = data.daily;
+        if (daily && daily.time) {
+          daily.time.forEach((t, idx) => {
+            const codeInfo = parseWmoCode(daily.weathercode[idx]);
+            result[t] = {
+              description: codeInfo.description,
+              icon: codeInfo.icon,
+              tempMax: Math.round(daily.temperature_2m_max[idx]),
+              rainChance: daily.precipitation_probability_max?.[idx] ?? 0,
+            };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch month forecast from Open-Meteo:', err);
+    }
+
+    return result;
+  },
 };
 
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { useAuth } from '../../hooks/useAuth';
 import { customizationService } from '../../services/customizationService';
-import { ChevronLeft, ChevronRight, Loader, Calendar } from 'lucide-react';
+import { Loader, Calendar } from 'lucide-react';
+import { weatherService } from '../../services/weatherService';
 
 /* ─── Color Palette & Common Styles ─── */
 const colors = {
@@ -40,21 +42,41 @@ const inputFocusHandlers = {
 };
 
 /* ─── Inline Calendar Component ─── */
-const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel }) => {
+const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel, destination }) => {
   const [viewDate, setViewDate] = useState(new Date());
-  const [startTime, setStartTime] = useState({ h: '10', m: '30', period: 'am' });
-  const [endTime, setEndTime] = useState({ h: '05', m: '30', period: 'pm' });
+  const [calendarWeather, setCalendarWeather] = useState({});
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const monthName = viewDate.toLocaleString('default', { month: 'long' });
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
 
-  const prevMonth = () => setViewDate(new Date(year, month - 1, 1));
+  const prevMonth = () => {
+    if (!isPastMonth) setViewDate(new Date(year, month - 1, 1));
+  };
   const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
 
+  useEffect(() => {
+    weatherService.getMonthForecast(destination || 'Legazpi', year, month)
+      .then(setCalendarWeather)
+      .catch(() => setCalendarWeather({}));
+  }, [year, month, destination]);
+
+  const getWeatherEmoji = (description = '') => {
+    const condition = description.toLowerCase();
+    if (condition.includes('rain') || condition.includes('shower') || condition.includes('drizzle')) return '🌧️';
+    if (condition.includes('clear') || condition.includes('sunny') || condition.includes('sun')) return '🌞';
+    if (condition.includes('thunder') || condition.includes('storm')) return '⛈️';
+    if (condition.includes('fog')) return '🌫️';
+    if (condition.includes('cloud') || condition.includes('overcast')) return '☁️';
+    return '☁️';
+  };
+
   const handleDayClick = (day) => {
+    const clickedDate = new Date(year, month, day);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    if (clickedDate < currentDate) return;
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     onDateSelect(dateStr);
   };
@@ -73,84 +95,73 @@ const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel }) => {
 
   const today = new Date();
   const isToday = (day) => day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-
-  const prevMonthDays = new Date(year, month, 0).getDate();
-  const trailingDays = [];
-  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    trailingDays.push(prevMonthDays - i);
-  }
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const isPastDay = (day) => new Date(year, month, day) < todayDate;
+  const isPastMonth = year < today.getFullYear() || (year === today.getFullYear() && month <= today.getMonth());
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div style={{ background: '#ffffff', borderRadius: '4px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', border: `1px solid ${colors.border}`, padding: '20px', width: '100%', maxWidth: '320px' }}>
-      {/* Time Row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: colors.accentDark, color: '#f7f4ef', borderRadius: '2px', padding: '6px 12px', fontSize: '11px', fontWeight: 600 }}>
-          <span style={{ color: '#c4b99a', fontSize: '10px' }}>☽</span>
-          <input type="text" value={startTime.h} onChange={e => setStartTime({ ...startTime, h: e.target.value })}
-            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '11px', border: 'none', outline: 'none', color: '#f7f4ef' }} />
-          <span>:</span>
-          <input type="text" value={startTime.m} onChange={e => setStartTime({ ...startTime, m: e.target.value })}
-            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '11px', border: 'none', outline: 'none', color: '#f7f4ef' }} />
-          <select value={startTime.period} onChange={e => setStartTime({ ...startTime, period: e.target.value })}
-            style={{ background: 'transparent', fontSize: '11px', border: 'none', outline: 'none', cursor: 'pointer', color: '#f7f4ef', marginLeft: '2px' }}>
-            <option value="am" style={{ color: colors.textPrimary }}>am</option><option value="pm" style={{ color: colors.textPrimary }}>pm</option>
-          </select>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: colors.subtleBg, border: `1px solid ${colors.borderLight}`, borderRadius: '2px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, color: colors.textPrimary }}>
-          <span style={{ color: colors.textMuted, fontSize: '10px' }}>☀</span>
-          <input type="text" value={endTime.h} onChange={e => setEndTime({ ...endTime, h: e.target.value })}
-            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '11px', border: 'none', outline: 'none', color: colors.textPrimary }} />
-          <span>:</span>
-          <input type="text" value={endTime.m} onChange={e => setEndTime({ ...endTime, m: e.target.value })}
-            style={{ width: '20px', background: 'transparent', textAlign: 'center', fontSize: '11px', border: 'none', outline: 'none', color: colors.textPrimary }} />
-          <select value={endTime.period} onChange={e => setEndTime({ ...endTime, period: e.target.value })}
-            style={{ background: 'transparent', fontSize: '11px', border: 'none', outline: 'none', cursor: 'pointer', color: colors.textPrimary, marginLeft: '2px' }}>
-            <option value="am">am</option><option value="pm">pm</option>
-          </select>
-        </div>
-      </div>
-
+    <div style={{ background: '#ffffff', borderRadius: '6px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', border: `1px solid ${colors.border}`, padding: '20px', width: '320px', maxWidth: 'calc(100vw - 2rem)' }}>
       {/* Month Navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <button onClick={prevMonth} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
-          <ChevronLeft style={{ width: 16, height: 16, color: colors.textSecondary }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '0 8px' }}>
+        <button type="button" onClick={prevMonth} disabled={isPastMonth} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: isPastMonth ? 'not-allowed' : 'pointer', color: isPastMonth ? '#c8c3b8' : colors.textPrimary, opacity: isPastMonth ? 0.5 : 1, fontWeight: 700 }}>
+          &lt;
         </button>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: colors.textPrimary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{monthName} {year}</span>
-        <button onClick={nextMonth} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
-          <ChevronRight style={{ width: 16, height: 16, color: colors.textSecondary }} />
+        <span style={{ fontSize: '12px', fontWeight: 600, color: colors.textPrimary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+        <button type="button" onClick={nextMonth} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', color: colors.textPrimary, fontWeight: 700 }}>
+          &gt;
         </button>
       </div>
 
-      {/* Day Headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+      {/* Calendar Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: '12px', marginBottom: '24px', justifyItems: 'center' }}>
         {dayNames.map(d => (
-          <div key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 600, color: colors.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 0' }}>{d}</div>
+          <div key={d} style={{ textAlign: 'center', fontSize: '9px', fontWeight: 600, color: colors.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{d}</div>
         ))}
-      </div>
-
-      {/* Day Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-        {trailingDays.map((d, i) => (
-          <div key={`prev-${i}`} style={{ textAlign: 'center', fontSize: '11px', color: '#d6cfc2', padding: '6px 0' }}>{d}</div>
+        {Array.from({ length: firstDayOfWeek }, (_, i) => (
+          <div key={`empty-${i}`} style={{ width: '36px', height: '36px' }} />
         ))}
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
           const sel = isSelected(day);
           const range = isInRange(day);
           const td = isToday(day);
+          const past = isPastDay(day);
+          const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const weather = calendarWeather[dateKey];
           return (
             <button
               key={day}
+              type="button"
               onClick={() => handleDayClick(day)}
+              disabled={past}
+              title={weather ? `${weather.description} · ${weather.tempMax}°C` : ''}
               style={{
-                textAlign: 'center', fontSize: '11px', padding: '6px 0', borderRadius: '2px',
-                border: 'none', cursor: 'pointer', fontWeight: sel || td ? 700 : 500,
-                background: sel ? colors.accentDark : range ? 'rgba(176,166,142,0.15)' : td ? 'rgba(176,166,142,0.3)' : 'transparent',
-                color: sel ? '#f7f4ef' : colors.textPrimary,
-                transition: 'all 0.15s'
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                borderRadius: '4px',
+                border: sel || range ? '1px solid #b0a68e' : td ? '1px solid #d6cfc2' : '1px solid transparent',
+                cursor: past ? 'not-allowed' : 'pointer',
+                fontSize: '11px',
+                fontWeight: sel || td ? 700 : 500,
+                background: sel || range ? '#e8dfce' : 'transparent',
+                color: past ? '#c8c3b8' : colors.textPrimary,
+                opacity: past ? 0.5 : 1,
+                transition: 'all 0.15s',
               }}
+              onMouseEnter={(e) => { if (!past && !sel && !range) e.currentTarget.style.background = 'rgba(176,166,142,0.12)'; }}
+              onMouseLeave={(e) => { if (!past && !sel && !range) e.currentTarget.style.background = 'transparent'; }}
             >
+              {weather && !past && (
+                <span style={{ position: 'absolute', top: '1px', right: '1px', fontSize: '11px', lineHeight: 1, pointerEvents: 'none' }}>
+                  {getWeatherEmoji(weather.description)}
+                </span>
+              )}
               {day}
             </button>
           );
@@ -158,11 +169,11 @@ const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel }) => {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.borderLight}` }}>
-        <button onClick={onCancel} style={{ padding: '6px 16px', fontSize: '10px', fontWeight: 600, color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '2px', background: 'transparent', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+        <button type="button" onClick={onCancel} style={{ padding: '6px 20px', fontSize: '10px', fontWeight: 600, color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '2px', background: 'transparent', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           Cancel
         </button>
-        <button onClick={() => onDone(startTime, endTime)} style={{ padding: '6px 20px', fontSize: '10px', fontWeight: 600, color: '#f7f4ef', background: colors.accentDark, borderRadius: '2px', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <button type="button" onClick={onDone} style={{ padding: '6px 20px', fontSize: '10px', fontWeight: 600, color: '#f7f4ef', background: colors.accentDark, borderRadius: '2px', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           Done
         </button>
       </div>
@@ -173,6 +184,7 @@ const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel }) => {
 /* ─── Main Component ─── */
 const CustomPlanner = () => {
   const { showNotification } = useNotification();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
@@ -190,7 +202,9 @@ const CustomPlanner = () => {
 
   const [destination, setDestination] = useState('');
   const [selectedHotel, setSelectedHotel] = useState(null);
+  const [otherAccommodationPreference, setOtherAccommodationPreference] = useState('');
   const [selectedActivities, setSelectedActivities] = useState([]);
+  const [otherActivityPreference, setOtherActivityPreference] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -200,14 +214,17 @@ const CustomPlanner = () => {
       try {
         const result = await customizationService.getAll();
         setData(result);
-        const first = Object.keys(result.destinations)[0];
-        if (first) setDestination(first);
       } catch { showNotification('Failed to load customization options.', 'error'); }
       finally { setLoading(false); }
     })();
   }, [showNotification]);
 
-  useEffect(() => { setSelectedHotel(null); setSelectedActivities([]); }, [destination]);
+  useEffect(() => {
+    setSelectedHotel(null);
+    setOtherAccommodationPreference('');
+    setSelectedActivities([]);
+    setOtherActivityPreference('');
+  }, [destination]);
 
   const handleDateSelect = useCallback((dateStr) => {
     setSelectedDates(prev => {
@@ -232,6 +249,18 @@ const CustomPlanner = () => {
 
   const currentDest = data.destinations[destination];
   const currentHotels = data.hotels?.[destination] || [];
+  const selectedActivitiesSummary = selectedActivities
+    .map((actId) => currentDest?.activities?.find((activity) => activity.id === actId)?.name)
+    .filter(Boolean);
+  if (otherActivityPreference.trim()) {
+    selectedActivitiesSummary.push(`Other: ${otherActivityPreference.trim()}`);
+  }
+  const selectedTravelDates = selectedDates.length > 1
+    ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
+    : selectedDates[0] || 'Not selected';
+  const accommodationSummary = selectedHotel?.id === '__other__'
+    ? otherAccommodationPreference.trim() || 'Other preference (not specified)'
+    : selectedHotel?.name || 'Not selected';
 
   const destCost = currentDest?.base || 0;
   const hotelCost = selectedHotel?.pricePerGuest || 0;
@@ -240,10 +269,13 @@ const CustomPlanner = () => {
     return total + (Number(activity?.price) || 0);
   }, 0);
   const guestCount = Number(numGuests) || 0;
-  const totalCost = (destCost + hotelCost + activitiesCost) * (guestCount || 1);
 
   const handleBook = (e) => {
     e.preventDefault();
+    if (!user) {
+      navigate('/login', { state: { from: { pathname: '/customize' } } });
+      return;
+    }
     if (!firstName || !lastName || !email || !phone) { showNotification('Please fill in all contact fields.', 'warning'); return; }
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) { showNotification('First Name must only contain letters.', 'warning'); return; }
     if (!/^[A-Za-z\s]+$/.test(lastName.trim())) { showNotification('Last Name must only contain letters.', 'warning'); return; }
@@ -251,6 +283,7 @@ const CustomPlanner = () => {
     if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
 
     const selectedActNames = selectedActivities.map(actId => currentDest.activities.find(a => a.id === actId)?.name).filter(Boolean);
+    if (otherActivityPreference.trim()) selectedActNames.push(`Other: ${otherActivityPreference.trim()}`);
 
     const customPkg = {
       id: 'custom-package',
@@ -261,7 +294,10 @@ const CustomPlanner = () => {
       image: currentDest?.image || '',
       customizedDetails: {
         destination,
-        hotel: selectedHotel?.name || 'None',
+        hotel: selectedHotel?.id === '__other__'
+          ? `Other: ${otherAccommodationPreference.trim() || 'Preference not specified'}`
+          : selectedHotel?.name || 'None',
+        otherAccommodationPreference: otherAccommodationPreference.trim(),
         duration: `${numDays || 0} Days / ${numNights || 0} Nights`,
         activities: selectedActNames
       }
@@ -401,6 +437,7 @@ const CustomPlanner = () => {
                     <div className="absolute top-full left-0 mt-2 z-50">
                       <CalendarPicker
                         selectedDates={selectedDates}
+                        destination={destination}
                         onDateSelect={handleDateSelect}
                         onDone={() => setShowCalendar(false)}
                         onCancel={() => { setSelectedDates([]); setShowCalendar(false); }}
@@ -482,106 +519,108 @@ const CustomPlanner = () => {
               {/* 1. Destination */}
               <div id="section-destination">
                 <SectionLabel>1. Select Destination</SectionLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.keys(data.destinations).map(dest => {
-                    const isSelected = destination === dest;
-                    return (
-                      <button
-                        key={dest}
-                        onClick={() => setDestination(dest)}
-                        className="py-3 px-4 text-left text-[13px] font-semibold transition-all duration-200 cursor-pointer"
-                        style={{
-                          border: isSelected ? `1.5px solid ${colors.accentDark}` : `1px solid ${colors.border}`,
-                          borderRadius: '2px',
-                          background: isSelected ? 'rgba(26,23,21,0.03)' : colors.bg,
-                          color: isSelected ? colors.accentDark : colors.textPrimary,
-                        }}
-                      >
-                        {dest}
-                      </button>
-                    );
-                  })}
-                </div>
+                <select
+                  id="select-destination"
+                  value={destination}
+                  onChange={e => setDestination(e.target.value)}
+                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                  {...inputFocusHandlers}
+                >
+                  <option value="" disabled>Select Destination</option>
+                  {Object.keys(data.destinations).map(dest => (
+                    <option key={dest} value={dest}>{dest}</option>
+                  ))}
+                </select>
               </div>
 
               {/* 2. Accommodation */}
               <div id="section-accommodation">
                 <SectionLabel>2. Select Accommodation</SectionLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentHotels.map(hotel => {
-                    const isSelected = selectedHotel?.id === hotel.id;
-                    return (
-                      <button
-                        key={hotel.id}
-                        onClick={() => setSelectedHotel(hotel)}
-                        className="p-4 text-left transition-all duration-200 cursor-pointer"
-                        style={{
-                          border: isSelected ? `1.5px solid ${colors.accentDark}` : `1px solid ${colors.border}`,
-                          borderRadius: '2px',
-                          background: isSelected ? 'rgba(26,23,21,0.03)' : colors.bg,
-                        }}
-                      >
-                        <span className="block text-[13px] font-semibold" style={{ color: colors.textPrimary }}>{hotel.name}</span>
-                        <span className="block text-[11px] mt-1" style={{ color: colors.textSecondary }}>Base Cost: PHP {hotel.pricePerGuest.toLocaleString('en-PH', { minimumFractionDigits: 2 })} / Guest</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <select
+                  id="select-accommodation"
+                  value={selectedHotel?.id || ''}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setSelectedHotel(value === '__other__'
+                      ? { id: '__other__', name: 'Other', pricePerGuest: 0 }
+                      : currentHotels.find(hotel => String(hotel.id) === value) || null);
+                    setOtherAccommodationPreference('');
+                  }}
+                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                  {...inputFocusHandlers}
+                >
+                  <option value="">Select Accommodation</option>
+                  {currentHotels.map(hotel => (
+                    <option key={hotel.id} value={hotel.id}>
+                      {hotel.name}
+                    </option>
+                  ))}
+                  <option value="__other__">Other</option>
+                </select>
+                {selectedHotel?.id === '__other__' && (
+                  <input
+                    type="text"
+                    value={otherAccommodationPreference}
+                    onChange={e => setOtherAccommodationPreference(e.target.value)}
+                    placeholder="Enter your accommodation preference"
+                    aria-label="Other accommodation preference"
+                    className="mt-3 w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                    style={inputStyle}
+                    {...inputFocusHandlers}
+                  />
+                )}
               </div>
 
               {/* 3. Choose Custom Activities */}
               <div id="section-activities">
                 <SectionLabel>3. Choose Custom Activities</SectionLabel>
-                <div className="flex flex-col gap-3">
-                  {currentDest?.activities?.map(act => {
-                    const isChecked = selectedActivities.includes(act.id);
-                    return (
-                      <label
-                        key={act.id}
-                        onClick={() => handleActivityToggle(act.id)}
-                        className="flex items-start gap-3.5 p-4 cursor-pointer transition-all duration-200"
-                        style={{
-                          border: isChecked ? `1.5px solid ${colors.accentDark}` : `1px solid ${colors.border}`,
-                          borderRadius: '2px',
-                          background: isChecked ? 'rgba(26,23,21,0.03)' : colors.bg,
-                        }}
-                      >
-                        <span
-                          className="inline-flex items-center justify-center w-4 h-4 mt-0.5 shrink-0 transition-all"
-                          style={{
-                            border: isChecked ? `1px solid ${colors.accentDark}` : `1px solid ${colors.border}`,
-                            borderRadius: '2px',
-                            background: isChecked ? colors.accentDark : '#ffffff',
-                          }}
-                        >
-                          {isChecked && (
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                              <path d="M2 5L4.5 7.5L8 3" stroke="#f7f4ef" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </span>
-                        <span className="text-[13px] leading-relaxed" style={{ color: colors.textPrimary }}>
-                          <span className="font-semibold block">{act.name}</span>
-                          {Number(act.price) > 0 && (
-                            <span className="block font-bold text-[12px] mt-0.5" style={{ color: colors.textPrimary }}>
-                              PHP {Number(act.price).toLocaleString('en-PH')}
-                            </span>
-                          )}
-                          {act.details && (
-                            <span className="block text-[11px] mt-1 leading-relaxed" style={{ color: colors.textSecondary }}>
-                              {act.details}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })}
+                <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: colors.textMuted }}>
+                  <span>Select any activities</span>
+                  <span>{selectedActivities.length} selected</span>
                 </div>
+                <div
+                  className="max-h-60 overflow-y-auto divide-y"
+                  style={{ borderTop: `1px solid ${colors.borderLight}`, borderBottom: `1px solid ${colors.borderLight}`, borderColor: colors.borderLight }}
+                >
+                  {(currentDest?.activities || []).map(act => (
+                    <label
+                      key={act.id}
+                      title={act.details || undefined}
+                      className="flex items-center gap-3 py-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedActivities.includes(act.id)}
+                        onChange={() => handleActivityToggle(act.id)}
+                        className="h-4 w-4 shrink-0 cursor-pointer"
+                        style={{ accentColor: colors.accentDark }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: colors.textPrimary }}>
+                        {act.name}
+                      </span>
+                    </label>
+                  ))}
+                  {!currentDest?.activities?.length && (
+                    <p className="py-3 text-[12px]" style={{ color: colors.textMuted }}>No activities available for this destination.</p>
+                  )}
+                </div>
+                <textarea
+                  value={otherActivityPreference}
+                  onChange={e => setOtherActivityPreference(e.target.value)}
+                  placeholder="Other activity preference (optional)"
+                  aria-label="Other activity preference"
+                  rows={2}
+                  className="mt-3 w-full py-3 px-4 text-[13px] focus:outline-none transition-all"
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  {...inputFocusHandlers}
+                />
               </div>
             </div>
           </div>
 
-          {/* RIGHT SIDE: Estimate Panel */}
+          {/* RIGHT SIDE: Selection Summary */}
           <div className="lg:col-span-5 flex flex-col">
             <div
               className="p-6 sticky top-24"
@@ -596,32 +635,36 @@ const CustomPlanner = () => {
                 className="text-[11px] font-semibold mb-6 text-center"
                 style={{ color: colors.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase' }}
               >
-                Real-Time Estimate
+                Your Trip Selections
               </h3>
 
-              <div className="border-b border-[#eae5db] pb-5 mb-5 space-y-3">
+              <div className="border-b border-[#eae5db] pb-5 mb-5 space-y-4 text-[12px]">
                 {[
-                  ['Destination:', `PHP ${destCost.toFixed(2)}`, guestCount],
-                  ['Accommodation:', `PHP ${hotelCost.toFixed(2)}`, guestCount],
-                  ['Selected Activities:', `PHP ${activitiesCost.toFixed(2)}`, guestCount]
-                ].map(([label, val, g], i) => (
-                  <div key={i} className="flex justify-between items-center text-[12px]">
-                    <span style={{ color: colors.textSecondary }}>{label}</span>
-                    <span className="font-medium" style={{ color: colors.textPrimary }}>
-                      {val} <span style={{ color: colors.textMuted, fontSize: '11px' }}>x{g}</span>
-                    </span>
+                  ['Destination', destination || 'Not selected'],
+                  ['Travel dates', selectedTravelDates],
+                  ['Duration', `${numDays || 0} days / ${numNights || 0} nights`],
+                  ['Guests', guestCount || 'Not selected'],
+                  ['Accommodation', accommodationSummary],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between items-start gap-4">
+                    <span className="shrink-0" style={{ color: colors.textMuted }}>{label}</span>
+                    <span className="text-right font-medium" style={{ color: colors.textPrimary }}>{value}</span>
                   </div>
                 ))}
+                <div>
+                  <p className="mb-2" style={{ color: colors.textMuted }}>Activities</p>
+                  {selectedActivitiesSummary.length > 0 ? (
+                    <ul className="space-y-1.5" style={{ color: colors.textPrimary }}>
+                      {selectedActivitiesSummary.map(activity => <li key={activity}>• {activity}</li>)}
+                    </ul>
+                  ) : (
+                    <p style={{ color: colors.textPrimary }}>None selected</p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex justify-between items-center mb-6 pt-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Estimated Total</span>
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: colors.textPrimary, fontFamily: "'Outfit', Georgia, serif" }}
-                >
-                  PHP {totalCost.toFixed(2)}
-                </span>
+              <div className="mb-5 p-3 text-[11px] leading-relaxed" style={{ background: colors.subtleBg, border: `1px solid ${colors.borderLight}`, color: colors.textSecondary }}>
+                Pricing is not final yet. An admin will review your selections and confirm the price.
               </div>
 
               <button
@@ -650,8 +693,7 @@ const CustomPlanner = () => {
               </button>
 
               <p className="text-[10px] text-center mt-4 leading-relaxed" style={{ color: colors.textMuted }}>
-                Note: Your customized booking will undergo verification and approval first.<br />
-                Once approved, the approved booking will be sent to your email.
+                Your selected trip details will be reviewed before the final price is confirmed.
               </p>
             </div>
           </div>

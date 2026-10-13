@@ -20,6 +20,12 @@ router.get("/", requireAuth, async (req, res, next) => {
         res.json(rows);
     } catch (e) { next(e); }
 });
+router.get("/mine", requireAuth, async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.account_id = ? AND b.deleted_at IS NULL ORDER BY b.created_at DESC`, [req.user.accountId]);
+        res.json(rows);
+    } catch (e) { next(e); }
+});
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
         await db.execute("UPDATE booking SET booking_status = 'Completed' WHERE booking_id = ? AND travel_date < CURDATE() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);

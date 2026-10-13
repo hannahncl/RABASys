@@ -7,6 +7,7 @@ import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
 import { api } from '../../services/api';
+import { weatherService } from '../../services/weatherService';
 
 
 
@@ -72,6 +73,9 @@ const Booking = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
 
+  // Calendar weather forecast data { 'YYYY-MM-DD': { description, icon } }
+  const [calendarWeather, setCalendarWeather] = useState({});
+
   // Step & Payment State
   const [currentStep, setCurrentStep] = useState(stateData.startStep || 1);
   const [paymentMethod, setPaymentMethod] = useState('card');
@@ -87,7 +91,7 @@ const Booking = () => {
   useEffect(() => {
     const loadPkg = async () => {
       setLoading(true);
-      
+
       try {
         const guides = await api('/tour-guides/public');
         setTourGuides(guides);
@@ -116,6 +120,16 @@ const Booking = () => {
     };
     loadPkg();
   }, [packageId, navigate, showNotification]);
+
+  // Fetch calendar weather whenever calendarDate month/year changes
+  useEffect(() => {
+    const destination = pkg?.destination || pkg?.title || 'Legazpi';
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    weatherService.getMonthForecast(destination, year, month)
+      .then(data => setCalendarWeather(data))
+      .catch(() => setCalendarWeather({}));
+  }, [calendarDate, pkg]);
 
   if (loading || !pkg) {
     return (
@@ -243,12 +257,28 @@ const Booking = () => {
     }
   };
 
+  // Weather emoji helper
+  const getWeatherEmoji = (description = '') => {
+    const d = description.toLowerCase();
+    if (d.includes('thunder') || d.includes('storm')) return '⛈️';
+    if (d.includes('rain') || d.includes('shower') || d.includes('drizzle')) return '🌧️';
+    if (d.includes('fog')) return '🌫️';
+    if (d.includes('overcast')) return '☁️';
+    if (d.includes('cloud') || d.includes('partly')) return '⛅';
+    if (d.includes('clear') || d.includes('sunny') || d.includes('sun')) return '🌞';
+    return '☁️';
+  };
+
   // Helper for rendering calendar days
   const renderCalendarDays = () => {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay = new Date(year, month, 1).getDay();
+
+    // Today at midnight for comparison
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const days = [];
     for (let i = 0; i < firstDay; i++) {
@@ -266,55 +296,78 @@ const Booking = () => {
       endDate.setDate(endDate.getDate() + (numDays - 1));
     }
 
+    // Helper to build date key for weather lookup
+    const fmtKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     return days.map((day, i) => {
       if (day.empty) return <div key={`empty-${i}`}></div>;
 
       const currentDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
-      const isSelected = selectedDate && currentDate.getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
-      const isEnd = endDate && currentDate.getTime() === new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
+      const isPast = currentDate < today;
       const isInRange = selectedDate && endDate && currentDate >= new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) && currentDate <= new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+      // Weather for this date
+      const dateKey = fmtKey(currentDate);
+      const weather = calendarWeather[dateKey];
 
       let dayStyle = {
         background: 'transparent',
         color: colors.textPrimary,
-        borderRadius: '2px',
+        borderRadius: '4px',
         cursor: 'pointer',
+        position: 'relative',
       };
 
-      if (isSelected || isEnd) {
+      // Past dates: pale color and not clickable
+      if (isPast) {
         dayStyle = {
           ...dayStyle,
-          background: colors.accentDark,
-          color: '#f7f4ef',
+          color: '#c8c3b8',
+          cursor: 'not-allowed',
+          opacity: 0.5,
         };
       } else if (isInRange) {
         dayStyle = {
           ...dayStyle,
-          background: 'rgba(176,166,142,0.15)',
+          background: '#e8dfce',
           color: colors.textPrimary,
-          border: `1px solid ${colors.border}`,
+          border: '1px solid #b0a68e',
         };
       }
 
       return (
         <div
           key={i}
-          onClick={() => handleDateSelect(day.date)}
-          className="w-7 h-7 flex items-center justify-center text-xs font-semibold transition-all"
-          style={dayStyle}
+          onClick={() => !isPast && handleDateSelect(day.date)}
+          className="flex items-center justify-center text-xs font-semibold transition-all"
+          style={{ ...dayStyle, width: '36px', height: '36px' }}
+          title={weather ? `${weather.description} · ${weather.tempMax}°C` : ''}
           onMouseEnter={(e) => {
-            if (!isSelected && !isEnd) {
+            if (isPast) return;
+            if (!isInRange) {
               e.currentTarget.style.background = 'rgba(176,166,142,0.12)';
             }
           }}
           onMouseLeave={(e) => {
-            if (!isSelected && !isEnd && !isInRange) {
+            if (isPast) return;
+            if (!isInRange) {
               e.currentTarget.style.background = 'transparent';
-            } else if (isInRange && !isSelected && !isEnd) {
-              e.currentTarget.style.background = 'rgba(176,166,142,0.15)';
             }
           }}
         >
+          {weather && !isPast && (
+            <span style={{
+              position: 'absolute',
+              top: '1px',
+              right: '1px',
+              fontSize: '11px',
+              lineHeight: 1,
+              filter: 'saturate(0.85)',
+              pointerEvents: 'none',
+            }}>
+              {getWeatherEmoji(weather.description)}
+            </span>
+          )}
           {day.num}
         </div>
       );
@@ -391,20 +444,33 @@ const Booking = () => {
 
                           {/* Calendar Header */}
                           <div className="flex items-center justify-between mb-4 px-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const prevMonth = new Date(calendarDate);
-                                prevMonth.setMonth(prevMonth.getMonth() - 1);
-                                setCalendarDate(prevMonth);
-                              }}
-                              className="font-semibold px-2 py-1 transition-colors"
-                              style={{ color: colors.textPrimary }}
-                              onMouseEnter={(e) => (e.target.style.color = colors.accent)}
-                              onMouseLeave={(e) => (e.target.style.color = colors.textPrimary)}
-                            >
-                              &lt;
-                            </button>
+                            {(() => {
+                              const now = new Date();
+                              const isCurrentMonth = calendarDate.getFullYear() === now.getFullYear() && calendarDate.getMonth() === now.getMonth();
+                              const isPastMonth = calendarDate.getFullYear() < now.getFullYear() || (calendarDate.getFullYear() === now.getFullYear() && calendarDate.getMonth() <= now.getMonth());
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isPastMonth}
+                                  onClick={() => {
+                                    if (isPastMonth) return;
+                                    const prevMonth = new Date(calendarDate);
+                                    prevMonth.setMonth(prevMonth.getMonth() - 1);
+                                    setCalendarDate(prevMonth);
+                                  }}
+                                  className="font-semibold px-2 py-1 transition-colors"
+                                  style={{
+                                    color: isPastMonth ? '#c8c3b8' : colors.textPrimary,
+                                    cursor: isPastMonth ? 'not-allowed' : 'pointer',
+                                    opacity: isPastMonth ? 0.5 : 1,
+                                  }}
+                                  onMouseEnter={(e) => { if (!isPastMonth) e.target.style.color = colors.accent; }}
+                                  onMouseLeave={(e) => { if (!isPastMonth) e.target.style.color = colors.textPrimary; }}
+                                >
+                                  &lt;
+                                </button>
+                              );
+                            })()}
                             <span
                               className="text-[12px] font-semibold"
                               style={{
@@ -660,79 +726,6 @@ const Booking = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Tour Guide Selection (Only for Tour Packages) */}
-                  {packageId !== 'custom' && (
-                    <div>
-                      <SectionLabel>Select a Tour Guide (Optional)</SectionLabel>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {tourGuides.map(guide => (
-                          <div
-                            key={guide.id}
-                            onClick={() => setSelectedGuide(selectedGuide === guide.id ? null : guide.id)}
-                            className="p-4 cursor-pointer transition-all duration-300"
-                            style={{
-                              border: selectedGuide === guide.id
-                                ? `1px solid ${colors.accentDark}`
-                                : `1px solid ${colors.border}`,
-                              borderRadius: '4px',
-                              background: selectedGuide === guide.id
-                                ? 'rgba(45,42,36,0.03)'
-                                : colors.bg,
-                            }}
-                            onMouseEnter={(e) => {
-                              if (selectedGuide !== guide.id) {
-                                e.currentTarget.style.borderColor = colors.accent;
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (selectedGuide !== guide.id) {
-                                e.currentTarget.style.borderColor = colors.border;
-                              }
-                            }}
-                          >
-                            <div className="flex gap-4">
-                              <div
-                                className="w-12 h-12 shrink-0 flex items-center justify-center text-[13px] font-bold"
-                                style={{
-                                  borderRadius: '2px',
-                                  background: '#e8e3da',
-                                  color: '#4a453b',
-                                  letterSpacing: '0.04em',
-                                }}
-                              >
-                                {(guide.firstName?.[0] || guide.name?.[0] || 'T').toUpperCase()}
-                                {(guide.lastName?.[0] || guide.name?.split(' ')[1]?.[0] || 'G').toUpperCase()}
-                              </div>
-                              <div>
-                                <h4
-                                  className="font-semibold text-[13px]"
-                                  style={{ color: colors.textPrimary }}
-                                >
-                                  {guide.name}
-                                </h4>
-                                <p
-                                  className="text-[11px] mt-1 leading-relaxed"
-                                  style={{ color: colors.textSecondary }}
-                                >
-                                  {guide.description || 'Professional local tour guide.'}
-                                </p>
-                                <div className="flex items-center gap-1.5 mt-2">
-                                  <Globe className="w-3 h-3" style={{ color: colors.accent }} />
-                                  <span
-                                    className="text-[10px] font-medium"
-                                    style={{ color: colors.textMuted }}
-                                  >
-                                    {guide.languageSpoken || (guide.languages && guide.languages.join(', ')) || 'English, Tagalog'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Disclaimer */}
                   <div className="flex items-start gap-2.5">
@@ -1067,12 +1060,14 @@ const Booking = () => {
               </div>
 
               {/* Free Weather API Forecast Box (Flashes automatically on Date Selection) */}
-              <WeatherWidget
-                destination={pkg.destination || pkg.meetingLocation || pkg.title || 'Legazpi, Albay'}
-                tourDate={tourDate}
-                durationDays={getPackageDurationInDays()}
-                theme="light"
-              />
+              {currentStep === 1 && (
+                <WeatherWidget
+                  destination={pkg.destination || pkg.meetingLocation || pkg.title || 'Legazpi, Albay'}
+                  tourDate={tourDate}
+                  durationDays={getPackageDurationInDays()}
+                  theme="light"
+                />
+              )}
             </div>
           </div>
 
