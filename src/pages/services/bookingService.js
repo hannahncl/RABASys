@@ -3,19 +3,31 @@ import { api } from '../../services/api';
 const bookingFromApi = (item) => ({
   ...item,
   id: String(item.booking_id),
+<<<<<<< HEAD
   type: item.package_type === 'custom' || item.package_type === 'customization' ? 'Customization' : 'Tour Packages',
   packageId: String(item.package_id),
+=======
+  type: 'Tour Packages',
+  packageId: item.package_id == null ? 'custom-package' : String(item.package_id),
+>>>>>>> 17711a1dc929aa91da85072685d91815aa6ecbe3
   packageName: item.package_name,
   customerName: item.customer_name,
   customerEmail: item.email,
   customerPhone: item.contact_number,
   tourDate: item.travel_date?.slice(0, 10),
   guestsCount: item.number_of_persons,
-  totalPrice: Number(item.total_amount),
+  totalPrice: item.customized_details && item.booking_status === 'Pending'
+    ? null
+    : Number(item.total_amount),
   status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
   createdAt: item.created_at,
   paymentRef: item.booking_reference,
   hasReviewed: Boolean(item.has_reviewed),
+  customizedDetails: typeof item.customized_details === 'string'
+    ? JSON.parse(item.customized_details)
+    : item.customized_details || null,
+  guideId: item.guide_id ? String(item.guide_id) : null,
+  guideName: item.guide_name || '',
 });
 
 const rentalBookingFromApi = (item) => ({
@@ -59,7 +71,12 @@ export const bookingService = {
   },
   create: async (item) => bookingFromApi(await api('/bookings', {
     method: 'POST',
-    body: JSON.stringify({ package_id: Number(item.packageId), travel_date: item.tourDate, number_of_persons: Number(item.guestsCount) }),
+    body: JSON.stringify({
+      package_id: item.packageId === 'custom-package' ? null : Number(item.packageId),
+      customized_details: item.customizedDetails || null,
+      travel_date: item.tourDate,
+      number_of_persons: Number(item.guestsCount),
+    }),
   })),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {
     method: 'POST',
@@ -81,6 +98,10 @@ export const bookingService = {
     });
     return type === 'Car Rental' ? rentalBookingFromApi(res) : bookingFromApi(res);
   },
+  updateCustomQuote: async (id, totalAmount) => bookingFromApi(await api(`/bookings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ booking_status: 'Quote Sent', total_amount: Number(totalAmount) }),
+  })),
   reschedule: async (id, date, type = 'Tour Packages') => {
     const endpoint = type === 'Car Rental' ? `/rental-bookings/${id}/reschedule` : `/bookings/${id}/reschedule`;
     const res = await api(endpoint, {

@@ -572,7 +572,9 @@ const Profile = () => {
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <CreditCard className="h-3.5 w-3.5" />
-                                    ₱{booking.totalPrice?.toLocaleString()}
+                                    {booking.customizedDetails && booking.status === 'Pending Verification'
+                                      ? 'Pricing under review'
+                                      : `₱${booking.totalPrice?.toLocaleString()}`}
                                   </span>
                                 </div>
 
@@ -719,25 +721,38 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Payment */}
-            <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
-              <Row label="Payment Mode" value={viewingBooking.paymentMethod} />
-              {viewingBooking.gcashNumber && (
-                <Row label="GCash Mobile" value={viewingBooking.gcashNumber} />
-              )}
-              {viewingBooking.paymentRef && (
-                <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
-                  <span>Reference ID:</span>
-                  <strong className="rounded border border-[#e0dbd0] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#2d2a24]">
-                    {viewingBooking.paymentRef}
-                  </strong>
-                </div>
-              )}
-              <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
-                <span>Grand Total Paid:</span>
-                <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
+            {/* Payment or quote status */}
+            {viewingBooking.customizedDetails ? (
+              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+                <Row
+                  label="Quote status"
+                  value={viewingBooking.status === 'Pending Verification' ? 'Pricing under review' : 'Final quote sent by email'}
+                />
+                {viewingBooking.status !== 'Pending Verification' && (
+                  <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                    <span>Final quote:</span>
+                    <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+                <Row label="Payment Mode" value={viewingBooking.paymentMethod} />
+                {viewingBooking.gcashNumber && <Row label="GCash Mobile" value={viewingBooking.gcashNumber} />}
+                {viewingBooking.paymentRef && (
+                  <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
+                    <span>Reference ID:</span>
+                    <strong className="rounded border border-[#e0dbd0] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#2d2a24]">
+                      {viewingBooking.paymentRef}
+                    </strong>
+                  </div>
+                )}
+                <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                  <span>Grand Total Paid:</span>
+                  <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
 
             {/* Review Section */}
             {viewingBooking.hasReviewed && viewingBooking.review && (

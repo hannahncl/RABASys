@@ -4,6 +4,9 @@ import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { customizationService } from '../../services/customizationService';
+import { bookingService } from '../../services/bookingService';
+import { api } from '../../services/api';
+import WeatherWidget from '../../components/feedback/WeatherWidget';
 import { Loader, Calendar } from 'lucide-react';
 import { weatherService } from '../../services/weatherService';
 
@@ -42,6 +45,30 @@ const inputFocusHandlers = {
   },
 };
 
+const getWeatherEmoji = (description = '') => {
+  const condition = description.toLowerCase();
+  if (condition.includes('rain') || condition.includes('shower') || condition.includes('drizzle')) return '🌧️';
+  if (condition.includes('clear') || condition.includes('sunny') || condition.includes('sun')) return '🌞';
+  if (condition.includes('thunder') || condition.includes('storm')) return '⛈️';
+  if (condition.includes('fog')) return '🌫️';
+  if (condition.includes('cloud') || condition.includes('overcast')) return '☁️';
+  return '☁️';
+};
+
+const getDurationEndDate = (startDate, daysValue, nightsValue) => {
+  if (daysValue === '' && nightsValue === '') return null;
+
+  const days = Number(daysValue);
+  const nights = Number(nightsValue);
+  if ((daysValue !== '' && (!Number.isFinite(days) || days < 1))
+    || (nightsValue !== '' && (!Number.isFinite(nights) || nights < 0))) return null;
+
+  const calendarDays = Math.max(days || 1, (nights || 0) + 1);
+  const endDate = new Date(`${startDate}T00:00:00`);
+  endDate.setDate(endDate.getDate() + calendarDays - 1);
+  return `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+};
+
 /* ─── Inline Calendar Component ─── */
 const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel, destination }) => {
   const [viewDate, setViewDate] = useState(new Date());
@@ -62,16 +89,6 @@ const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel, destina
       .then(setCalendarWeather)
       .catch(() => setCalendarWeather({}));
   }, [year, month, destination]);
-
-  const getWeatherEmoji = (description = '') => {
-    const condition = description.toLowerCase();
-    if (condition.includes('rain') || condition.includes('shower') || condition.includes('drizzle')) return '🌧️';
-    if (condition.includes('clear') || condition.includes('sunny') || condition.includes('sun')) return '🌞';
-    if (condition.includes('thunder') || condition.includes('storm')) return '⛈️';
-    if (condition.includes('fog')) return '🌫️';
-    if (condition.includes('cloud') || condition.includes('overcast')) return '☁️';
-    return '☁️';
-  };
 
   const handleDayClick = (day) => {
     const clickedDate = new Date(year, month, day);
@@ -207,15 +224,22 @@ const CustomPlanner = () => {
   const [otherAccommodationPreference, setOtherAccommodationPreference] = useState('');
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [otherActivityPreference, setOtherActivityPreference] = useState('');
+  const [tourGuides, setTourGuides] = useState([]);
+  const [preferredGuideId, setPreferredGuideId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  const [requestReference, setRequestReference] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const result = await customizationService.getAll();
+        const [result, guides] = await Promise.all([
+          customizationService.getAll(),
+          api('/tour-guides/about').catch(() => []),
+        ]);
         setData(result);
+        setTourGuides(guides);
       } catch { showNotification('Failed to load customization options.', 'error'); }
       finally { setLoading(false); }
     })();
@@ -229,12 +253,30 @@ const CustomPlanner = () => {
   }, [destination]);
 
   const handleDateSelect = useCallback((dateStr) => {
+    const durationEndDate = getDurationEndDate(dateStr, numDays, numNights);
+    if (durationEndDate) {
+      setSelectedDates([dateStr, durationEndDate]);
+      return;
+    }
+
     setSelectedDates(prev => {
       if (prev.includes(dateStr)) return prev.filter(d => d !== dateStr);
       if (prev.length >= 2) return [dateStr];
       return [...prev, dateStr].sort();
     });
-  }, []);
+  }, [numDays, numNights]);
+
+  const handleDurationChange = (field, value) => {
+    const nextDays = field === 'days' ? value : numDays;
+    const nextNights = field === 'nights' ? value : numNights;
+    if (field === 'days') setNumDays(value);
+    else setNumNights(value);
+
+    if (selectedDates.length) {
+      const durationEndDate = getDurationEndDate(selectedDates[0], nextDays, nextNights);
+      setSelectedDates(durationEndDate ? [selectedDates[0], durationEndDate] : [selectedDates[0]]);
+    }
+  };
 
   const handleActivityToggle = (actId) => {
     setSelectedActivities(prev => prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]);
@@ -249,7 +291,31 @@ const CustomPlanner = () => {
     );
   }
 
+  if (requestReference) {
+    return (
+      <div className="min-h-screen px-4 py-16" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
+        <div className="mx-auto max-w-xl border p-8 text-center" style={{ borderColor: colors.border, background: colors.cardBg }}>
+          <h1 className="text-xl font-semibold" style={{ color: colors.textPrimary }}>Custom trip request sent</h1>
+          <p className="mt-4 text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+            The business will review your trip details and prepare the final pricing. No payment is due yet. We’ll email you with the quote and any updates.
+          </p>
+          <p className="mt-5 text-xs" style={{ color: colors.textMuted }}>Request reference: {requestReference}</p>
+          <p className="mt-1 text-xs" style={{ color: colors.textMuted }}>Updates will be sent to {user?.email || email}.</p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="mt-7 px-6 py-3 text-[11px] font-semibold uppercase"
+            style={{ background: colors.accentDark, color: '#f7f4ef', borderRadius: '2px' }}
+          >
+            Return to home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentDest = data.destinations[destination];
+  const preferredGuide = tourGuides.find(guide => String(guide.guideId) === preferredGuideId);
   const currentHotels = data.hotels?.[destination] || [];
   const selectedActivitiesSummary = selectedActivities
     .map((actId) => currentDest?.activities?.find((activity) => activity.id === actId)?.name)
@@ -257,19 +323,13 @@ const CustomPlanner = () => {
   if (otherActivityPreference.trim()) {
     selectedActivitiesSummary.push(`Other: ${otherActivityPreference.trim()}`);
   }
-  const selectedTravelDates = selectedDates.length > 1
+  const selectedTravelDates = selectedDates.length > 1 && selectedDates[0] !== selectedDates[1]
     ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
     : selectedDates[0] || 'Not selected';
   const accommodationSummary = selectedHotel?.id === '__other__'
     ? otherAccommodationPreference.trim() || 'Other preference (not specified)'
     : selectedHotel?.name || 'Not selected';
 
-  const destCost = currentDest?.base || 0;
-  const hotelCost = selectedHotel?.pricePerGuest || 0;
-  const activitiesCost = selectedActivities.reduce((total, actId) => {
-    const activity = currentDest?.activities?.find(act => act.id === actId);
-    return total + (Number(activity?.price) || 0);
-  }, 0);
   const guestCount = Number(numGuests) || 0;
 
   const handleBook = async (e) => {
@@ -288,37 +348,30 @@ const CustomPlanner = () => {
     const selectedActNames = selectedActivities.map(actId => currentDest.activities.find(a => a.id === actId)?.name).filter(Boolean);
     if (otherActivityPreference.trim()) selectedActNames.push(`Other: ${otherActivityPreference.trim()}`);
 
-    const customPkg = {
-      id: 'custom-package',
-      title: `Customized Trip: ${destination}`,
-      destination: destination,
-      duration: `${numDays || 0} Days, ${numNights || 0} Nights`,
-      price: (destCost + hotelCost + activitiesCost),
-      image: currentDest?.image || '',
-      customizedDetails: {
-        destination,
-        hotel: selectedHotel?.id === '__other__'
-          ? `Other: ${otherAccommodationPreference.trim() || 'Preference not specified'}`
-          : selectedHotel?.name || 'None',
-        otherAccommodationPreference: otherAccommodationPreference.trim(),
-        duration: `${numDays || 0} Days / ${numNights || 0} Nights`,
-        activities: selectedActNames
-      }
-    };
-
-    navigate('/booking/custom', {
-      state: {
-        customPackage: customPkg,
-        firstName,
-        lastName,
-        email,
-        phone,
+    setSubmitting(true);
+    try {
+      const request = await bookingService.create({
+        packageId: 'custom-package',
         tourDate: selectedDates[0] || new Date().toISOString().split('T')[0],
-        adultsCount: guestCount,
-        childrenCount: 0,
-        startStep: 2
-      }
-    });
+        guestsCount: Math.max(1, guestCount),
+        customizedDetails: {
+          destination,
+          hotel: selectedHotel?.id === '__other__'
+            ? `Other: ${otherAccommodationPreference.trim() || 'Preference not specified'}`
+            : selectedHotel?.name || 'None',
+          otherAccommodationPreference: otherAccommodationPreference.trim(),
+          duration: `${numDays || 0} Days / ${numNights || 0} Nights`,
+          activities: selectedActNames,
+          preferredGuideId: preferredGuide?.guideId || null,
+          preferredGuideName: preferredGuide?.name || null,
+        },
+      });
+      setRequestReference(request.paymentRef || request.id);
+    } catch (error) {
+      showNotification(error.message || 'Failed to submit your custom trip request.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const SectionLabel = ({ children }) => (
@@ -364,10 +417,10 @@ const CustomPlanner = () => {
                   <input
                     id="input-days"
                     type="number"
-                    min="0"
+                    min="1"
                     max="30"
                     value={numDays}
-                    onChange={e => setNumDays(e.target.value)}
+                    onChange={e => handleDurationChange('days', e.target.value)}
                     className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
                     style={inputStyle}
                     {...inputFocusHandlers}
@@ -383,7 +436,7 @@ const CustomPlanner = () => {
                     min="0"
                     max="30"
                     value={numNights}
-                    onChange={e => setNumNights(e.target.value)}
+                    onChange={e => handleDurationChange('nights', e.target.value)}
                     className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
                     style={inputStyle}
                     {...inputFocusHandlers}
@@ -399,27 +452,12 @@ const CustomPlanner = () => {
                   <input
                     id="input-guests"
                     type="number"
-                    min="1"
-                    max="3"
                     value={numGuests}
-                    onChange={e => {
-                      let val = e.target.value;
-                      if (val !== '') {
-                        const num = Number(val);
-                        if (num > 3) {
-                          val = '3';
-                          showNotification('Maximum of 3 guests allowed per trip.', 'warning');
-                        } else if (num < 1) {
-                          val = '1';
-                        }
-                      }
-                      setNumGuests(val);
-                    }}
+                    onChange={e => setNumGuests(e.target.value)}
                     className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
                     style={inputStyle}
                     {...inputFocusHandlers}
                   />
-                  <p className="text-[11px] mt-2 italic" style={{ color: colors.textMuted }}>Note: Maximum of 3 guests/pax only</p>
                 </div>
 
                 <div className="relative">
@@ -432,7 +470,9 @@ const CustomPlanner = () => {
                     style={{ ...inputStyle, boxShadow: showCalendar ? '0 0 0 3px rgba(26,23,21,0.05)' : 'none' }}
                   >
                     <span style={{ color: selectedDates.length ? colors.textPrimary : colors.textMuted }}>
-                      {selectedDates.length >= 2 ? `${selectedDates[0]} to ${selectedDates[1]}` : selectedDates[0] || 'Select dates'}
+                      {selectedDates.length >= 2 && selectedDates[0] !== selectedDates[1]
+                        ? `${selectedDates[0]} to ${selectedDates[1]}`
+                        : selectedDates[0] || 'Select dates'}
                     </span>
                     <Calendar className="w-4 h-4" style={{ color: colors.accent }} />
                   </div>
@@ -620,13 +660,63 @@ const CustomPlanner = () => {
                   {...inputFocusHandlers}
                 />
               </div>
+
+              {/* 4. Select a Tour Guide */}
+              <div id="section-tour-guide">
+                <SectionLabel>4. Select a Tour Guide</SectionLabel>
+                <label htmlFor="select-tour-guide" className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary }}>
+                  Choose a preferred guide (optional)
+                </label>
+                <select
+                  id="select-tour-guide"
+                  value={preferredGuideId}
+                  onChange={e => setPreferredGuideId(e.target.value)}
+                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                  {...inputFocusHandlers}
+                >
+                  <option value="">No preference</option>
+                  {tourGuides.map(guide => (
+                    <option key={guide.guideId} value={guide.guideId}>{guide.name}</option>
+                  ))}
+                </select>
+                {preferredGuide && (
+                  <div className="mt-3 flex gap-3 border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                    {preferredGuide.profilePicture && (
+                      <img
+                        src={preferredGuide.profilePicture}
+                        alt={preferredGuide.name}
+                        className="h-14 w-14 shrink-0 rounded object-cover"
+                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold" style={{ color: colors.textPrimary }}>{preferredGuide.name}</p>
+                      <p className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                        {preferredGuide.yearsExperience} {Number(preferredGuide.yearsExperience) === 1 ? 'year' : 'years'} of experience
+                      </p>
+                      <p className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                        Languages: {preferredGuide.languageSpoken || 'Not specified'}
+                      </p>
+                      {preferredGuide.description && (
+                        <p className="mt-2 text-[11px] leading-relaxed" style={{ color: colors.textMuted }}>
+                          {preferredGuide.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {tourGuides.length === 0 && (
+                  <p className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>No guides are currently available to select.</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* RIGHT SIDE: Selection Summary */}
-          <div className="lg:col-span-5 flex flex-col">
+          <div className="lg:col-span-5 flex flex-col gap-5">
             <div
-              className="p-6 sticky top-24"
+              className="p-6"
               style={{
                 background: colors.cardBg,
                 border: `1px solid ${colors.border}`,
@@ -648,6 +738,7 @@ const CustomPlanner = () => {
                   ['Duration', `${numDays || 0} days / ${numNights || 0} nights`],
                   ['Guests', guestCount || 'Not selected'],
                   ['Accommodation', accommodationSummary],
+                  ['Tour guide', preferredGuide?.name || 'No preference'],
                 ].map(([label, value]) => (
                   <div key={label} className="flex justify-between items-start gap-4">
                     <span className="shrink-0" style={{ color: colors.textMuted }}>{label}</span>
@@ -699,6 +790,14 @@ const CustomPlanner = () => {
                 Your selected trip details will be reviewed before the final price is confirmed.
               </p>
             </div>
+            {selectedDates.length > 0 && (
+              <WeatherWidget
+                destination={destination || 'Legazpi, Albay'}
+                tourDate={selectedDates[0]}
+                durationDays={Math.max(Number(numDays) || 1, (Number(numNights) || 0) + 1)}
+                theme="light"
+              />
+            )}
           </div>
 
         </div>
