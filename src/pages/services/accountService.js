@@ -64,6 +64,12 @@ export const accountService = {
     });
   },
 
+  uploadTourGuidePhoto: async (id, file) => {
+    const body = new FormData();
+    body.append('profilePicture', file);
+    return api(`/tour-guides/${id}/profile-picture`, { method: 'POST', body });
+  },
+
   // Update a Tour Guide profile
   updateTourGuide: async (id, item) => {
     return api(`/tour-guides/${id}`, {

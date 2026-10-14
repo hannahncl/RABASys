@@ -221,6 +221,14 @@ const AboutUs = () => {
                         {initials}
                       </span>
                     </div>
+                    {guide.profilePicture && (
+                      <img
+                        src={guide.profilePicture}
+                        alt={guide.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                   </div>
 
                   {/* Info below the portrait */}
@@ -308,7 +316,7 @@ const AboutUs = () => {
             {/* Header with avatar */}
             <div className="flex flex-col items-center pt-10 pb-6 px-8">
               <div
-                className="flex items-center justify-center rounded-full mb-5"
+                className="flex items-center justify-center overflow-hidden rounded-full mb-5"
                 style={{
                   width: '88px',
                   height: '88px',
@@ -316,12 +324,21 @@ const AboutUs = () => {
                   boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
                 }}
               >
-                <span
-                  className="text-white font-bold select-none"
-                  style={{ fontSize: '30px', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
-                >
-                  {`${selectedGuide.firstName?.[0] || ''}${selectedGuide.lastName?.[0] || ''}`.toUpperCase()}
-                </span>
+                {selectedGuide.profilePicture ? (
+                  <img
+                    src={selectedGuide.profilePicture}
+                    alt={selectedGuide.name}
+                    className="h-full w-full object-cover"
+                    onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <span
+                    className="text-white font-bold select-none"
+                    style={{ fontSize: '30px', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+                  >
+                    {`${selectedGuide.firstName?.[0] || ''}${selectedGuide.lastName?.[0] || ''}`.toUpperCase()}
+                  </span>
+                )}
               </div>
 
               <p
@@ -388,25 +405,6 @@ const AboutUs = () => {
               </div>
             </div>
 
-            {/* Footer action */}
-            <div className="px-8 pb-8 pt-2">
-              <Link
-                to="/customize"
-                onClick={() => setSelectedGuide(null)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-semibold transition-all duration-200 no-underline"
-                style={{
-                  background: '#2d2a24',
-                  color: '#f7f4ef',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#4a453b'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#2d2a24'; }}
-              >
-                Book a Trip
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
           </div>
         </div>
       )}

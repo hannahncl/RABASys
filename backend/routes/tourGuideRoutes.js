@@ -1,6 +1,10 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const db = require("../config/db");
+const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
@@ -8,16 +12,52 @@ const hasValidPassword = (password) => typeof password === "string"
     && password.length >= 8
     && /[A-Z]/.test(password)
     && /[0-9]/.test(password);
+const uploadsDirectory = path.join(__dirname, "..", "uploads", "tour-guides");
+fs.mkdirSync(uploadsDirectory, { recursive: true });
+
+const imageExtensions = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+};
+
+const profilePictureUpload = multer({
+    storage: multer.diskStorage({
+        destination: uploadsDirectory,
+        filename: (req, file, callback) => callback(null, `${req.params.id}-${crypto.randomUUID()}${imageExtensions[file.mimetype]}`),
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, callback) => {
+        if (!imageExtensions[file.mimetype]) return callback(new Error("Choose a JPEG, PNG, WebP, or GIF image."));
+        callback(null, true);
+    },
+}).single("profilePicture");
+
+const handleProfilePictureUpload = (req, res, next) => {
+    profilePictureUpload(req, res, (error) => {
+        if (!error) return next();
+        if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+            return res.status(413).json({ message: "Profile pictures must be 5 MB or smaller." });
+        }
+        if (error.message.startsWith("Choose a JPEG")) {
+            return res.status(422).json({ message: error.message });
+        }
+        next(error);
+    });
+};
 
 // Full JOIN query to get both account + tour_guide data
 const guideSelect = `
     SELECT 
         a.account_id, a.first_name, a.last_name, a.email, a.contact_number,
         a.role, a.account_status, a.created_at,
-        tg.guide_id, tg.sex, tg.birthdate, tg.years_of_experience,
+        tg.guide_id, tg.media_id, m.file_path AS profile_picture,
+        tg.sex, tg.birthdate, tg.years_of_experience,
         tg.description, tg.languages_spoken, tg.availability_status, tg.employment_status
     FROM account a
     LEFT JOIN tour_guide tg ON tg.account_id = a.account_id
+    LEFT JOIN media m ON m.media_id = tg.media_id
     WHERE a.role = 'Tour Guide' AND a.deleted_at IS NULL
 `;
 
@@ -38,6 +78,7 @@ const formatGuide = (row) => ({
     languageSpoken: row.languages_spoken || '',
     availability: row.availability_status || 'Available',
     employmentStatus: row.employment_status || 'Active',
+    profilePicture: row.profile_picture || '',
     createdAt: row.created_at,
 });
 
@@ -47,12 +88,14 @@ router.get("/about", async (req, res, next) => {
         const [rows] = await db.query(`${guideSelect} AND tg.availability_status = 'Available' AND tg.employment_status = 'Active' AND a.account_status = 'Active' ORDER BY tg.years_of_experience DESC`);
         res.json(rows.map(row => ({
             id: String(row.account_id),
+            guideId: String(row.guide_id),
             firstName: row.first_name,
             lastName: row.last_name,
             name: `${row.first_name} ${row.last_name}`,
             yearsExperience: row.years_of_experience ?? 0,
             description: row.description || '',
             languageSpoken: row.languages_spoken || '',
+            profilePicture: row.profile_picture || '',
         })));
     } catch (e) { next(e); }
 });
@@ -80,6 +123,44 @@ router.get("/:id", requireAuth, async (req, res, next) => {
         if (!rows[0]) return res.status(404).json({ message: "Tour guide not found." });
         res.json(formatGuide(rows[0]));
     } catch (e) { next(e); }
+});
+
+router.post("/:id/profile-picture", requireAuth, allowRoles("Admin"), handleProfilePictureUpload, async (req, res, next) => {
+    if (!req.file) return res.status(422).json({ message: "Choose a profile picture to upload." });
+
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        const [guideRows] = await conn.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        if (!guideRows[0]) {
+            await conn.rollback();
+            await fs.promises.unlink(req.file.path);
+            conn.release();
+            return res.status(404).json({ message: "Tour guide not found." });
+        }
+
+        const profilePicturePath = `/uploads/tour-guides/${req.file.filename}`;
+        let mediaId = guideRows[0].media_id;
+        if (mediaId) {
+            await conn.execute("UPDATE media SET file_path = ?, media_type = 'image' WHERE media_id = ?", [profilePicturePath, mediaId]);
+        } else {
+            const [mediaResult] = await conn.execute(
+                "INSERT INTO media (file_path, media_type, uploaded_by, title) VALUES (?, 'image', ?, ?)",
+                [profilePicturePath, req.user.accountId, `${guideRows[0].first_name} ${guideRows[0].last_name} profile picture`]
+            );
+            mediaId = mediaResult.insertId;
+        }
+        await conn.execute("UPDATE tour_guide SET media_id = ? WHERE account_id = ?", [mediaId, req.params.id]);
+        await conn.commit();
+        conn.release();
+
+        res.json({ profilePicture: profilePicturePath });
+    } catch (error) {
+        await conn.rollback();
+        conn.release();
+        await fs.promises.unlink(req.file.path).catch(() => {});
+        next(error);
+    }
 });
 
 // POST create tour guide — creates account + tour_guide profile in a transaction

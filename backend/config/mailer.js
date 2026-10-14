@@ -277,7 +277,17 @@ async function sendBookingConfirmation(booking, type = "tour") {
     }[char]));
     const money = Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 });
     const isRental = type === "rental";
-    const title = isRental ? "Car Rental Booking Confirmation" : "Tour Booking Confirmation";
+    const isCustomTrip = !isRental && Boolean(booking.customized_details);
+    const isCustomQuote = type === "custom-quote";
+    let customDetails = booking.customized_details;
+    if (typeof customDetails === "string") {
+        try { customDetails = JSON.parse(customDetails); } catch { customDetails = {}; }
+    }
+    const title = isRental
+        ? "Car Rental Booking Confirmation"
+        : isCustomTrip
+            ? isCustomQuote ? "Customized Trip Quote" : "Customized Trip Request Received"
+            : "Tour Booking Confirmation";
     const details = isRental
         ? [
             ["Vehicle", booking.vehicle_name],
@@ -287,7 +297,17 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ["Pickup location", booking.pickup_location],
             ["Payment method", booking.payment_method],
         ]
-        : [
+        : isCustomTrip
+            ? [
+                ["Destination", booking.destination],
+                ["Travel date", booking.travel_date],
+                ["Number of persons", booking.number_of_persons],
+                ["Duration", customDetails.duration],
+                ["Accommodation", customDetails.hotel],
+                ["Preferred guide", customDetails.preferredGuideName || "No preference"],
+                ["Activities", Array.isArray(customDetails.activities) ? customDetails.activities.join(", ") : "None"],
+            ]
+            : [
             ["Tour package", booking.package_name],
             ["Destination", booking.destination],
             ["Travel date", booking.travel_date],
@@ -295,13 +315,25 @@ async function sendBookingConfirmation(booking, type = "tour") {
         ];
     const detailText = details.map(([label, value]) => `${label}: ${value || "-"}`).join("\n");
     const detailHtml = details.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${esc(label)}</td><td style="padding:7px 12px;font-weight:bold">${esc(value || "-")}</td></tr>`).join("");
+    const priceText = isCustomTrip && !isCustomQuote
+        ? "Final pricing: To be provided after business review. No payment is due at this stage."
+        : `Total amount: PHP ${money}`;
+    const priceHtml = isCustomTrip && !isCustomQuote
+        ? "<p style=\"margin:12px 0 0\"><strong>Final pricing:</strong> To be provided after business review. No payment is due at this stage.</p>"
+        : `<p style="margin:12px 0 0"><strong>Total amount:</strong> PHP ${esc(money)}</p>`;
+    const followUpText = isCustomTrip && !isCustomQuote
+        ? "Our team will review your selections and email you with the final quote and any updates. No payment is required until pricing is reviewed."
+        : isCustomQuote
+            ? "Our team has reviewed your request and prepared this final quote. Please contact us to discuss or proceed with your trip."
+            : "Please keep this email for your records. We will contact you with any updates.";
+    const followUpHtml = esc(followUpText);
     try {
         await transporter.sendMail({
             from: `"RABAS Travel & Tours Services" <${process.env.GMAIL_FROM || process.env.GMAIL_USER}>`,
             to: email,
             subject: `${title} - ${booking.booking_reference}`,
-            text: `Dear ${booking.first_name || "Customer"},\n\nThank you for booking with RABAS Travel & Tours Services. Your booking has been received.\n\nBooking reference: ${booking.booking_reference}\nStatus: ${booking.booking_status || "Pending"}\n${detailText}\nTotal amount: PHP ${money}\n\nPlease keep this email for your records. We will contact you with any updates.\n\nRABAS Travel & Tours Services`,
-            html: `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${esc(booking.first_name || "Customer")},</p><p>Thank you for booking with us. Your booking has been received and is currently <strong>${esc(booking.booking_status || "Pending")}</strong>.</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 8px"><strong>Booking reference:</strong> ${esc(booking.booking_reference)}</p><table style="width:100%;border-collapse:collapse">${detailHtml}</table><p style="margin:12px 0 0"><strong>Total amount:</strong> PHP ${esc(money)}</p></div><p>Please keep this email for your records. We will contact you with any updates.</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`
+            text: `Dear ${booking.first_name || "Customer"},\n\n${isCustomTrip ? isCustomQuote ? "Your customized trip request has been reviewed." : "We received your customized trip request." : "Thank you for booking with RABAS Travel & Tours Services. Your booking has been received."}\n\nBooking reference: ${booking.booking_reference}\nStatus: ${isCustomTrip && !isCustomQuote ? "Under review" : booking.booking_status || "Pending"}\n${detailText}\n${priceText}\n\n${followUpText}\n\nRABAS Travel & Tours Services`,
+            html: `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${esc(booking.first_name || "Customer")},</p><p>${isCustomTrip ? isCustomQuote ? "Your customized trip request has been reviewed." : "We received your customized trip request." : "Thank you for booking with us. Your booking has been received."}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 8px"><strong>Booking reference:</strong> ${esc(booking.booking_reference)}</p><p style="margin:0 0 8px"><strong>Status:</strong> ${esc(isCustomTrip && !isCustomQuote ? "Under review" : booking.booking_status || "Pending")}</p><table style="width:100%;border-collapse:collapse">${detailHtml}</table>${priceHtml}</div><p>${followUpHtml}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`
         });
         console.log(`[mailer] Booking confirmation sent to ${email}`);
         return true;

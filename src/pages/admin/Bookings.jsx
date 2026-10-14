@@ -276,7 +276,9 @@ const Bookings = () => {
 
                       {/* Price */}
                       <td className="px-5 py-4 text-right font-bold text-[#1a1a1a] whitespace-nowrap">
-                        PHP {Number(booking.totalPrice || 0).toLocaleString()}
+                        {booking.customizedDetails && booking.status === 'Pending Verification'
+                          ? 'Awaiting quote'
+                          : `PHP ${Number(booking.totalPrice || 0).toLocaleString()}`}
                       </td>
 
                       {/* Status */}
