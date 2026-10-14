@@ -4,13 +4,16 @@ import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import {
   Building2,
+  CheckCircle2,
   Compass,
   Edit,
+  Eye,
   Hotel,
   Loader,
   MapPin,
   Phone,
   Plus,
+  ReceiptText,
   Save,
   Trash2,
   Users,
@@ -78,13 +81,10 @@ const ManageCustomizations = () => {
   const activeDetails = activeDestination ? data?.destinations?.[activeDestination] : null;
   const activeTours = activeDetails?.activities || [];
   const activeHotels = data?.hotels?.[activeDestination] || [];
-<<<<<<< HEAD
-=======
   const pendingCustomBookings = customBookings.filter(booking => booking.status === 'Pending Verification');
   const bookedCustomBookings = customBookings.filter(booking => booking.status === 'Confirmed');
   const quotedCustomBookings = customBookings.filter(booking => booking.status === 'Quote Sent');
 
->>>>>>> 17711a1dc929aa91da85072685d91815aa6ecbe3
   useEffect(() => {
     loadData();
   }, []);
@@ -103,8 +103,6 @@ const ManageCustomizations = () => {
     }
   };
 
-<<<<<<< HEAD
-=======
   const handleBookingStatus = async (booking, totalAmount) => {
     const quote = Number(totalAmount);
     if (!Number.isFinite(quote) || quote <= 0) {
@@ -125,7 +123,6 @@ const ManageCustomizations = () => {
       setUpdatingBookingId(null);
     }
   };
->>>>>>> 17711a1dc929aa91da85072685d91815aa6ecbe3
 
   const resetInlineForms = () => {
     setEditingTourId(null);
@@ -363,9 +360,6 @@ const ManageCustomizations = () => {
           </button>
       </div>
 
-<<<<<<< HEAD
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
-=======
       {activeSection === 'review' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
           <div className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
@@ -438,7 +432,6 @@ const ManageCustomizations = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
->>>>>>> 17711a1dc929aa91da85072685d91815aa6ecbe3
           <aside className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold px-1">Tourist Spots</div>
             {destinationNames.map(name => (
@@ -601,7 +594,8 @@ const ManageCustomizations = () => {
               <EmptyState label="Add a destination to start configuring custom trips." />
             )}
           </section>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

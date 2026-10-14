@@ -3,13 +3,8 @@ import { api } from '../../services/api';
 const bookingFromApi = (item) => ({
   ...item,
   id: String(item.booking_id),
-<<<<<<< HEAD
   type: item.package_type === 'custom' || item.package_type === 'customization' ? 'Customization' : 'Tour Packages',
-  packageId: String(item.package_id),
-=======
-  type: 'Tour Packages',
   packageId: item.package_id == null ? 'custom-package' : String(item.package_id),
->>>>>>> 17711a1dc929aa91da85072685d91815aa6ecbe3
   packageName: item.package_name,
   customerName: item.customer_name,
   customerEmail: item.email,
