@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
@@ -48,6 +49,7 @@ const inputFocusHandlers = {
 const Booking = () => {
   const { packageId } = useParams();
   const { user } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
@@ -229,6 +231,7 @@ const Booking = () => {
   }
 
   const handlePaymentSuccess = async (referenceNumber) => {
+    if (!(await confirm('Are you sure you want to submit this tour booking?'))) return;
     setSubmitting(true);
 
     try {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { 
   ArrowUpRight, TrendingUp, DollarSign, Loader, ReceiptText, Clock3, 
   CheckCircle2, Star, MessageSquare, Trash2, Car, Compass 
@@ -30,6 +31,7 @@ const statusLabel = (status) => {
 
 const Dashboard = () => {
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({
     totalBookings: 0,
@@ -146,7 +148,7 @@ const Dashboard = () => {
   }, []);
 
   const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    if (!(await confirm('Are you sure you want to delete this review?'))) return;
     setDeletingReviewId(reviewId);
     try {
       await api(`/reviews/${reviewId}`, { method: 'DELETE' });

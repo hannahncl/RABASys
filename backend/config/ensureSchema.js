@@ -153,6 +153,21 @@ async function ensureSchema() {
         await db.query(`ALTER TABLE tour_package ADD COLUMN image LONGTEXT NULL`);
     }
 
+    const [joinerDateColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_date'`);
+    if (!joinerDateColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_date DATE NULL`);
+    }
+
+    const [joinerSlotsColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_slots'`);
+    if (!joinerSlotsColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_slots INT UNSIGNED NULL`);
+    }
+
+    const [joinerDeadlineColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_booking_deadline'`);
+    if (!joinerDeadlineColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_booking_deadline DATE NULL`);
+    }
+
     // 7. Vehicle
     await db.query(`CREATE TABLE IF NOT EXISTS vehicle (
         vehicle_id INT UNSIGNED NOT NULL AUTO_INCREMENT,

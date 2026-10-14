@@ -1,17 +1,20 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useConfirmation } from '../contexts/ConfirmationContext';
 import { 
   Compass, LayoutDashboard, CalendarCheck, FileUp, LogOut, Menu, X, Bell 
 } from 'lucide-react';
 
 const StaffLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     navigate('/');
   };

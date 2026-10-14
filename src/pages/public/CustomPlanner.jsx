@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { customizationService } from '../../services/customizationService';
 import { Loader, Calendar } from 'lucide-react';
@@ -184,6 +185,7 @@ const CalendarPicker = ({ selectedDates, onDateSelect, onDone, onCancel, destina
 /* ─── Main Component ─── */
 const CustomPlanner = () => {
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -270,8 +272,9 @@ const CustomPlanner = () => {
   }, 0);
   const guestCount = Number(numGuests) || 0;
 
-  const handleBook = (e) => {
+  const handleBook = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to submit this customized trip request?'))) return;
     if (!user) {
       navigate('/login', { state: { from: { pathname: '/customize' } } });
       return;

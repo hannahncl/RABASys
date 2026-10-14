@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { accountService } from '../../services/accountService';
 import { Plus, Edit, Save, X, Loader, UserCheck, UserX, Search } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { validatePassword, validateEmail, validateName, validatePhone, sanitizeInput } from '../../utils/validation';
 
 const ManageAccounts = () => {
@@ -13,6 +14,7 @@ const ManageAccounts = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadAccounts();
@@ -123,6 +125,7 @@ const ManageAccounts = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to ${editingId ? 'save these account changes' : 'create this account'}?`))) return;
     const errors = {};
     errors.firstName = validateName(formData.firstName, 'First name');
     errors.lastName = validateName(formData.lastName, 'Last name');

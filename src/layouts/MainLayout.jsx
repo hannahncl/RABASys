@@ -1,18 +1,22 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useConfirmation } from '../contexts/ConfirmationContext';
 import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, CalendarDays } from 'lucide-react';
 import PublicCalendarModal from '../components/ui/PublicCalendarModal';
+import FaqChatbot from '../components/ui/FaqChatbot';
 
 const MainLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     setProfileDropdownOpen(false);
     navigate('/');
@@ -257,6 +261,7 @@ const MainLayout = () => {
 
       {/* Public Calendar Modal */}
       <PublicCalendarModal isOpen={calendarOpen} onClose={() => setCalendarOpen(false)} />
+      <FaqChatbot />
     </div>
   );
 };

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { serviceService } from '../services/serviceService';
 import { bookingService } from '../services/bookingService';
 import { Loader, ArrowLeft, Calendar, ShieldCheck, Star } from 'lucide-react';
 import { api } from '../../services/api';
+import { weatherService } from '../../services/weatherService';
 
 // Shared style constants
 const colors = {
@@ -59,6 +61,7 @@ const CarBooking = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const { user } = useAuth();
+  const { confirm } = useConfirmation();
 
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +126,7 @@ const CarBooking = () => {
 
   const handleBookCar = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to submit this car rental booking?'))) return;
     if (!pickupDate || !returnDate || !pickupLocation) {
       showNotification('Please fill in all booking details', 'error');
       return;
@@ -160,9 +164,9 @@ const CarBooking = () => {
         paymentRef: referenceNumber,
       });
       showNotification('Car booking submitted successfully and is pending admin approval.', 'success');
-      navigate('/history');
+      navigate('/profile');
     } catch (error) {
-      showNotification(error.response?.data?.message || 'Failed to book car', 'error');
+      showNotification(error?.message || error.response?.data?.message || 'Failed to book car', 'error');
     } finally {
       setSubmitting(false);
     }

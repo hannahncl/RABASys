@@ -160,6 +160,7 @@ const Bookings = () => {
               >
                 <option value="all">All Services</option>
                 <option value="Tour Packages">Tour Packages</option>
+                <option value="Customization">Customization Bookings</option>
                 <option value="Car Rental">Car Rentals</option>
               </select>
             </div>
