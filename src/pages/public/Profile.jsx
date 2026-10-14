@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import {
@@ -47,6 +48,7 @@ const StatusBadge = ({ status }) => {
 ──────────────────────────────── */
 const Profile = () => {
   const { user, updateUserSession } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
 
   // Bookings state
   const [allBookings, setAllBookings] = useState([]);
@@ -169,6 +171,7 @@ const Profile = () => {
   // ── Save profile edits ──
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to save your profile changes?'))) return;
     if (!firstName.trim()) return;
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) return;
     if (lastName.trim() && !/^[A-Za-z\s]+$/.test(lastName.trim())) return;

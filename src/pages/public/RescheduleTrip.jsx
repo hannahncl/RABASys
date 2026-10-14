@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
 import { 
   Calendar, ArrowLeft, RefreshCw, CheckCircle2, 
@@ -11,6 +12,7 @@ const RescheduleTrip = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ const RescheduleTrip = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to request this schedule change?'))) return;
     if (!booking || !newDate) return;
 
     if (newDate === booking.tourDate) {

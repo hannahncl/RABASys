@@ -3,15 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Save } from 'lucide-react';
 import { serviceService } from '../../services/serviceService';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const AddServicePage = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [formData, setFormData] = useState({ serviceName: '', description: '' });
 
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
+    if (!(await confirm('Are you sure you want to create this service?'))) return;
     try {
       const payload = {
         id: Date.now().toString(),

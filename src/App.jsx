@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 // Providers
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ConfirmationProvider } from './contexts/ConfirmationContext';
 
 // Route Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
@@ -69,7 +70,8 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <BrowserRouter>
+        <ConfirmationProvider>
+          <BrowserRouter>
           <Routes>
             {/* Public Tourist Journeys */}
             <Route path="/" element={<MainLayout />}>
@@ -197,7 +199,8 @@ function App() {
             {/* Fallback Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ConfirmationProvider>
       </NotificationProvider>
     </AuthProvider>
   );

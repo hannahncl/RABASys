@@ -6,7 +6,7 @@ const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
 const router = express.Router();
 
-const bookingSelect = `SELECT b.*, p.package_name, p.destination, a.first_name, a.last_name, a.email, a.contact_number,
+const bookingSelect = `SELECT b.*, p.package_name, p.destination, p.package_type, a.first_name, a.last_name, a.email, a.contact_number,
     CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
     EXISTS(SELECT 1 FROM review r WHERE r.booking_id = b.booking_id) AS has_reviewed
     FROM booking b JOIN account a ON a.account_id = b.account_id JOIN tour_package p ON p.package_id = b.package_id
@@ -42,9 +42,31 @@ router.post("/", requireAuth, async (req, res, next) => {
         if (!package_id || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) {
             return res.status(422).json({ message: "package_id, travel_date, and a positive number_of_persons are required." });
         }
-        const [packages] = await db.execute("SELECT price, max_capacity FROM tour_package WHERE package_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
+        const [packages] = await db.execute("SELECT price, max_capacity, package_type, joiner_date, joiner_slots, joiner_booking_deadline FROM tour_package WHERE package_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
         const pkg = packages[0];
         if (!pkg) return res.status(404).json({ message: "Available tour package not found." });
+        if (pkg.package_type === 'joiner') {
+            const requestedDate = String(travel_date).slice(0, 10);
+            const joinerDate = pkg.joiner_date ? new Date(pkg.joiner_date).toISOString().slice(0, 10) : null;
+            const today = new Date().toISOString().slice(0, 10);
+            const deadline = pkg.joiner_booking_deadline ? new Date(pkg.joiner_booking_deadline).toISOString().slice(0, 10) : null;
+            if (joinerDate && requestedDate !== joinerDate) {
+                return res.status(422).json({ message: `This joiner trip is scheduled for ${joinerDate}.` });
+            }
+            if (deadline && today > deadline) {
+                return res.status(422).json({ message: "Booking for this joiner trip is already closed." });
+            }
+            if (pkg.joiner_slots) {
+                const [reservedRows] = await db.execute(
+                    "SELECT COALESCE(SUM(number_of_persons), 0) AS reserved FROM booking WHERE package_id = ? AND travel_date = ? AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
+                    [package_id, requestedDate]
+                );
+                const remaining = Number(pkg.joiner_slots) - Number(reservedRows[0]?.reserved || 0);
+                if (Number(number_of_persons) > remaining) {
+                    return res.status(422).json({ message: `Only ${Math.max(remaining, 0)} joiner slot(s) remain.` });
+                }
+            }
+        }
         if (pkg.max_capacity && Number(number_of_persons) > Number(pkg.max_capacity)) {
             return res.status(422).json({ message: `Number of persons exceeds package capacity (${pkg.max_capacity} pax).` });
         }

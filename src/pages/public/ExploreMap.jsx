@@ -178,8 +178,11 @@ const ExploreMap = () => {
   const [gpsStatus, setGpsStatus] = useState('locating'); // 'locating' | 'connected' | 'denied' | 'unsupported' | 'error'
   const [gpsErrorMsg, setGpsErrorMsg] = useState('');
   const [navigationTarget, setNavigationTarget] = useState(null);
+  const [roadRoute, setRoadRoute] = useState([]);
+  const [roadRouteDistanceKm, setRoadRouteDistanceKm] = useState(null);
   const [followUser, setFollowUser] = useState(true);
   const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
+  const lastRouteOriginRef = useRef(null);
 
   // Gallery filter state
   const [galleryFilterValue, setGalleryFilterValue] = useState('All');
@@ -445,6 +448,53 @@ const ExploreMap = () => {
     };
   }, [navigationTarget, showNotification]);
 
+  // Request a real driving route so navigation follows roads instead of drawing
+  // a straight line across the map. Refresh after the user has moved far enough
+  // to keep the live route aligned without hitting the routing service on every GPS tick.
+  useEffect(() => {
+    if (!navigationTarget || !userLocation) {
+      setRoadRoute([]);
+      setRoadRouteDistanceKm(null);
+      lastRouteOriginRef.current = null;
+      return undefined;
+    }
+
+    const previousOrigin = lastRouteOriginRef.current;
+    if (previousOrigin && calculateDistanceKm(previousOrigin.lat, previousOrigin.lng, userLocation.lat, userLocation.lng) < 0.15) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const origin = `${userLocation.lng},${userLocation.lat}`;
+        const destination = `${navigationTarget.coords[1]},${navigationTarget.coords[0]}`;
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=full&geometries=geojson`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) throw new Error('Road route request failed');
+        const data = await response.json();
+        const route = data.routes?.[0];
+        if (!route?.geometry?.coordinates?.length) throw new Error('No road route found');
+
+        setRoadRoute(route.geometry.coordinates.map(([lng, lat]) => [lat, lng]));
+        setRoadRouteDistanceKm(Number(route.distance) / 1000);
+        lastRouteOriginRef.current = { lat: userLocation.lat, lng: userLocation.lng };
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setRoadRoute([]);
+          setRoadRouteDistanceKm(null);
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [navigationTarget, userLocation]);
+
   const startNavigationToSpot = (spot) => {
     setSelectedSpot(spot);
     setNavigationTarget(spot);
@@ -459,6 +509,8 @@ const ExploreMap = () => {
 
   const cancelNavigation = () => {
     setNavigationTarget(null);
+    setRoadRoute([]);
+    setRoadRouteDistanceKm(null);
   };
 
   const recenterOnUser = () => {
@@ -595,7 +647,7 @@ const ExploreMap = () => {
 
   // Calculate live navigation metrics
   const remainingDistanceKm = (userLocation && navigationTarget)
-    ? calculateDistanceKm(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1])
+    ? (roadRouteDistanceKm ?? calculateDistanceKm(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1]))
     : null;
 
   const currentBearing = (userLocation && navigationTarget)
@@ -931,7 +983,7 @@ const ExploreMap = () => {
                 {/* Active Navigation Polyline Route */}
                 {userLocation && navigationTarget && (
                   <Polyline
-                    positions={[
+                    positions={roadRoute.length > 1 ? roadRoute : [
                       [userLocation.lat, userLocation.lng],
                       navigationTarget.coords
                     ]}

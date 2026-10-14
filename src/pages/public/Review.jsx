@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { Star, ArrowLeft } from 'lucide-react';
@@ -9,6 +10,7 @@ const Review = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,7 @@ const Review = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to submit this review?'))) return;
     if (rating === 0) {
       showNotification('Please select a rating.', 'warning');
       return;

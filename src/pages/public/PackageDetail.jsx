@@ -5,7 +5,6 @@ import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
 import { MapPin, Star, Clock, ShieldCheck, ArrowLeft, CheckCircle2, Users } from 'lucide-react';
-import { previewPackages } from './packagePreviewData';
 
 const PackageDetail = () => {
   const { id } = useParams();
@@ -24,11 +23,10 @@ const PackageDetail = () => {
     const loadDetails = async () => {
       setLoading(true);
       try {
-        const preview = previewPackages.find((item) => item.id === id);
-        const data = preview || await packageService.getById(id);
+        const data = await packageService.getById(id);
         if (!active) return;
         setPkg(data || null);
-        if (data && !data.isPreview) {
+        if (data) {
           loadReviewsForPackage(id);
         } else {
           setReviews([]);

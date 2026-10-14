@@ -5,6 +5,7 @@ import {
   Plus, Edit, Trash2, Loader, Users, Car, Search
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const catConfig = {
   key: 'car',
@@ -95,6 +96,7 @@ const ManageCarRentals = () => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadServices();
@@ -121,7 +123,7 @@ const ManageCarRentals = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this car rental?')) {
+    if (await confirm('Are you sure you want to delete this car rental?')) {
       try {
         await serviceService.delete(id);
         showNotification('Car rental deleted', 'success');

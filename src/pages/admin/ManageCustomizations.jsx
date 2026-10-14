@@ -1,24 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { customizationService } from '../../services/customizationService';
-import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import {
   Building2,
-  CalendarDays,
-  CheckCircle2,
   Compass,
   Edit,
-  Eye,
   Hotel,
   Loader,
-  Mail,
   MapPin,
   Phone,
   Plus,
-  ReceiptText,
   Save,
   Trash2,
-  UserRound,
   Users,
   X
 } from 'lucide-react';
@@ -63,35 +57,9 @@ const getDestinationPayload = (form, existing = {}) => ({
   activities: existing.activities || []
 });
 
-const isCustomizationBooking = (booking) => (
-  booking.packageId === 'custom-package' ||
-  booking.packageId === 'custom' ||
-  Boolean(booking.customizedDetails)
-);
-
-const statusStyle = (status) => {
-  if (status === 'Confirmed') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-  if (status === 'Cancelled') return 'bg-rose-50 border-rose-200 text-rose-700';
-  return 'bg-amber-50 border-amber-200 text-amber-700';
-};
-
-const statusLabel = (status) => status === 'Confirmed' ? 'Booked' : status;
-
-const formatDate = (value) => {
-  if (!value) return 'Not set';
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
-
 const ManageCustomizations = () => {
   const [data, setData] = useState(null);
-  const [customBookings, setCustomBookings] = useState([]);
-  const [selectedBooking, setSelectedBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [updatingBookingId, setUpdatingBookingId] = useState(null);
   const [activeDestination, setActiveDestination] = useState('');
   const [editingDestination, setEditingDestination] = useState(null);
   const [destinationForm, setDestinationForm] = useState(emptyDestinationForm);
@@ -99,8 +67,8 @@ const ManageCustomizations = () => {
   const [tourForm, setTourForm] = useState(emptyTourForm);
   const [editingHotelId, setEditingHotelId] = useState(null);
   const [hotelForm, setHotelForm] = useState(emptyHotelForm);
-  const [activeSection, setActiveSection] = useState('manage');
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   const destinationNames = useMemo(
     () => Object.keys(data?.destinations || {}),
@@ -110,9 +78,6 @@ const ManageCustomizations = () => {
   const activeDetails = activeDestination ? data?.destinations?.[activeDestination] : null;
   const activeTours = activeDetails?.activities || [];
   const activeHotels = data?.hotels?.[activeDestination] || [];
-  const pendingCustomBookings = customBookings.filter(booking => booking.status === 'Pending Verification');
-  const bookedCustomBookings = customBookings.filter(booking => booking.status === 'Confirmed');
-
   useEffect(() => {
     loadData();
   }, []);
@@ -120,15 +85,9 @@ const ManageCustomizations = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [result, bookings] = await Promise.all([
-        customizationService.getAll(),
-        bookingService.getAll()
-      ]);
+      const result = await customizationService.getAll();
       const names = Object.keys(result.destinations || {});
-      const customizationBookings = bookings.filter(isCustomizationBooking);
       setData(result);
-      setCustomBookings(customizationBookings);
-      setSelectedBooking(current => current ? customizationBookings.find(booking => booking.id === current.id) || null : null);
       setActiveDestination(current => current && result.destinations[current] ? current : names[0] || '');
     } catch {
       showNotification('Failed to load customization data', 'error');
@@ -137,22 +96,6 @@ const ManageCustomizations = () => {
     }
   };
 
-  const handleBookingStatus = async (booking, status) => {
-    const action = 'confirm this customized booking';
-    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
-
-    setUpdatingBookingId(booking.id);
-    try {
-      const updated = await bookingService.updateStatus(booking.id, status);
-      setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
-      setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification('Customized booking confirmed', 'success');
-    } catch {
-      showNotification('Failed to update customized booking', 'error');
-    } finally {
-      setUpdatingBookingId(null);
-    }
-  };
 
   const resetInlineForms = () => {
     setEditingTourId(null);
@@ -181,6 +124,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveDestination = async () => {
+    if (!(await confirm('Are you sure you want to save this destination?'))) return;
     if (!destinationForm.name.trim()) {
       showNotification('Destination name is required.', 'warning');
       return;
@@ -213,7 +157,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteDestination = async (name) => {
-    if (!window.confirm(`Delete ${name} and its customization options?`)) return;
+    if (!(await confirm(`Delete ${name} and its customization options?`))) return;
 
     const destinations = { ...data.destinations };
     const hotels = { ...data.hotels };
@@ -259,6 +203,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveTour = async () => {
+    if (!(await confirm('Are you sure you want to save this tour offering?'))) return;
     if (!activeDestination || !tourForm.name.trim()) {
       showNotification('Tour name is required.', 'warning');
       return;
@@ -286,7 +231,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteTour = async (id) => {
-    if (!window.confirm('Delete this tour offering?')) return;
+    if (!(await confirm('Delete this tour offering?'))) return;
     try {
       await saveDestinationActivities(activeTours.filter(tour => tour.id !== id));
       showNotification('Tour offering deleted', 'success');
@@ -319,6 +264,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveHotel = async () => {
+    if (!(await confirm('Are you sure you want to save this accommodation?'))) return;
     if (!activeDestination || !hotelForm.name.trim()) {
       showNotification('Hotel name is required.', 'warning');
       return;
@@ -346,7 +292,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteHotel = async (id) => {
-    if (!window.confirm('Delete this accommodation?')) return;
+    if (!(await confirm('Delete this accommodation?'))) return;
     try {
       await saveDestinationHotels(activeHotels.filter(hotel => hotel.id !== id));
       showNotification('Accommodation deleted', 'success');
@@ -371,38 +317,9 @@ const ManageCustomizations = () => {
           <h1 className="text-xl font-bold text-[#1a1a1a]">Custom Trip Options & Customer Approvals</h1>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="flex items-center gap-2 bg-[#fcfbf9] p-1.5 rounded-md border border-[#e0dbd0] shrink-0">
-          <button
-            onClick={() => setActiveSection('manage')}
-            className={`px-4 py-2 rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeSection === 'manage'
-                ? 'bg-[#fef8e7] text-[#c49b27] border border-[#f5e6b8] shadow-xs'
-                : 'text-[#6b6255] hover:text-[#1a1a1a]'
-              }`}
-          >
-            <Building2 className="h-3.5 w-3.5" />
-            1. Catalog Builder
-          </button>
-          <button
-            onClick={() => setActiveSection('review')}
-            className={`px-4 py-2 rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeSection === 'review'
-                ? 'bg-[#fef8e7] text-[#c49b27] border border-[#f5e6b8] shadow-xs'
-                : 'text-[#6b6255] hover:text-[#1a1a1a]'
-              }`}
-          >
-            <ReceiptText className="h-3.5 w-3.5" />
-            2. Customer Requests
-            {pendingCustomBookings.length > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                {pendingCustomBookings.length}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
-      {activeSection === 'manage' && (
-        <div className="flex justify-between items-center bg-white p-4 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="flex justify-between items-center bg-white p-4 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div>
             <h2 className="text-xs font-bold text-[#1a1a1a] uppercase tracking-wider">Configure Catalog Options</h2>
             <p className="text-xs text-[#6b6255]">Select a destination on the left sidebar to add hotel choices and tour add-ons.</p>
@@ -414,81 +331,9 @@ const ManageCustomizations = () => {
             <Plus className="h-4 w-4" />
             + Add New Destination
           </button>
-        </div>
-      )}
+      </div>
 
-      {activeSection === 'review' ? (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
-          <div className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-[#eae5db]">
-              <div>
-                <h2 className="text-lg font-bold text-[#1a1a1a]">Customization Review & Approval</h2>
-                <p className="text-xs text-[#6b6255] mt-0.5">Review custom-trip bookings before marking them as booked.</p>
-              </div>
-              <div className="flex gap-2 text-[10px] font-bold uppercase">
-                <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                  {pendingCustomBookings.length} Pending
-                </span>
-                <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {bookedCustomBookings.length} Booked
-                </span>
-              </div>
-            </div>
-
-            {customBookings.length === 0 ? (
-              <EmptyState label="No customized bookings submitted yet." />
-            ) : (
-              <div className="divide-y divide-[#eae5db]">
-                {customBookings.map(booking => (
-                  <div key={booking.id} className="grid grid-cols-1 md:grid-cols-[1fr_0.8fr_0.7fr_auto] gap-4 px-5 py-4 items-center hover:bg-[#fcfbf9] transition-colors">
-                    <div>
-                      <p className="font-mono text-[10px] text-[#c49b27] font-bold">{booking.id}</p>
-                      <h3 className="text-sm font-bold text-[#1a1a1a] mt-0.5">{booking.packageName}</h3>
-                      <p className="text-xs text-[#6b6255] mt-0.5">{booking.customizedDetails?.destination || booking.destination || 'Customized trip'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#1a1a1a]">{booking.customerName}</p>
-                      <p className="text-xs text-[#6b6255]">{formatDate(booking.tourDate)}</p>
-                    </div>
-                    <div>
-                      <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${statusStyle(booking.status)}`}>
-                        {statusLabel(booking.status)}
-                      </span>
-                      <p className="text-xs text-[#1a1a1a] font-bold mt-1.5">PHP {Number(booking.totalPrice || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="flex md:justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedBooking(booking)}
-                        className="p-2 rounded bg-[#fcfbf9] border border-[#e0dbd0] text-[#6b6255] hover:text-[#1a1a1a] hover:border-[#b0a68e] cursor-pointer"
-                        title="Review customized booking"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      {booking.status === 'Pending Verification' && (
-                        <button
-                          onClick={() => handleBookingStatus(booking, 'Confirmed')}
-                          disabled={updatingBookingId === booking.id}
-                          className="p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer disabled:opacity-50"
-                          title="Confirm customized booking"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <CustomBookingReview
-            booking={selectedBooking}
-            updatingId={updatingBookingId}
-            onConfirm={(booking) => handleBookingStatus(booking, 'Confirmed')}
-          />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
           <aside className="space-y-3">
             <div className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold px-1">Tourist Spots</div>
             {destinationNames.map(name => (
@@ -651,8 +496,7 @@ const ManageCustomizations = () => {
               <EmptyState label="Add a destination to start configuring custom trips." />
             )}
           </section>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
