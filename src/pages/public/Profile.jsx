@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
+import { useNotification } from '../../hooks/useNotification';
 import { api } from '../../services/api';
 import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
@@ -36,6 +37,11 @@ const StatusBadge = ({ status }) => {
       <XCircle className="h-3.5 w-3.5" /> Cancelled
     </span>
   );
+  if (status === 'Quote Sent') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+      <Mail className="h-3.5 w-3.5" /> Quote Sent
+    </span>
+  );
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
       <Clock className="h-3.5 w-3.5 animate-pulse" /> Pending Verification
@@ -49,12 +55,14 @@ const StatusBadge = ({ status }) => {
 const Profile = () => {
   const { user, updateUserSession } = useContext(AuthContext);
   const { confirm } = useConfirmation();
+  const { showNotification } = useNotification();
 
   // Bookings state
   const [allBookings, setAllBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [acceptingQuoteId, setAcceptingQuoteId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
@@ -142,7 +150,7 @@ const Profile = () => {
   }, [user]);
 
   // ── Filter bookings by tab ──
-  const tabs = ['All', 'Pending Verification', 'Confirmed', 'Rescheduled', 'To Review'];
+  const tabs = ['All', 'Pending Verification', 'Quote Sent', 'Confirmed', 'Rescheduled', 'To Review'];
 
   const isEligibleToReview = (b) => {
     const s = String(b.status || '').toLowerCase();
@@ -159,6 +167,22 @@ const Profile = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
+  };
+
+  const handleAcceptCustomQuote = async (booking) => {
+    if (!(await confirm(`Accept the final quote of PHP ${Number(booking.totalPrice || 0).toLocaleString()} for this customized trip?`))) return;
+
+    setAcceptingQuoteId(booking.id);
+    try {
+      const updated = await bookingService.acceptCustomQuote(booking.id);
+      setAllBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
+      setViewingBooking(updated);
+      showNotification('Quote accepted. The business will email you with payment instructions.', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Failed to accept the custom trip quote.', 'error');
+    } finally {
+      setAcceptingQuoteId(null);
+    }
   };
 
 
@@ -726,13 +750,46 @@ const Profile = () => {
               <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
                 <Row
                   label="Quote status"
-                  value={viewingBooking.status === 'Pending Verification' ? 'Pricing under review' : 'Final quote sent by email'}
+                  value={viewingBooking.status === 'Pending Verification'
+                    ? 'Pricing under review'
+                    : viewingBooking.status === 'Quote Sent'
+                      ? 'Review this quote and accept it below'
+                      : 'Quote accepted'}
                 />
                 {viewingBooking.status !== 'Pending Verification' && (
-                  <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
-                    <span>Final quote:</span>
-                    <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
-                  </div>
+                  <>
+                    {viewingBooking.customizedDetails.quoteItinerary && (
+                      <div className="border-t border-[#e0dbd0] pt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Proposed itinerary</p>
+                        <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-[#1a1a1a]">{viewingBooking.customizedDetails.quoteItinerary}</p>
+                      </div>
+                    )}
+                    {Array.isArray(viewingBooking.customizedDetails.priceBreakdown) && viewingBooking.customizedDetails.priceBreakdown.length > 0 && (
+                      <div className="space-y-1 border-t border-[#e0dbd0] pt-3">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Price breakdown</p>
+                        {viewingBooking.customizedDetails.priceBreakdown.map((line, index) => (
+                          <div key={`${line.description}-${index}`} className="flex justify-between gap-3 text-xs text-[#4a453b]">
+                            <span>{line.description}</span>
+                            <span className="shrink-0">PHP {Number(line.amount).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                      <span>Final quote:</span>
+                      <span className="text-sm text-[#2d2a24]">PHP {viewingBooking.totalPrice?.toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
+                {viewingBooking.status === 'Quote Sent' && (
+                  <button
+                    type="button"
+                    onClick={() => handleAcceptCustomQuote(viewingBooking)}
+                    disabled={acceptingQuoteId === viewingBooking.id}
+                    className="mt-2 w-full rounded bg-[#2d2a24] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
+                  >
+                    {acceptingQuoteId === viewingBooking.id ? 'Accepting...' : 'Accept itinerary & quote'}
+                  </button>
                 )}
               </div>
             ) : (

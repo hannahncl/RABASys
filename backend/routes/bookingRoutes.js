@@ -150,6 +150,79 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         res.json(rows[0]);
     } catch (e) { next(e); }
 });
+router.patch("/:id/quote", requireAuth, allowRoles("Admin"), async (req, res, next) => {
+    try {
+        const itinerary = typeof req.body.itinerary === "string" ? req.body.itinerary.trim() : "";
+        const submittedLines = req.body.price_breakdown;
+        if (!itinerary || itinerary.length > 10000 || !Array.isArray(submittedLines) || submittedLines.length === 0 || submittedLines.length > 30) {
+            return res.status(422).json({ message: "Provide an itinerary and between 1 and 30 price breakdown items." });
+        }
+
+        const priceBreakdown = submittedLines.map((line) => ({
+            description: typeof line.description === "string" ? line.description.trim() : "",
+            amount: Number(line.amount),
+        }));
+        if (priceBreakdown.some(line => !line.description || line.description.length > 120 || !Number.isFinite(line.amount) || line.amount < 0)) {
+            return res.status(422).json({ message: "Each price item needs a description and a valid non-negative amount." });
+        }
+
+        const totalAmount = Math.round(priceBreakdown.reduce((total, line) => total + line.amount, 0) * 100) / 100;
+        if (totalAmount <= 0) return res.status(422).json({ message: "The total quote must be greater than zero." });
+
+        const [beforeRows] = await db.execute(
+            "SELECT * FROM booking WHERE booking_id = ? AND deleted_at IS NULL",
+            [req.params.id]
+        );
+        const before = beforeRows[0];
+        if (!before) return res.status(404).json({ message: "Customized trip request not found." });
+        if (!before.customized_details) return res.status(422).json({ message: "This booking is not a customized trip request." });
+        if (!["Pending", "Quote Sent"].includes(before.booking_status)) {
+            return res.status(409).json({ message: "A quote can only be sent for a pending customized trip request." });
+        }
+
+        const customizedDetails = typeof before.customized_details === "string"
+            ? JSON.parse(before.customized_details)
+            : before.customized_details;
+        customizedDetails.quoteItinerary = itinerary;
+        customizedDetails.priceBreakdown = priceBreakdown;
+
+        await db.execute(
+            "UPDATE booking SET booking_status = 'Quote Sent', total_amount = ?, customized_details = ? WHERE booking_id = ? AND deleted_at IS NULL",
+            [totalAmount, JSON.stringify(customizedDetails), req.params.id]
+        );
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "SEND_CUSTOM_QUOTE", tableName: "booking", recordId: req.params.id, oldValues: before, newValues: rows[0], req });
+        try { await sendBookingConfirmation(rows[0], "custom-quote"); } catch (error) { console.error("[booking] custom quote email error:", error.message); }
+        res.json(rows[0]);
+    } catch (e) { next(e); }
+});
+router.patch("/:id/accept-quote", requireAuth, async (req, res, next) => {
+    try {
+        if (req.user.role !== "Customer") return res.status(403).json({ message: "Only the customer can accept this quote." });
+        const [beforeRows] = await db.execute("SELECT * FROM booking WHERE booking_id = ? AND deleted_at IS NULL", [req.params.id]);
+        const before = beforeRows[0];
+        if (!before) return res.status(404).json({ message: "Customized trip request not found." });
+        if (Number(before.account_id) !== Number(req.user.accountId)) return res.status(403).json({ message: "You cannot accept another customer's quote." });
+        if (!before.customized_details || before.booking_status !== "Quote Sent") {
+            return res.status(409).json({ message: "This customized trip does not have a quote awaiting acceptance." });
+        }
+
+        await db.execute("UPDATE booking SET booking_status = 'Confirmed' WHERE booking_id = ? AND deleted_at IS NULL", [req.params.id]);
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "ACCEPT_CUSTOM_QUOTE", tableName: "booking", recordId: req.params.id, oldValues: before, newValues: rows[0], req });
+
+        const [admins] = await db.execute("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
+        for (const admin of admins) {
+            await db.execute(
+                "INSERT INTO notification (account_id, booking_id, title, message, notification_type) VALUES (?, ?, ?, ?, ?)",
+                [admin.account_id, req.params.id, "Custom Trip Quote Accepted", `The customer accepted quote ${before.booking_reference}.`, "Booking"]
+            );
+        }
+        try { await sendBookingConfirmation(rows[0], "custom-accepted"); } catch (error) { console.error("[booking] custom acceptance email error:", error.message); }
+        res.json(rows[0]);
+    } catch (e) { next(e); }
+});
+
 router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => { try { const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed"]; if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." }); const [before] = await db.execute("SELECT * FROM booking WHERE booking_id = ? AND deleted_at IS NULL", [req.params.id]); const [result] = await db.execute("UPDATE booking SET booking_status = ? WHERE booking_id = ? AND deleted_at IS NULL", [req.body.booking_status, req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Booking not found." }); const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req }); res.json(rows[0]); } catch (e) { next(e); } });
 module.exports = router;
 

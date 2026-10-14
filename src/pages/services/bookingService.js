@@ -93,10 +93,14 @@ export const bookingService = {
     });
     return type === 'Car Rental' ? rentalBookingFromApi(res) : bookingFromApi(res);
   },
-  updateCustomQuote: async (id, totalAmount) => bookingFromApi(await api(`/bookings/${id}/status`, {
+  updateCustomQuote: async (id, quote) => bookingFromApi(await api(`/bookings/${id}/quote`, {
     method: 'PATCH',
-    body: JSON.stringify({ booking_status: 'Quote Sent', total_amount: Number(totalAmount) }),
+    body: JSON.stringify({
+      itinerary: quote.itinerary,
+      price_breakdown: quote.priceBreakdown,
+    }),
   })),
+  acceptCustomQuote: async (id) => bookingFromApi(await api(`/bookings/${id}/accept-quote`, { method: 'PATCH' })),
   reschedule: async (id, date, type = 'Tour Packages') => {
     const endpoint = type === 'Car Rental' ? `/rental-bookings/${id}/reschedule` : `/bookings/${id}/reschedule`;
     const res = await api(endpoint, {
