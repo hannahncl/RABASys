@@ -1,17 +1,20 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useConfirmation } from '../contexts/ConfirmationContext';
 import { 
   Compass, LayoutDashboard, CalendarCheck, FileUp, LogOut, Menu, X, Bell 
 } from 'lucide-react';
 
 const StaffLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     navigate('/');
   };
@@ -28,9 +31,9 @@ const StaffLayout = () => {
     <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 h-screen sticky top-0 border-r border-slate-900 bg-slate-900/50 shrink-0">
-        <div className="h-20 flex items-center px-6 border-b border-slate-900">
-          <Link to="/">
-            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
+        <div className="h-20 flex items-center justify-center px-6 border-b border-slate-900">
+          <Link to="/" className="flex items-center justify-center">
+            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain mx-auto" />
           </Link>
         </div>
 
@@ -76,8 +79,8 @@ const StaffLayout = () => {
               <X className="h-6 w-6" />
             </button>
 
-            <Link to="/" className="mb-8">
-              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
+            <Link to="/" className="mb-8 flex justify-center">
+              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain mx-auto" />
             </Link>
 
             <nav className="flex-grow space-y-1">
@@ -126,9 +129,13 @@ const StaffLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="relative text-slate-400 hover:text-white p-1">
+            <button 
+              className="relative p-2 rounded-full transition-colors text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 cursor-pointer"
+              title="Notifications"
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500"></span>
             </button>
             
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">

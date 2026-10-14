@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const EditCarRentalPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [formData, setFormData] = useState({
     vehicle_name: '',
     vehicle_type: '',
@@ -69,6 +71,7 @@ const EditCarRentalPage = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm('Are you sure you want to save these car rental changes?'))) return;
     const required = ['vehicle_name', 'vehicle_type', 'plate_number', 'capacity', 'daily_rate', 'fuel_type', 'vehicle_brand', 'transmission'];
     const missing = required.filter(field => !String(formData[field] || '').trim());
     if (missing.length > 0) {

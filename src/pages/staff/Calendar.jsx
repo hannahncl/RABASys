@@ -110,7 +110,13 @@ const Calendar = () => {
           {selectedBooking && <button onClick={() => setSelectedBooking(null)} className="p-1 rounded-sm hover:bg-[#f7f4ef]"><X className="h-4 w-4 text-[#6b6255]" /></button>}
         </div>
         {selectedBooking ? <div className="p-5 space-y-4 text-xs text-[#4a453b]">
-          <span className="inline-flex px-2.5 py-1 rounded-full border bg-emerald-100 border-emerald-200 text-emerald-700 font-bold uppercase">{selectedBooking.status}</span>
+          <span className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-bold ${
+            selectedBooking.status === 'Completed' 
+              ? 'bg-yellow-50 border-yellow-300 text-yellow-800' 
+              : 'bg-yellow-400/20 border-yellow-400/40 text-yellow-800'
+          }`}>
+            {selectedBooking.status}
+          </span>
           <div className="space-y-2"><p><strong>Client:</strong> {selectedBooking.customerName}</p><p><strong>Contact:</strong> {selectedBooking.customerPhone || 'Not set'}</p><p><strong>Tour date:</strong> {selectedBooking.tourDate}</p><p><strong>Guests:</strong> {selectedBooking.guestsCount}</p><p><strong>Reference:</strong> <span className="font-mono text-yellow-700">{selectedBooking.paymentRef || selectedBooking.id}</span></p></div>
           <div className="border-t border-[#eae5db] pt-3 flex justify-between"><span>Total Paid</span><strong>PHP {Number(selectedBooking.totalPrice || 0).toLocaleString()}</strong></div>
         </div> : <p className="p-8 text-center text-sm text-[#6b6255]">Click a booking on the calendar to view its details.</p>}

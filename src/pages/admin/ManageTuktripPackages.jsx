@@ -5,6 +5,7 @@ import {
   Plus, Edit, Trash2, Loader, MapPin, Clock, Users, Navigation
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const catConfig = {
   key: 'tuktrip',
@@ -93,6 +94,7 @@ const ManageTuktripPackages = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadServices();
@@ -115,7 +117,7 @@ const ManageTuktripPackages = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this tuktrip?')) {
+    if (await confirm('Are you sure you want to delete this tuktrip?')) {
       try {
         await serviceService.delete(id);
         showNotification('Tuktrip deleted', 'success');

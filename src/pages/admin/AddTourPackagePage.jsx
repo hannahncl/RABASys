@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
-import { readImageAsDataUrl } from '../../utils/imageUtils';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 import { useAuth } from '../../hooks/useAuth';
 import { normalizeFrontendRole } from '../../contexts/AuthContext';
 
 const AddTourPackagePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const packageType = ['exclusive', 'joiner', 'tuktrip'].includes(searchParams.get('type'))
+    ? searchParams.get('type')
+    : 'exclusive';
+  const packageTypeLabel = packageType === 'tuktrip' ? 'Tuktrip' : packageType === 'joiner' ? 'Joiner Tour Package' : 'Exclusive Tour Package';
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompressingImage, setIsCompressingImage] = useState(false);
@@ -24,7 +32,10 @@ const AddTourPackagePage = () => {
     maximumCapacity: '',
     meetingLocation: '',
     itinerary: '',
-    image: ''
+    image: '',
+    joinerDate: '',
+    joinerSlots: '',
+    joinerBookingDeadline: ''
   });
 
   const handleChange = (e) => {
@@ -49,8 +60,10 @@ const AddTourPackagePage = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to create this ${packageTypeLabel}?`))) return;
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
-    const missing = required.filter(field => !String(formData[field]).trim());
+    const joinerRequired = packageType === 'joiner' ? ['joinerDate', 'joinerSlots', 'joinerBookingDeadline'] : [];
+    const missing = [...required, ...joinerRequired].filter(field => !String(formData[field]).trim());
 
     if (missing.length > 0) {
       showNotification('Please complete all fields before saving.', 'error');
@@ -73,7 +86,7 @@ const AddTourPackagePage = () => {
     try {
       const payload = {
         category: 'tour',
-        packageType: 'tour',
+        packageType,
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
@@ -88,13 +101,16 @@ const AddTourPackagePage = () => {
           .map(line => line.trim())
           .filter(Boolean)
           .map((line, index) => ({ day: index + 1, title: line, desc: line })),
+        joinerDate: packageType === 'joiner' ? formData.joinerDate : null,
+        joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
+        joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
         image: formData.image || '/CAGSAWA.jpg',
         tags: [formData.destination.trim(), 'Tour Package']
       };
 
       await serviceService.create({ ...payload, id: Date.now().toString() });
       showNotification('Tour package created successfully', 'success');
-      navigate('/admin/services');
+      navigate('/admin/tour-packages');
     } catch (error) {
       const message = error?.message || 'Failed to create tour package';
       showNotification(message.includes('Authentication') || message.includes('permission')
@@ -108,15 +124,15 @@ const AddTourPackagePage = () => {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate('/admin/services')}
+        onClick={() => navigate('/admin/tour-packages')}
         className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Services
+        <ArrowLeft className="h-4 w-4" /> Back to Tour Packages
       </button>
 
       <div className="bg-slate-900/30 border border-slate-850 backdrop-blur-md rounded-3xl p-8 space-y-6 transition-all duration-300">
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200 border-b border-slate-850/50 pb-4">
-          Add Tour Package
+          Add {packageTypeLabel}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -184,6 +200,25 @@ const AddTourPackagePage = () => {
               className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none transition-all" 
             />
           </div>
+          {packageType === 'joiner' && (
+            <div className="md:col-span-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-amber-300">Joiner Schedule & Availability</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Trip Date</label>
+                  <input name="joinerDate" type="date" value={formData.joinerDate} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Available Slots</label>
+                  <input name="joinerSlots" type="number" min="1" value={formData.joinerSlots} onChange={handleChange} placeholder="e.g. 12" className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Booking Deadline</label>
+                  <input name="joinerBookingDeadline" type="date" value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                </div>
+              </div>
+            </div>
+          )}
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Description</label>
             <textarea 
@@ -233,7 +268,7 @@ const AddTourPackagePage = () => {
 
         <div className="flex gap-3 justify-end pt-5 border-t border-slate-850/50">
           <button 
-            onClick={() => navigate('/admin/services')} 
+            onClick={() => navigate('/admin/tour-packages')} 
             disabled={isSubmitting} 
             className="px-5 py-2.5 text-slate-400 hover:text-slate-100 hover:bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer text-sm font-semibold transition-all flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
           >

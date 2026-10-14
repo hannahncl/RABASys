@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { customizationService } from '../../services/customizationService';
 import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import {
   Building2,
-  CalendarDays,
   CheckCircle2,
   Compass,
   Edit,
@@ -63,16 +63,11 @@ const getDestinationPayload = (form, existing = {}) => ({
   activities: existing.activities || []
 });
 
-const isCustomizationBooking = (booking) => (
-  booking.packageId === 'custom-package' ||
-  booking.packageId === 'custom' ||
-  Boolean(booking.customizedDetails)
-);
-
 const statusStyle = (status) => {
   if (status === 'Confirmed') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-  if (status === 'Cancelled') return 'bg-rose-50 border-rose-200 text-rose-700';
-  return 'bg-amber-50 border-amber-200 text-amber-700';
+  if (status === 'Quote Sent') return 'bg-sky-50 border-sky-200 text-sky-700';
+  if (status === 'Pending Verification') return 'bg-amber-50 border-amber-200 text-amber-700';
+  return 'bg-rose-50 border-rose-200 text-rose-700';
 };
 
 const statusLabel = (status) => status === 'Confirmed' ? 'Booked' : status;
@@ -86,12 +81,20 @@ const formatDate = (value) => {
   });
 };
 
+const isCustomizationBooking = (booking) => (
+  booking.packageId === 'custom-package' ||
+  booking.packageId === 'custom' ||
+  booking.type === 'Customization' ||
+  Boolean(booking.customizedDetails)
+);
+
 const ManageCustomizations = () => {
   const [data, setData] = useState(null);
   const [customBookings, setCustomBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingBookingId, setUpdatingBookingId] = useState(null);
+  const [activeSection, setActiveSection] = useState('manage');
   const [activeDestination, setActiveDestination] = useState('');
   const [editingDestination, setEditingDestination] = useState(null);
   const [destinationForm, setDestinationForm] = useState(emptyDestinationForm);
@@ -99,8 +102,8 @@ const ManageCustomizations = () => {
   const [tourForm, setTourForm] = useState(emptyTourForm);
   const [editingHotelId, setEditingHotelId] = useState(null);
   const [hotelForm, setHotelForm] = useState(emptyHotelForm);
-  const [activeSection, setActiveSection] = useState('manage');
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   const destinationNames = useMemo(
     () => Object.keys(data?.destinations || {}),
@@ -112,6 +115,7 @@ const ManageCustomizations = () => {
   const activeHotels = data?.hotels?.[activeDestination] || [];
   const pendingCustomBookings = customBookings.filter(booking => booking.status === 'Pending Verification');
   const bookedCustomBookings = customBookings.filter(booking => booking.status === 'Confirmed');
+  const quotedCustomBookings = customBookings.filter(booking => booking.status === 'Quote Sent');
 
   useEffect(() => {
     loadData();
@@ -122,13 +126,15 @@ const ManageCustomizations = () => {
     try {
       const [result, bookings] = await Promise.all([
         customizationService.getAll(),
-        bookingService.getAll()
+        bookingService.getAll(),
       ]);
       const names = Object.keys(result.destinations || {});
       const customizationBookings = bookings.filter(isCustomizationBooking);
       setData(result);
       setCustomBookings(customizationBookings);
-      setSelectedBooking(current => current ? customizationBookings.find(booking => booking.id === current.id) || null : null);
+      setSelectedBooking(current => current
+        ? customizationBookings.find(booking => booking.id === current.id) || null
+        : null);
       setActiveDestination(current => current && result.destinations[current] ? current : names[0] || '');
     } catch {
       showNotification('Failed to load customization data', 'error');
@@ -137,16 +143,20 @@ const ManageCustomizations = () => {
     }
   };
 
-  const handleBookingStatus = async (booking, status) => {
-    const action = 'confirm this customized booking';
-    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
+  const handleBookingStatus = async (booking, totalAmount) => {
+    const quote = Number(totalAmount);
+    if (!Number.isFinite(quote) || quote <= 0) {
+      showNotification('Enter a final quote greater than zero.', 'warning');
+      return;
+    }
+    if (!window.confirm(`Send the PHP ${quote.toLocaleString()} final quote to the customer? This will not mark the trip as booked.`)) return;
 
     setUpdatingBookingId(booking.id);
     try {
-      const updated = await bookingService.updateStatus(booking.id, status);
+      const updated = await bookingService.updateCustomQuote(booking.id, quote);
       setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification('Customized booking confirmed', 'success');
+      showNotification('Final quote emailed to the customer', 'success');
     } catch {
       showNotification('Failed to update customized booking', 'error');
     } finally {
@@ -181,6 +191,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveDestination = async () => {
+    if (!(await confirm('Are you sure you want to save this destination?'))) return;
     if (!destinationForm.name.trim()) {
       showNotification('Destination name is required.', 'warning');
       return;
@@ -213,7 +224,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteDestination = async (name) => {
-    if (!window.confirm(`Delete ${name} and its customization options?`)) return;
+    if (!(await confirm(`Delete ${name} and its customization options?`))) return;
 
     const destinations = { ...data.destinations };
     const hotels = { ...data.hotels };
@@ -259,6 +270,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveTour = async () => {
+    if (!(await confirm('Are you sure you want to save this tour offering?'))) return;
     if (!activeDestination || !tourForm.name.trim()) {
       showNotification('Tour name is required.', 'warning');
       return;
@@ -286,7 +298,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteTour = async (id) => {
-    if (!window.confirm('Delete this tour offering?')) return;
+    if (!(await confirm('Delete this tour offering?'))) return;
     try {
       await saveDestinationActivities(activeTours.filter(tour => tour.id !== id));
       showNotification('Tour offering deleted', 'success');
@@ -319,6 +331,7 @@ const ManageCustomizations = () => {
   };
 
   const handleSaveHotel = async () => {
+    if (!(await confirm('Are you sure you want to save this accommodation?'))) return;
     if (!activeDestination || !hotelForm.name.trim()) {
       showNotification('Hotel name is required.', 'warning');
       return;
@@ -346,7 +359,7 @@ const ManageCustomizations = () => {
   };
 
   const handleDeleteHotel = async (id) => {
-    if (!window.confirm('Delete this accommodation?')) return;
+    if (!(await confirm('Delete this accommodation?'))) return;
     try {
       await saveDestinationHotels(activeHotels.filter(hotel => hotel.id !== id));
       showNotification('Accommodation deleted', 'success');
@@ -371,38 +384,27 @@ const ManageCustomizations = () => {
           <h1 className="text-xl font-bold text-[#1a1a1a]">Custom Trip Options & Customer Approvals</h1>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="flex items-center gap-2 bg-[#fcfbf9] p-1.5 rounded-md border border-[#e0dbd0] shrink-0">
-          <button
-            onClick={() => setActiveSection('manage')}
-            className={`px-4 py-2 rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeSection === 'manage'
-                ? 'bg-[#fef8e7] text-[#c49b27] border border-[#f5e6b8] shadow-xs'
-                : 'text-[#6b6255] hover:text-[#1a1a1a]'
-              }`}
-          >
-            <Building2 className="h-3.5 w-3.5" />
-            1. Catalog Builder
-          </button>
-          <button
-            onClick={() => setActiveSection('review')}
-            className={`px-4 py-2 rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${activeSection === 'review'
-                ? 'bg-[#fef8e7] text-[#c49b27] border border-[#f5e6b8] shadow-xs'
-                : 'text-[#6b6255] hover:text-[#1a1a1a]'
-              }`}
-          >
-            <ReceiptText className="h-3.5 w-3.5" />
-            2. Customer Requests
-            {pendingCustomBookings.length > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                {pendingCustomBookings.length}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
-      {activeSection === 'manage' && (
-        <div className="flex justify-between items-center bg-white p-4 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="flex gap-2 border-b border-[#e0dbd0]">
+        <button
+          type="button"
+          onClick={() => setActiveSection('manage')}
+          className={`px-4 py-3 text-xs font-semibold border-b-2 ${activeSection === 'manage' ? 'border-[#2d2a24] text-[#1a1a1a]' : 'border-transparent text-[#6b6255]'}`}
+        >
+          Trip Options
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('review')}
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 ${activeSection === 'review' ? 'border-[#2d2a24] text-[#1a1a1a]' : 'border-transparent text-[#6b6255]'}`}
+        >
+          Review Requests
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-800">{pendingCustomBookings.length}</span>
+        </button>
+      </div>
+
+      {activeSection === 'manage' && <div className="flex justify-between items-center bg-white p-4 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div>
             <h2 className="text-xs font-bold text-[#1a1a1a] uppercase tracking-wider">Configure Catalog Options</h2>
             <p className="text-xs text-[#6b6255]">Select a destination on the left sidebar to add hotel choices and tour add-ons.</p>
@@ -414,8 +416,7 @@ const ManageCustomizations = () => {
             <Plus className="h-4 w-4" />
             + Add New Destination
           </button>
-        </div>
-      )}
+          </div>}
 
       {activeSection === 'review' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
@@ -423,7 +424,7 @@ const ManageCustomizations = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-[#eae5db]">
               <div>
                 <h2 className="text-lg font-bold text-[#1a1a1a]">Customization Review & Approval</h2>
-                <p className="text-xs text-[#6b6255] mt-0.5">Review custom-trip bookings before marking them as booked.</p>
+                <p className="text-xs text-[#6b6255] mt-0.5">Review requests, then email the final quote for customer approval.</p>
               </div>
               <div className="flex gap-2 text-[10px] font-bold uppercase">
                 <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
@@ -431,6 +432,9 @@ const ManageCustomizations = () => {
                 </span>
                 <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {bookedCustomBookings.length} Booked
+                </span>
+                <span className="px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                  {quotedCustomBookings.length} Quotes Sent
                 </span>
               </div>
             </div>
@@ -454,7 +458,13 @@ const ManageCustomizations = () => {
                       <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${statusStyle(booking.status)}`}>
                         {statusLabel(booking.status)}
                       </span>
-                      <p className="text-xs text-[#1a1a1a] font-bold mt-1.5">PHP {Number(booking.totalPrice || 0).toLocaleString()}</p>
+                      <p className="text-xs text-[#1a1a1a] font-bold mt-1.5">
+                        {booking.status === 'Pending Verification'
+                          ? 'Awaiting final quote'
+                          : booking.status === 'Quote Sent'
+                            ? `Quote sent: PHP ${Number(booking.totalPrice || 0).toLocaleString()}`
+                            : `PHP ${Number(booking.totalPrice || 0).toLocaleString()}`}
+                      </p>
                     </div>
                     <div className="flex md:justify-end gap-2">
                       <button
@@ -464,16 +474,6 @@ const ManageCustomizations = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {booking.status === 'Pending Verification' && (
-                        <button
-                          onClick={() => handleBookingStatus(booking, 'Confirmed')}
-                          disabled={updatingBookingId === booking.id}
-                          className="p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer disabled:opacity-50"
-                          title="Confirm customized booking"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -482,9 +482,10 @@ const ManageCustomizations = () => {
           </div>
 
           <CustomBookingReview
+            key={selectedBooking?.id || 'empty'}
             booking={selectedBooking}
             updatingId={updatingBookingId}
-            onConfirm={(booking) => handleBookingStatus(booking, 'Confirmed')}
+            onConfirm={handleBookingStatus}
           />
         </div>
       ) : (
@@ -658,12 +659,14 @@ const ManageCustomizations = () => {
 };
 
 const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
+  const [quotedPrice, setQuotedPrice] = useState('');
+
   if (!booking) {
     return (
       <aside className="bg-white rounded-md border border-[#e0dbd0] p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] xl:sticky xl:top-24">
         <ReceiptText className="h-10 w-10 text-[#b0a68e] mx-auto mb-3" />
         <h3 className="text-sm font-bold text-[#1a1a1a]">Select a customized booking</h3>
-        <p className="text-xs text-[#6b6255] mt-2">Review custom-trip details and confirm pending requests here.</p>
+            <p className="text-xs text-[#6b6255] mt-2">Review custom-trip details and prepare the final quote here.</p>
       </aside>
     );
   }
@@ -699,6 +702,7 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
           <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Customized Trip</h3>
           <DetailLine label="Destination" value={details.destination || booking.destination || 'Not set'} />
           <DetailLine label="Accommodation" value={details.hotel || 'None'} />
+          <DetailLine label="Preferred guide" value={details.preferredGuideName || 'No preference'} />
           <DetailLine label="Duration" value={details.duration || booking.duration || 'Not set'} />
           <DetailLine label="Tour Date" value={formatDate(booking.tourDate)} />
           {activities.length > 0 && (
@@ -714,19 +718,33 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Payment</h3>
-          <DetailLine label="Method" value={booking.paymentMethod || 'Not set'} />
-          <DetailLine label="Reference" value={booking.paymentRef || 'Not set'} mono />
-          <DetailLine label="Total Paid" value={`PHP ${Number(booking.totalPrice || 0).toLocaleString()}`} strong />
+          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Final quote</h3>
+          {isPending ? (
+            <label className="block text-xs font-medium text-[#6b6255]">
+              Quote amount (PHP)
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={quotedPrice}
+                onChange={event => setQuotedPrice(event.target.value)}
+                className="mt-1.5 w-full rounded border border-[#e0dbd0] px-3 py-2 text-sm text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
+                placeholder="Enter the reviewed price"
+              />
+            </label>
+          ) : (
+            <DetailLine label={booking.status === 'Quote Sent' ? 'Quote sent' : 'Confirmed price'} value={`PHP ${Number(booking.totalPrice || 0).toLocaleString()}`} strong />
+          )}
+          {isPending && <p className="text-[11px] text-[#6b6255]">The customer will receive this quote by email when you confirm.</p>}
         </section>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
           <button
-            onClick={() => onConfirm(booking)}
-            disabled={!isPending || updatingId === booking.id}
+            onClick={() => onConfirm(booking, quotedPrice)}
+            disabled={!isPending || updatingId === booking.id || !Number.isFinite(Number(quotedPrice)) || Number(quotedPrice) <= 0}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <CheckCircle2 className="h-4 w-4" /> Confirm
+            <CheckCircle2 className="h-4 w-4" /> Send final quote
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import mapGalleryService from '../../services/mapGalleryService';
 import { useNotification } from '../../hooks/useNotification';
+import { AuthContext } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -162,6 +164,7 @@ const MapEventsController = ({ onMapClick }) => {
 
 const ExploreMap = () => {
   const { showNotification } = useNotification();
+  const { user } = useContext(AuthContext);
 
   const [spots, setSpots] = useState([]);
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -175,8 +178,11 @@ const ExploreMap = () => {
   const [gpsStatus, setGpsStatus] = useState('locating'); // 'locating' | 'connected' | 'denied' | 'unsupported' | 'error'
   const [gpsErrorMsg, setGpsErrorMsg] = useState('');
   const [navigationTarget, setNavigationTarget] = useState(null);
+  const [roadRoute, setRoadRoute] = useState([]);
+  const [roadRouteDistanceKm, setRoadRouteDistanceKm] = useState(null);
   const [followUser, setFollowUser] = useState(true);
   const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
+  const lastRouteOriginRef = useRef(null);
 
   // Gallery filter state
   const [galleryFilterValue, setGalleryFilterValue] = useState('All');
@@ -442,6 +448,53 @@ const ExploreMap = () => {
     };
   }, [navigationTarget, showNotification]);
 
+  // Request a real driving route so navigation follows roads instead of drawing
+  // a straight line across the map. Refresh after the user has moved far enough
+  // to keep the live route aligned without hitting the routing service on every GPS tick.
+  useEffect(() => {
+    if (!navigationTarget || !userLocation) {
+      setRoadRoute([]);
+      setRoadRouteDistanceKm(null);
+      lastRouteOriginRef.current = null;
+      return undefined;
+    }
+
+    const previousOrigin = lastRouteOriginRef.current;
+    if (previousOrigin && calculateDistanceKm(previousOrigin.lat, previousOrigin.lng, userLocation.lat, userLocation.lng) < 0.15) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const origin = `${userLocation.lng},${userLocation.lat}`;
+        const destination = `${navigationTarget.coords[1]},${navigationTarget.coords[0]}`;
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=full&geometries=geojson`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) throw new Error('Road route request failed');
+        const data = await response.json();
+        const route = data.routes?.[0];
+        if (!route?.geometry?.coordinates?.length) throw new Error('No road route found');
+
+        setRoadRoute(route.geometry.coordinates.map(([lng, lat]) => [lat, lng]));
+        setRoadRouteDistanceKm(Number(route.distance) / 1000);
+        lastRouteOriginRef.current = { lat: userLocation.lat, lng: userLocation.lng };
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setRoadRoute([]);
+          setRoadRouteDistanceKm(null);
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [navigationTarget, userLocation]);
+
   const startNavigationToSpot = (spot) => {
     setSelectedSpot(spot);
     setNavigationTarget(spot);
@@ -456,6 +509,8 @@ const ExploreMap = () => {
 
   const cancelNavigation = () => {
     setNavigationTarget(null);
+    setRoadRoute([]);
+    setRoadRouteDistanceKm(null);
   };
 
   const recenterOnUser = () => {
@@ -468,8 +523,33 @@ const ExploreMap = () => {
     }
   };
 
+  const getUploadEligibilityError = async () => {
+    if (!user) return 'Please log in before sharing photos.';
+
+    try {
+      const bookings = await api('/bookings/mine');
+      return Array.isArray(bookings) && bookings.length > 0
+        ? ''
+        : 'Book a tour package before sharing photos on the Explore Map.';
+    } catch {
+      return 'Your booking eligibility could not be verified. Please try again.';
+    }
+  };
+
+  const handleOpenUpload = async () => {
+    const eligibilityError = await getUploadEligibilityError();
+    if (eligibilityError) {
+      showNotification(eligibilityError, 'warning');
+      return;
+    }
+    setUploadError('');
+    setUploadModalOpen(true);
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    const eligibilityError = await getUploadEligibilityError();
+    if (eligibilityError) { setUploadError(eligibilityError); return; }
     if (!touristName.trim()) { setUploadError('Please enter your name.'); return; }
     if (!caption.trim()) { setUploadError('Please add a caption.'); return; }
     setUploading(true);
@@ -567,7 +647,7 @@ const ExploreMap = () => {
 
   // Calculate live navigation metrics
   const remainingDistanceKm = (userLocation && navigationTarget)
-    ? calculateDistanceKm(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1])
+    ? (roadRouteDistanceKm ?? calculateDistanceKm(userLocation.lat, userLocation.lng, navigationTarget.coords[0], navigationTarget.coords[1]))
     : null;
 
   const currentBearing = (userLocation && navigationTarget)
@@ -591,7 +671,7 @@ const ExploreMap = () => {
           </div>
 
           <button
-            onClick={() => setUploadModalOpen(true)}
+            onClick={handleOpenUpload}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', border: '1px solid #2d2a24', borderRadius: '2px', background: '#2d2a24', color: '#f7f4ef', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#2d2a24'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#2d2a24'; e.currentTarget.style.color = '#f7f4ef'; }}
@@ -683,7 +763,7 @@ const ExploreMap = () => {
                   <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#3d3a34', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>No Photos Found</h3>
                   <p style={{ fontSize: '0.75rem', color: '#4a453b', marginBottom: '1rem' }}>Try changing your filters or search query.</p>
                   <button
-                    onClick={() => setUploadModalOpen(true)}
+                    onClick={handleOpenUpload}
                     style={{ padding: '0.5rem 1.25rem', border: '1px solid #2d2a24', borderRadius: '2px', background: '#2d2a24', color: '#f7f4ef', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}
                   >
                     Be the First to Share
@@ -903,7 +983,7 @@ const ExploreMap = () => {
                 {/* Active Navigation Polyline Route */}
                 {userLocation && navigationTarget && (
                   <Polyline
-                    positions={[
+                    positions={roadRoute.length > 1 ? roadRoute : [
                       [userLocation.lat, userLocation.lng],
                       navigationTarget.coords
                     ]}

@@ -1,4 +1,6 @@
 // Service to manage pinned map spots and tourist-submitted photos in the Bicol Region
+import { api } from '../../services/api';
+
 const SPOTS_STORAGE_KEY = 'rabas_map_spots';
 const UPLOADS_STORAGE_KEY = 'rabas_map_uploads';
 
@@ -168,6 +170,11 @@ export const mapGalleryService = {
   },
 
   uploadPhoto: async (spotId, touristName, caption, imageUrl, avatar) => {
+    const bookings = await api('/bookings/mine');
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+      throw new Error('Book a tour package before sharing photos.');
+    }
+
     await new Promise(resolve => setTimeout(resolve, 300));
     const all = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY)) || [];
 

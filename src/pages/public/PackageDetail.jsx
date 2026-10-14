@@ -4,82 +4,68 @@ import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
-import { useNotification } from '../../hooks/useNotification';
-import WeatherWidget from '../../components/feedback/WeatherWidget';
-import { Compass, MapPin, Star, Calendar, Clock, Award, ShieldCheck, ArrowLeft, CheckCircle2, User, Mail, Phone, Users } from 'lucide-react';
+import { MapPin, Star, Clock, ShieldCheck, ArrowLeft, CheckCircle2, Users } from 'lucide-react';
 
 const PackageDetail = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
-  const { showNotification } = useNotification();
   const navigate = useNavigate();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Form fields
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('');
-  const [tourDate, setTourDate] = useState('');
-  const [guestsCount, setGuestsCount] = useState(1);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
-  // Payment Modal state
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
+    let active = true;
+
     const loadDetails = async () => {
       setLoading(true);
-      const data = await packageService.getById(id);
-      setPkg(data);
-      if (user) {
-        setName(user.name || '');
-        setEmail(user.email || '');
+      try {
+        const data = await packageService.getById(id);
+        if (!active) return;
+        setPkg(data || null);
+        if (data) {
+          loadReviewsForPackage(id);
+        } else {
+          setReviews([]);
+          setLoadingReviews(false);
+        }
+      } catch (error) {
+        console.error('Failed to load package details:', error);
+        if (active) setPkg(null);
+      } finally {
+        if (active) setLoading(false);
       }
-      setLoading(false);
-
-      // Load reviews for this package
-      loadReviewsForPackage(id);
     };
     loadDetails();
+    return () => { active = false; };
   }, [id, user]);
 
   const loadReviewsForPackage = async (packageId) => {
+    if (!user) {
+      setReviews([]);
+      setLoadingReviews(false);
+      return;
+    }
+
     setLoadingReviews(true);
     try {
-      // Fetch all reviews
-      const allReviewsData = await api('/reviews').catch(() => []);
+      const allReviewsData = await api(`/reviews?package_id=${packageId}`).catch(() => []);
 
-      // Fetch all bookings to match reviews with booking info
-      const allBookings = await bookingService.getAll();
+      const packageReviews = allReviewsData
+        .filter(r => String(r.package_id) === String(packageId))
+        .map(review => ({
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.created_at,
+          customerName: review.customer_name || 'Anonymous Tourist',
+          bookingId: review.booking_id
+        }))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Filter reviews for this specific package
-      const packageReviews = [];
-      for (const review of allReviewsData) {
-        // Find the booking for this review
-        const booking = allBookings.find(b => b.id === String(review.booking_id));
-
-        // Check if this review belongs to our package
-        if (booking && booking.packageId === String(packageId)) {
-          packageReviews.push({
-            rating: review.rating,
-            comment: review.comment,
-            createdAt: review.created_at,
-            customerName: booking.customerName || 'Anonymous',
-            bookingId: booking.id
-          });
-        }
-      }
-
-      // Sort by most recent first
-      packageReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setReviews(packageReviews);
-      console.log(`[PackageDetail] Loaded ${packageReviews.length} reviews for package ${packageId}`);
     } catch (err) {
       console.error('Failed to load reviews:', err);
     } finally {
@@ -125,56 +111,12 @@ const PackageDetail = () => {
   };
 
   const handleBookClick = () => {
+    if (pkg.isPreview) return;
     if (!user) {
-      navigate('/login', { state: { from: { pathname: `/packages/${id}` } } });
-    } else {
-      setShowForm(true);
-    }
-  };
-
-  const totalPrice = pkg ? Number(pkg.price || 0) : 0;
-
-  const handleOpenPayment = (e) => {
-    e.preventDefault();
-    if (!name || !email || !phone || !tourDate || !guestsCount) {
-      showNotification('Please fill in all booking fields.', 'warning');
+      navigate('/login', { state: { from: { pathname: `/booking/${id}` } } });
       return;
     }
-    const maxPax = Number(pkg?.maximumCapacity || pkg?.max_capacity || 0);
-    if (maxPax > 0 && Number(guestsCount) > maxPax) {
-      showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
-      return;
-    }
-    setPaymentModalOpen(true);
-  };
-
-  const handlePaymentSuccess = async (referenceNumber) => {
-    setPaymentModalOpen(false);
-    setSubmitting(true);
-
-    try {
-      const bookingData = {
-        packageId: pkg.id,
-        packageName: pkg.title,
-        customerName: name,
-        customerEmail: email,
-        customerPhone: phone,
-        tourDate,
-        guestsCount: Number(guestsCount),
-        totalPrice,
-        paymentMethod: 'GCash',
-        paymentRef: referenceNumber,
-        gcashNumber: 'N/A'
-      };
-
-      await bookingService.create(bookingData);
-      showNotification('Booking successfully submitted! A confirmation email has been dispatched.', 'success');
-      navigate('/');
-    } catch (error) {
-      showNotification('Failed to save booking. Please try again.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    navigate(`/booking/${id}`);
   };
 
   // Shared style constants
@@ -709,7 +651,7 @@ const PackageDetail = () => {
                   </div>
 
                   <button
-                    onClick={() => navigate(`/booking/${pkg.id}`)}
+                    onClick={handleBookClick}
                     className="mt-4 w-full px-4 py-3 text-[11px] font-semibold transition-all duration-300"
                     style={{
                       background: colors.accentDark,

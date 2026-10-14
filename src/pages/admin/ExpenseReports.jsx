@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { reportService } from '../../services/reportService';
 import { emailService } from '../../services/emailService';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Receipt, Plus, ShieldAlert, FileText } from 'lucide-react';
 
@@ -10,6 +11,7 @@ const ExpenseReports = () => {
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   // Form states
   const [category, setCategory] = useState('Accommodation Partner Pay');
@@ -32,6 +34,7 @@ const ExpenseReports = () => {
 
   const handleLogExpense = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to log this expense?'))) return;
     if (!amount || !description) {
       showNotification('Please fill in amount and description.', 'warning');
       return;

@@ -5,18 +5,18 @@ import { ArrowRight, Route, ShieldCheck, Globe, Users, X, Award, Languages } fro
 const features = [
   {
     icon: Route,
-    title: 'Tailored Trips',
-    text: 'Itineraries are shaped around pace, purpose, group size, and preferred destinations.',
+    title: 'Personalized Journeys',
+    text: 'Tailor-made itineraries are crafted around each traveler’s interests, schedule, pace, and purpose.',
   },
   {
     icon: ShieldCheck,
-    title: 'Reliable Care',
-    text: 'Trips are handled with practical planning, clear coordination, and safety in mind.',
+    title: 'Quality and Care',
+    text: 'We serve solo travelers, joiners, families, and groups with thoughtful planning, safety, and dependable coordination.',
   },
   {
     icon: Globe,
-    title: 'Local Network',
-    text: 'We work with regional guides and local partners who know the communities firsthand.',
+    title: 'Authentic Bicol',
+    text: 'Our accredited guides and trusted local partners share the natural beauty, culture, and people of Bicol.',
   },
 ];
 
@@ -65,7 +65,7 @@ const AboutUs = () => {
               RABAS Travel and Tour Services
             </h1>
             <p className="text-[15px] leading-[1.85] text-[#4a453b]">
-              Rabas Travel and Tours is headquartered in Albay, Philippines, creating personalized travel experiences for domestic and international travelers. We design guided trips, custom packages, and local routes built around comfort, clarity, and care.
+              RABAS Travel and Tours Services is a Bicol-based travel and tourism company headquartered in Albay, Philippines. Founded by Rikka, known as Bicolanang Rabas, the company grew from local tour guiding into a full-service travel and tours operation built on deep local knowledge and authentic experiences. As a sole proprietorship, we create personalized and premium journeys for domestic and international travelers through professional guiding, customized packages, and trusted local partners - with the warmth, professionalism, and excellence of Filipino hospitality.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
@@ -221,6 +221,14 @@ const AboutUs = () => {
                         {initials}
                       </span>
                     </div>
+                    {guide.profilePicture && (
+                      <img
+                        src={guide.profilePicture}
+                        alt={guide.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                   </div>
 
                   {/* Info below the portrait */}
@@ -275,7 +283,7 @@ const AboutUs = () => {
               Our Team is Growing
             </h3>
             <p className="text-[13px] text-[#8a7e6e] max-w-md mx-auto">
-              We're building a team of experienced local guides who know Bicol inside and out. Check back soon to meet the people who'll make your trip unforgettable.
+              Our team brings together DOT-accredited regional tour guides, experienced local community guides, and dedicated travel professionals who share a passion for tourism, culture, and service excellence.
             </p>
           </div>
         )}
@@ -308,7 +316,7 @@ const AboutUs = () => {
             {/* Header with avatar */}
             <div className="flex flex-col items-center pt-10 pb-6 px-8">
               <div
-                className="flex items-center justify-center rounded-full mb-5"
+                className="flex items-center justify-center overflow-hidden rounded-full mb-5"
                 style={{
                   width: '88px',
                   height: '88px',
@@ -316,12 +324,21 @@ const AboutUs = () => {
                   boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
                 }}
               >
-                <span
-                  className="text-white font-bold select-none"
-                  style={{ fontSize: '30px', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
-                >
-                  {`${selectedGuide.firstName?.[0] || ''}${selectedGuide.lastName?.[0] || ''}`.toUpperCase()}
-                </span>
+                {selectedGuide.profilePicture ? (
+                  <img
+                    src={selectedGuide.profilePicture}
+                    alt={selectedGuide.name}
+                    className="h-full w-full object-cover"
+                    onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <span
+                    className="text-white font-bold select-none"
+                    style={{ fontSize: '30px', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+                  >
+                    {`${selectedGuide.firstName?.[0] || ''}${selectedGuide.lastName?.[0] || ''}`.toUpperCase()}
+                  </span>
+                )}
               </div>
 
               <p
@@ -388,25 +405,6 @@ const AboutUs = () => {
               </div>
             </div>
 
-            {/* Footer action */}
-            <div className="px-8 pb-8 pt-2">
-              <Link
-                to="/customize"
-                onClick={() => setSelectedGuide(null)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-semibold transition-all duration-200 no-underline"
-                style={{
-                  background: '#2d2a24',
-                  color: '#f7f4ef',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#4a453b'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#2d2a24'; }}
-              >
-                Book a Trip
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
           </div>
         </div>
       )}

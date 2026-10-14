@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { serviceService } from '../../services/serviceService';
 import { Plus, Edit, Trash2, Save, X, Loader, MapPin, Clock, Users, CalendarDays, Navigation, PackageCheck } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const emptyForm = () => ({
   packageName: '',
@@ -44,6 +45,7 @@ const parseItinerary = (value) => {
 };
 
 const TourPackages = () => {
+  const { confirm } = useConfirmation();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -103,6 +105,7 @@ const TourPackages = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to ${editingId ? 'save these tour package changes' : 'create this tour package'}?`))) return;
     const requiredFields = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const missing = requiredFields.filter((field) => !String(formData[field]).trim());
 
@@ -148,7 +151,7 @@ const TourPackages = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this tour package?')) {
+    if (!(await confirm('Are you sure you want to delete this tour package?'))) {
       return;
     }
 

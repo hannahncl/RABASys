@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 // Providers
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ConfirmationProvider } from './contexts/ConfirmationContext';
 
 // Route Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
@@ -58,6 +59,7 @@ import TourPackageDetailPage from './pages/admin/TourPackageDetailPage';
 import AddServicePage from './pages/admin/AddServicePage';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
+import AdminReviews from './pages/admin/Reviews';
 
 // Pages - Staff Dashboard
 import StaffDashboard from './pages/staff/Dashboard';
@@ -68,7 +70,8 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <BrowserRouter>
+        <ConfirmationProvider>
+          <BrowserRouter>
           <Routes>
             {/* Public Tourist Journeys */}
             <Route path="/" element={<MainLayout />}>
@@ -79,7 +82,14 @@ function App() {
               <Route path="customize" element={<CustomPlanner />} />
               <Route path="explore" element={<ExploreMap />} />
               <Route path="car-rentals" element={<CarRentals />} />
-              <Route path="car-rentals/:id" element={<CarBooking />} />
+              <Route
+                path="car-rentals/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+                    <CarBooking />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="about" element={<AboutUs />} />
               
               <Route 
@@ -145,6 +155,7 @@ function App() {
               <Route path="destinations" element={<AdminAnalytics />} />
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
+              <Route path="reviews" element={<AdminReviews />} />
               <Route path="services" element={<ManageServices />} />
               <Route path="services/:category/:id" element={<ServiceDetailPage />} />
               <Route path="tour-packages" element={<ManageTourPackages />} />
@@ -188,7 +199,8 @@ function App() {
             {/* Fallback Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ConfirmationProvider>
       </NotificationProvider>
     </AuthProvider>
   );

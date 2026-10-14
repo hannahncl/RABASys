@@ -9,7 +9,8 @@ const router = express.Router();
 const bookingSelect = `SELECT b.*, 
     v.vehicle_name, v.plate_number, v.daily_rate, v.image as vehicle_image,
     a.first_name, a.last_name, a.email, a.contact_number,
-    CONCAT(a.first_name, ' ', a.last_name) AS customer_name
+    CONCAT(a.first_name, ' ', a.last_name) AS customer_name,
+    EXISTS(SELECT 1 FROM review r WHERE r.rental_booking_id = b.rental_booking_id AND r.deleted_at IS NULL) AS has_reviewed
     FROM car_rental_booking b 
     JOIN account a ON a.account_id = b.account_id 
     JOIN vehicle v ON v.vehicle_id = b.vehicle_id`;

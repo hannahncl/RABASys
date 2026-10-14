@@ -145,14 +145,6 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
             }
         }
 
-        if (Boolean(account.two_factor_enabled)) {
-            const otp = crypto.randomInt(100000, 1000000).toString();
-            await db.execute("UPDATE login_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
-            await db.execute("INSERT INTO login_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
-            await sendTwoFactorOtp(account.email, otp);
-            return res.status(202).json({ requiresTwoFactor: true, message: "A verification code was sent to your email.", email: account.email });
-        }
-
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
@@ -353,16 +345,7 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
             await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, googleId, provider: "google" }, req });
         }
 
-        // 5. Check 2FA if enabled
-        if (Boolean(account.two_factor_enabled)) {
-            const otp = crypto.randomInt(100000, 1000000).toString();
-            await db.execute("UPDATE login_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
-            await db.execute("INSERT INTO login_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
-            await sendTwoFactorOtp(account.email, otp);
-            return res.status(202).json({ requiresTwoFactor: true, message: "A verification code was sent to your email.", email: account.email });
-        }
-
-        // 6. Create session (same as normal login)
+        // Create session (same as normal login)
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);

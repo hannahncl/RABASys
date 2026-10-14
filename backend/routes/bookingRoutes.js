@@ -6,17 +6,25 @@ const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
 const router = express.Router();
 
-const bookingSelect = `SELECT b.*, p.package_name, p.destination, a.first_name, a.last_name, a.email, a.contact_number,
+
+const bookingSelect = `SELECT b.*, p.package_name, p.destination, p.package_type, a.first_name, a.last_name, a.email, a.contact_number,
     CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
     EXISTS(SELECT 1 FROM review r WHERE r.booking_id = b.booking_id) AS has_reviewed
     FROM booking b JOIN account a ON a.account_id = b.account_id JOIN tour_package p ON p.package_id = b.package_id
     LEFT JOIN tour_guide g ON g.guide_id = b.guide_id LEFT JOIN account ga ON ga.account_id = g.account_id`;
+
 
 router.get("/", requireAuth, async (req, res, next) => {
     try {
         await db.execute("UPDATE booking SET booking_status = 'Completed' WHERE travel_date < CURDATE() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
         const admin = ["Admin", "Tour Guide"].includes(req.user.role);
         const [rows] = await db.execute(`${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = ?"} ORDER BY b.created_at DESC`, admin ? [] : [req.user.accountId]);
+        res.json(rows);
+    } catch (e) { next(e); }
+});
+router.get("/mine", requireAuth, async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`${bookingSelect} WHERE b.account_id = ? AND b.deleted_at IS NULL ORDER BY b.created_at DESC`, [req.user.accountId]);
         res.json(rows);
     } catch (e) { next(e); }
 });
@@ -36,9 +44,31 @@ router.post("/", requireAuth, async (req, res, next) => {
         if (!package_id || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) {
             return res.status(422).json({ message: "package_id, travel_date, and a positive number_of_persons are required." });
         }
-        const [packages] = await db.execute("SELECT price, max_capacity FROM tour_package WHERE package_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
+        const [packages] = await db.execute("SELECT price, max_capacity, package_type, joiner_date, joiner_slots, joiner_booking_deadline FROM tour_package WHERE package_id = ? AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
         const pkg = packages[0];
         if (!pkg) return res.status(404).json({ message: "Available tour package not found." });
+        if (pkg.package_type === 'joiner') {
+            const requestedDate = String(travel_date).slice(0, 10);
+            const joinerDate = pkg.joiner_date ? new Date(pkg.joiner_date).toISOString().slice(0, 10) : null;
+            const today = new Date().toISOString().slice(0, 10);
+            const deadline = pkg.joiner_booking_deadline ? new Date(pkg.joiner_booking_deadline).toISOString().slice(0, 10) : null;
+            if (joinerDate && requestedDate !== joinerDate) {
+                return res.status(422).json({ message: `This joiner trip is scheduled for ${joinerDate}.` });
+            }
+            if (deadline && today > deadline) {
+                return res.status(422).json({ message: "Booking for this joiner trip is already closed." });
+            }
+            if (pkg.joiner_slots) {
+                const [reservedRows] = await db.execute(
+                    "SELECT COALESCE(SUM(number_of_persons), 0) AS reserved FROM booking WHERE package_id = ? AND travel_date = ? AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
+                    [package_id, requestedDate]
+                );
+                const remaining = Number(pkg.joiner_slots) - Number(reservedRows[0]?.reserved || 0);
+                if (Number(number_of_persons) > remaining) {
+                    return res.status(422).json({ message: `Only ${Math.max(remaining, 0)} joiner slot(s) remain.` });
+                }
+            }
+        }
         if (pkg.max_capacity && Number(number_of_persons) > Number(pkg.max_capacity)) {
             return res.status(422).json({ message: `Number of persons exceeds package capacity (${pkg.max_capacity} pax).` });
         }
@@ -48,7 +78,7 @@ router.post("/", requireAuth, async (req, res, next) => {
             [req.user.accountId, package_id, reference, travel_date, number_of_persons, Number(pkg.price)]
         );
         const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [result.insertId]);
-        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "booking", recordId: result.insertId, newValues: rows[0], req }); 
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "booking", recordId: result.insertId, newValues: rows[0], req });
     // Create notifications for admins
     const [admins] = await db.execute("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
     for (const admin of admins) {
@@ -66,6 +96,7 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
             return res.status(422).json({ message: "A valid new travel date is required." });
         }
 
+
         const [existingRows] = await db.execute(
             "SELECT b.*, p.max_capacity FROM booking b JOIN tour_package p ON p.package_id = b.package_id WHERE b.booking_id = ? AND b.deleted_at IS NULL",
             [req.params.id]
@@ -75,6 +106,7 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
         if (["Completed"].includes(booking.booking_status)) return res.status(422).json({ message: "Completed bookings cannot be rescheduled." });
 
+
         const [capacityRows] = await db.execute(
             "SELECT COALESCE(SUM(number_of_persons), 0) AS reserved FROM booking WHERE package_id = ? AND travel_date = ? AND booking_id <> ? AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
             [booking.package_id, requested_schedule_date, req.params.id]
@@ -82,6 +114,7 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         if (Number(capacityRows[0].reserved) + Number(booking.number_of_persons) > Number(booking.max_capacity)) {
             return res.status(409).json({ message: "That date is not available for the selected number of guests." });
         }
+
 
         await db.execute("UPDATE booking SET travel_date = ?, booking_status = 'Rescheduled' WHERE booking_id = ? AND deleted_at IS NULL", [requested_schedule_date, req.params.id]);
         const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]);
@@ -91,3 +124,6 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
 });
 router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => { try { const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed"]; if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." }); const [before] = await db.execute("SELECT * FROM booking WHERE booking_id = ? AND deleted_at IS NULL", [req.params.id]); const [result] = await db.execute("UPDATE booking SET booking_status = ? WHERE booking_id = ? AND deleted_at IS NULL", [req.body.booking_status, req.params.id]); if (!result.affectedRows) return res.status(404).json({ message: "Booking not found." }); const [rows] = await db.execute(`${bookingSelect} WHERE b.booking_id = ?`, [req.params.id]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req }); res.json(rows[0]); } catch (e) { next(e); } });
 module.exports = router;
+
+
+

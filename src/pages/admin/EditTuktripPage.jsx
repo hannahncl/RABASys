@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const EditTuktripPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
@@ -72,6 +74,7 @@ const EditTuktripPage = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm('Are you sure you want to save these Tuktrip changes?'))) return;
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const missing = required.filter(field => !String(formData[field]).trim());
     if (missing.length > 0) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader } from 'lucide-react';
+import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader, Star } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { serviceService } from '../services/serviceService';
 import { filterCars } from './carRentalsFilters';
@@ -254,7 +254,7 @@ const CarRentals = () => {
                     <div className="px-5 pb-5 pt-5 flex-1 flex flex-col">
 
                       <h3
-                        className="text-[15px] font-semibold mb-2 leading-tight"
+                        className="text-[15px] font-semibold mb-1 leading-tight"
                         style={{
                           color: '#1a1a1a',
                           fontFamily: "'Outfit', Georgia, serif",
@@ -263,6 +263,23 @@ const CarRentals = () => {
                       >
                         {car.vehicleName}
                       </h3>
+
+                      {/* Ratings */}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                          <span className="text-xs font-bold text-[#1a1a1a]">
+                            {car.rating > 0 ? Number(car.rating).toFixed(1) : 'New'}
+                          </span>
+                        </div>
+                        {car.reviewsCount > 0 ? (
+                          <span className="text-[11px] text-[#8f8576]">
+                            ({car.reviewsCount} {car.reviewsCount === 1 ? 'review' : 'reviews'})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#8f8576] font-medium">No reviews yet</span>
+                        )}
+                      </div>
 
                       {/* Specs Grid */}
                       <div

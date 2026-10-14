@@ -6,7 +6,7 @@ const { logAudit } = require("../utils/auditLogger");
 // Only these known tables/columns can be used. This avoids dynamic SQL from request input.
 const resources = {
     accounts: { table: "account", id: "account_id", fields: ["first_name", "last_name", "email", "contact_number", "role", "account_status"] },
-    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image"] },
+    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image", "joiner_date", "joiner_slots", "joiner_booking_deadline"] },
     vehicles: { table: "vehicle", id: "vehicle_id", fields: ["media_id", "vehicle_name", "vehicle_type", "plate_number", "capacity", "daily_rate", "image", "availability_status", "fuel_type", "vehicle_brand", "transmission"] },
     guides: { table: "tour_guide", id: "guide_id", fields: ["account_id", "media_id", "sex", "birthdate", "years_of_experience", "description", "languages_spoken", "availability_status", "employment_status"] },
     media: { table: "media", id: "media_id", fields: ["file_path", "media_type", "uploaded_by", "title", "description"] },
@@ -117,9 +117,48 @@ function addCrud(router, path, resource) {
 
 const router = express.Router();
 
+router.get("/packages", async (req, res, next) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT p.*,
+                COALESCE((SELECT ROUND(AVG(r.rating), 1) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL), 0) AS rating,
+                (SELECT COUNT(*) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL) AS reviews_count
+            FROM tour_package p
+            WHERE p.deleted_at IS NULL
+            ORDER BY p.package_id DESC
+        `);
+        res.json(rows);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.get("/packages/:id", async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT p.*,
+                COALESCE((SELECT ROUND(AVG(r.rating), 1) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL), 0) AS rating,
+                (SELECT COUNT(*) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL) AS reviews_count
+            FROM tour_package p
+            WHERE p.package_id = ? AND p.deleted_at IS NULL
+        `, [req.params.id]);
+        if (!rows[0]) return res.status(404).json({ message: "Package not found." });
+        res.json(rows[0]);
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.get("/vehicles", async (req, res, next) => {
     try {
-        const [rows] = await db.query("SELECT * FROM vehicle WHERE deleted_at IS NULL ORDER BY vehicle_id DESC");
+        const [rows] = await db.query(`
+            SELECT v.*,
+                COALESCE((SELECT ROUND(AVG(r.rating), 1) FROM review r WHERE r.vehicle_id = v.vehicle_id AND r.deleted_at IS NULL), 0) AS rating,
+                (SELECT COUNT(*) FROM review r WHERE r.vehicle_id = v.vehicle_id AND r.deleted_at IS NULL) AS reviews_count
+            FROM vehicle v 
+            WHERE v.deleted_at IS NULL 
+            ORDER BY v.vehicle_id DESC
+        `);
         res.json(rows);
     } catch (error) {
         next(error);
@@ -128,7 +167,13 @@ router.get("/vehicles", async (req, res, next) => {
 
 router.get("/vehicles/:id", async (req, res, next) => {
     try {
-        const [rows] = await db.execute("SELECT * FROM vehicle WHERE vehicle_id = ? AND deleted_at IS NULL", [req.params.id]);
+        const [rows] = await db.execute(`
+            SELECT v.*,
+                COALESCE((SELECT ROUND(AVG(r.rating), 1) FROM review r WHERE r.vehicle_id = v.vehicle_id AND r.deleted_at IS NULL), 0) AS rating,
+                (SELECT COUNT(*) FROM review r WHERE r.vehicle_id = v.vehicle_id AND r.deleted_at IS NULL) AS reviews_count
+            FROM vehicle v 
+            WHERE v.vehicle_id = ? AND v.deleted_at IS NULL
+        `, [req.params.id]);
         if (!rows[0]) return res.status(404).json({ message: "Vehicle not found." });
         res.json(rows[0]);
     } catch (error) {

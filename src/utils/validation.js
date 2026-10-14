@@ -42,17 +42,24 @@ export function validatePassword(value) {
 export function validateName(value, fieldName = 'Name') {
   const sanitized = sanitizeInput(value);
   if (!sanitized) return `${fieldName} is required.`;
-  if (!/^[A-Za-z\s.'-]+$/.test(sanitized)) return `${fieldName} can only contain letters and basic punctuation.`;
+  if (!/^[A-Za-z\s]+$/.test(sanitized)) return `${fieldName} must only contain letters.`;
   return '';
 }
 
 export function validatePhone(value) {
   const sanitized = sanitizeInput(value);
   if (!sanitized) return 'Contact number is required.';
-  if (!/^[0-9+\-()\s]+$/.test(sanitized)) return 'Contact number can only contain numbers and allowed separators.';
-  const normalized = sanitized.replace(/\D/g, '');
-  if (normalized.length < 10 || normalized.length > 13) return 'Please enter a valid phone number.';
+  if (!/^\d+$/.test(sanitized)) return 'Contact number must only contain numeric digits.';
+  if (sanitized.length !== 11) return 'Contact number must be exactly 11 digits.';
   return '';
+}
+
+export function sanitizeNameInput(value) {
+  return String(value || '').replace(/[^a-zA-Z\s]/g, '');
+}
+
+export function sanitizePhoneInput(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 11);
 }
 
 export function validateRequired(value, fieldName) {

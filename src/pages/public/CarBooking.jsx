@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { serviceService } from '../services/serviceService';
 import { bookingService } from '../services/bookingService';
-import { Loader, ArrowLeft, Calendar, ShieldCheck } from 'lucide-react';
+import { Loader, ArrowLeft, Calendar, ShieldCheck, Star } from 'lucide-react';
+import { api } from '../../services/api';
+import { weatherService } from '../../services/weatherService';
 
 // Shared style constants
 const colors = {
@@ -58,10 +61,13 @@ const CarBooking = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const { user } = useAuth();
+  const { confirm } = useConfirmation();
 
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -72,10 +78,20 @@ const CarBooking = () => {
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
 
+  // Calendar state
+  const [showPickupCal, setShowPickupCal] = useState(false);
+  const [showReturnCal, setShowReturnCal] = useState(false);
+  const [pickupCalDate, setPickupCalDate] = useState(new Date());
+  const [returnCalDate, setReturnCalDate] = useState(new Date());
+
+  // Calendar weather forecast data { 'YYYY-MM-DD': { description, icon } }
+  const [pickupCalWeather, setPickupCalWeather] = useState({});
+  const [returnCalWeather, setReturnCalWeather] = useState({});
+
   useEffect(() => {
     if (!user) {
       showNotification('Please log in to book a car', 'error');
-      navigate('/login');
+      navigate('/login', { state: { from: { pathname: `/car-rentals/${id}` } } });
       return;
     }
 
@@ -91,11 +107,26 @@ const CarBooking = () => {
         setLoading(false);
       }
     };
+
+    const loadReviews = async () => {
+      setLoadingReviews(true);
+      try {
+        const data = await api(`/reviews?vehicle_id=${id}`).catch(() => []);
+        setReviews(Array.isArray(data) ? data.filter(r => String(r.vehicle_id) === String(id)) : []);
+      } catch (err) {
+        console.error('Failed to load reviews for vehicle:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
     fetchCar();
+    loadReviews();
   }, [id, user, navigate, showNotification]);
 
   const handleBookCar = async (e) => {
     e.preventDefault();
+    if (!(await confirm('Are you sure you want to submit this car rental booking?'))) return;
     if (!pickupDate || !returnDate || !pickupLocation) {
       showNotification('Please fill in all booking details', 'error');
       return;
@@ -133,9 +164,9 @@ const CarBooking = () => {
         paymentRef: referenceNumber,
       });
       showNotification('Car booking submitted successfully and is pending admin approval.', 'success');
-      navigate('/history');
+      navigate('/profile');
     } catch (error) {
-      showNotification(error.response?.data?.message || 'Failed to book car', 'error');
+      showNotification(error?.message || error.response?.data?.message || 'Failed to book car', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -152,6 +183,267 @@ const CarBooking = () => {
   };
 
   const { days, total } = calculateDaysAndPrice();
+
+  // Fetch weather for pickup calendar month
+  useEffect(() => {
+    const year = pickupCalDate.getFullYear();
+    const month = pickupCalDate.getMonth();
+    weatherService.getMonthForecast('Legazpi', year, month)
+      .then(data => setPickupCalWeather(data))
+      .catch(() => setPickupCalWeather({}));
+  }, [pickupCalDate.getFullYear(), pickupCalDate.getMonth()]);
+
+  // Fetch weather for return calendar month
+  useEffect(() => {
+    const year = returnCalDate.getFullYear();
+    const month = returnCalDate.getMonth();
+    weatherService.getMonthForecast('Legazpi', year, month)
+      .then(data => setReturnCalWeather(data))
+      .catch(() => setReturnCalWeather({}));
+  }, [returnCalDate.getFullYear(), returnCalDate.getMonth()]);
+
+  // Weather emoji helper
+  const getWeatherEmoji = (description = '') => {
+    const d = description.toLowerCase();
+    if (d.includes('thunder') || d.includes('storm')) return '⛈️';
+    if (d.includes('rain') || d.includes('shower') || d.includes('drizzle')) return '🌧️';
+    if (d.includes('fog')) return '🌫️';
+    if (d.includes('overcast')) return '☁️';
+    if (d.includes('cloud') || d.includes('partly')) return '⛅';
+    if (d.includes('clear') || d.includes('sunny') || d.includes('sun')) return '🌞';
+    return '☁️';
+  };
+
+  // Render calendar days for a given calendar date, selected value, and minimum date
+  const renderCalendarDays = (calDate, selectedValue, minDate, onSelect, weatherData) => {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const minD = minDate ? new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()) : today;
+
+    const daysArr = [];
+    for (let i = 0; i < firstDay; i++) {
+      daysArr.push({ empty: true });
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      daysArr.push({ num: i, date: new Date(year, month, i) });
+    }
+
+    const selectedDate = selectedValue ? new Date(`${selectedValue}T00:00:00`) : null;
+
+    // Helper to build date key for weather lookup
+    const fmtKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    return daysArr.map((day, i) => {
+      if (day.empty) return <div key={`empty-${i}`}></div>;
+
+      const currentDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+      const isPast = currentDate < minD;
+      const isSelected = selectedDate && currentDate.getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+
+      // Weather for this date
+      const dateKey = fmtKey(currentDate);
+      const weather = weatherData ? weatherData[dateKey] : null;
+
+      let dayStyle = {
+        background: 'transparent',
+        color: colors.textPrimary,
+        borderRadius: '4px',
+        cursor: 'pointer',
+        position: 'relative',
+      };
+
+      if (isPast) {
+        dayStyle = {
+          ...dayStyle,
+          color: '#c8c3b8',
+          cursor: 'not-allowed',
+          opacity: 0.5,
+        };
+      } else if (isSelected) {
+        dayStyle = {
+          ...dayStyle,
+          background: '#e8dfce',
+          color: colors.textPrimary,
+          border: '1px solid #b0a68e',
+        };
+      }
+
+      return (
+        <div
+          key={i}
+          onClick={() => !isPast && onSelect(day.date)}
+          className="flex items-center justify-center text-xs font-semibold transition-all"
+          style={{ ...dayStyle, width: '36px', height: '36px' }}
+          title={weather ? `${weather.description} · ${weather.tempMax}°C` : ''}
+          onMouseEnter={(e) => {
+            if (isPast) return;
+            if (!isSelected) {
+              e.currentTarget.style.background = 'rgba(176,166,142,0.12)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isPast) return;
+            if (!isSelected) {
+              e.currentTarget.style.background = 'transparent';
+            }
+          }}
+        >
+          {weather && !isPast && (
+            <span style={{
+              position: 'absolute',
+              top: '1px',
+              right: '1px',
+              fontSize: '11px',
+              lineHeight: 1,
+              filter: 'saturate(0.85)',
+              pointerEvents: 'none',
+            }}>
+              {getWeatherEmoji(weather.description)}
+            </span>
+          )}
+          {day.num}
+        </div>
+      );
+    });
+  };
+
+  // Reusable calendar popover component
+  const CalendarPopover = ({ calDate, setCalDate, selectedValue, minDate, onSelect, onClose, weatherData }) => {
+    const now = new Date();
+    const minMonth = minDate || new Date(now.getFullYear(), now.getMonth(), 1);
+    const isPastMonth = calDate.getFullYear() < minMonth.getFullYear() || (calDate.getFullYear() === minMonth.getFullYear() && calDate.getMonth() <= minMonth.getMonth());
+
+    return (
+      <div
+        className="absolute top-full left-0 mt-3 p-5 w-[320px] z-50"
+        style={{
+          background: '#ffffff',
+          borderRadius: '6px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+          border: `1px solid ${colors.border}`,
+        }}
+      >
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          <button
+            type="button"
+            disabled={isPastMonth}
+            onClick={() => {
+              if (isPastMonth) return;
+              const prevMonth = new Date(calDate);
+              prevMonth.setMonth(prevMonth.getMonth() - 1);
+              setCalDate(prevMonth);
+            }}
+            className="font-semibold px-2 py-1 transition-colors"
+            style={{
+              color: isPastMonth ? '#c8c3b8' : colors.textPrimary,
+              cursor: isPastMonth ? 'not-allowed' : 'pointer',
+              opacity: isPastMonth ? 0.5 : 1,
+            }}
+            onMouseEnter={(e) => { if (!isPastMonth) e.target.style.color = colors.accent; }}
+            onMouseLeave={(e) => { if (!isPastMonth) e.target.style.color = colors.textPrimary; }}
+          >
+            &lt;
+          </button>
+          <span
+            className="text-[12px] font-semibold"
+            style={{
+              color: colors.textPrimary,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {calDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const nextMonth = new Date(calDate);
+              nextMonth.setMonth(nextMonth.getMonth() + 1);
+              setCalDate(nextMonth);
+            }}
+            className="font-semibold px-2 py-1 transition-colors"
+            style={{ color: colors.textPrimary }}
+            onMouseEnter={(e) => (e.target.style.color = colors.accent)}
+            onMouseLeave={(e) => (e.target.style.color = colors.textPrimary)}
+          >
+            &gt;
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-y-3 mb-6 justify-items-center">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div
+              key={day}
+              className="text-[9px] font-semibold"
+              style={{
+                color: colors.textMuted,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {day}
+            </div>
+          ))}
+          {renderCalendarDays(calDate, selectedValue, minDate, onSelect, weatherData)}
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="flex justify-between items-center px-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-1.5 text-[10px] font-semibold transition-all duration-300"
+            style={{
+              border: `1px solid ${colors.border}`,
+              borderRadius: '2px',
+              color: colors.textSecondary,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              background: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = colors.accentDark;
+              e.target.style.color = colors.textPrimary;
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = colors.border;
+              e.target.style.color = colors.textSecondary;
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-1.5 text-[10px] font-semibold transition-all duration-300 cursor-pointer"
+            style={{
+              background: colors.accentDark,
+              borderRadius: '2px',
+              color: '#f7f4ef',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              border: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#1a1715';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = colors.accentDark;
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -171,6 +463,9 @@ const CarBooking = () => {
   }
 
   if (!car) return null;
+
+  // Min date for return calendar is 1 day after pickup
+  const returnMinDate = pickupDate ? (() => { const d = new Date(`${pickupDate}T00:00:00`); d.setDate(d.getDate() + 1); return d; })() : null;
 
   return (
     <div className="min-h-screen pt-12 pb-24" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
@@ -234,7 +529,22 @@ const CarBooking = () => {
                   { label: 'Vehicle Type:', value: car.vehicleType },
                   { label: 'Plate Number:', value: car.plateNumber },
                   { label: 'Seating Capacity:', value: car.capacity },
-                  { label: 'Daily Rate:', value: `₱${Number(car.price).toLocaleString()}` }
+                  { label: 'Daily Rate:', value: `₱${Number(car.price).toLocaleString()}` },
+                  { 
+                    label: 'Rating:', 
+                    value: (
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <Star className="w-3.5 h-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                        <span>
+                          {car.rating > 0 
+                            ? `${Number(car.rating).toFixed(1)} (${car.reviewsCount || reviews.length} ${car.reviewsCount === 1 ? 'review' : 'reviews'})`
+                            : reviews.length > 0
+                              ? `${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)} (${reviews.length} reviews)`
+                              : 'No reviews yet'}
+                        </span>
+                      </span>
+                    )
+                  }
                 ].map(item => (
                   <div className="grid grid-cols-2" key={item.label}>
                     <span
@@ -273,6 +583,7 @@ const CarBooking = () => {
 
               <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                  {/* Pickup Date - Custom Calendar */}
                   <div>
                     <label
                       className="block text-[11px] font-medium mb-2"
@@ -280,17 +591,47 @@ const CarBooking = () => {
                     >
                       Pickup Date <span style={{ color: '#b83b3b' }}>*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={pickupDate}
-                      onChange={(e) => setPickupDate(e.target.value)}
-                      required
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                      style={inputStyle}
-                      {...inputFocusHandlers}
-                    />
+                    <div className="relative max-w-[320px]">
+                      <button
+                        type="button"
+                        onClick={() => { setShowPickupCal(!showPickupCal); setShowReturnCal(false); }}
+                        className="w-full py-3 px-4 flex items-center justify-between text-[14px] transition-all focus:outline-none"
+                        style={{
+                          ...inputStyle,
+                          boxShadow: showPickupCal ? '0 0 0 3px rgba(176,166,142,0.1)' : 'none',
+                        }}
+                      >
+                        <span className="flex items-center" style={{ color: pickupDate ? colors.textPrimary : colors.textMuted }}>
+                          {pickupDate && !showPickupCal ? new Date(`${pickupDate}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select Pickup Date'}
+                        </span>
+                        <Calendar className="h-4 w-4" style={{ color: colors.accent }} />
+                      </button>
+
+                      {showPickupCal && (
+                        <CalendarPopover
+                          calDate={pickupCalDate}
+                          setCalDate={setPickupCalDate}
+                          selectedValue={pickupDate}
+                          minDate={null}
+                          onSelect={(date) => {
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            const val = `${yyyy}-${mm}-${dd}`;
+                            setPickupDate(val);
+                            // Reset return date if it's before the new pickup date
+                            if (returnDate && returnDate <= val) {
+                              setReturnDate('');
+                            }
+                          }}
+                          onClose={() => setShowPickupCal(false)}
+                          weatherData={pickupCalWeather}
+                        />
+                      )}
+                    </div>
                   </div>
+
+                  {/* Return Date - Custom Calendar */}
                   <div>
                     <label
                       className="block text-[11px] font-medium mb-2"
@@ -298,16 +639,39 @@ const CarBooking = () => {
                     >
                       Return Date <span style={{ color: '#b83b3b' }}>*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={returnDate}
-                      onChange={(e) => setReturnDate(e.target.value)}
-                      required
-                      min={pickupDate || new Date().toISOString().split('T')[0]}
-                      className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                      style={inputStyle}
-                      {...inputFocusHandlers}
-                    />
+                    <div className="relative max-w-[320px]">
+                      <button
+                        type="button"
+                        onClick={() => { setShowReturnCal(!showReturnCal); setShowPickupCal(false); }}
+                        className="w-full py-3 px-4 flex items-center justify-between text-[14px] transition-all focus:outline-none"
+                        style={{
+                          ...inputStyle,
+                          boxShadow: showReturnCal ? '0 0 0 3px rgba(176,166,142,0.1)' : 'none',
+                        }}
+                      >
+                        <span className="flex items-center" style={{ color: returnDate ? colors.textPrimary : colors.textMuted }}>
+                          {returnDate && !showReturnCal ? new Date(`${returnDate}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select Return Date'}
+                        </span>
+                        <Calendar className="h-4 w-4" style={{ color: colors.accent }} />
+                      </button>
+
+                      {showReturnCal && (
+                        <CalendarPopover
+                          calDate={returnCalDate}
+                          setCalDate={setReturnCalDate}
+                          selectedValue={returnDate}
+                          minDate={returnMinDate}
+                          onSelect={(date) => {
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            setReturnDate(`${yyyy}-${mm}-${dd}`);
+                          }}
+                          onClose={() => setShowReturnCal(false)}
+                          weatherData={returnCalWeather}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -343,8 +707,8 @@ const CarBooking = () => {
                 >
                   <SectionLabel>Summary</SectionLabel>
                   <div className="flex justify-between font-medium mb-2" style={{ color: colors.textSecondary, fontSize: '13px' }}>
-                    <span>₱{Number(car.price).toLocaleString()} × {days} day{days !== 1 && 's'}</span>
-                    <span>₱{total.toLocaleString()}</span>
+                    <span>â‚±{Number(car.price).toLocaleString()} Ã— {days} day{days !== 1 && 's'}</span>
+                    <span>â‚±{total.toLocaleString()}</span>
                   </div>
                   <div
                     className="mt-4 pt-4 flex justify-between items-center"
@@ -358,7 +722,7 @@ const CarBooking = () => {
                         fontFamily: "'Outfit', sans-serif",
                       }}
                     >
-                      ₱{total.toLocaleString()}
+                      â‚±{total.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -513,9 +877,101 @@ const CarBooking = () => {
           </div>
 
         </div>
+
+        {/* Customer Reviews Section */}
+        <div className="mt-16 pt-12 border-t border-[#eae5db]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2
+                className="text-[13px] font-semibold"
+                style={{
+                  color: colors.textPrimary,
+                  fontFamily: "'Outfit', Georgia, serif",
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Customer Reviews & Ratings
+              </h2>
+              <p className="text-xs text-[#8f8576] mt-1">Verified feedback from customers who rented this vehicle</p>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 bg-[#faf9f6] px-4 py-2 rounded-full border border-[#eae5db] self-start sm:self-auto">
+                <Star className="w-4 h-4 fill-[#c4b99a] text-[#c4b99a]" />
+                <span className="text-sm font-bold text-[#1a1a1a]">
+                  {(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)}
+                </span>
+                <span className="text-xs text-[#6b6255]">
+                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {loadingReviews ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#eae5db] border-t-[#2d2a24]" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <div
+              className="text-center py-14"
+              style={{
+                background: colors.subtleBg,
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: '4px',
+              }}
+            >
+              <Star className="w-7 h-7 mx-auto mb-3 text-[#d6cfc2]" />
+              <p className="text-[13px] font-medium text-[#4a453b]">
+                No reviews yet for this vehicle.
+              </p>
+              <p className="text-[11px] text-[#8f8576] mt-1">
+                Be the first to rent and share your rental experience!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reviews.map((rev) => (
+                <div
+                  key={rev.review_id}
+                  className="p-5 border border-[#eae5db] bg-white rounded-md hover:border-[#d6cfc2] hover:shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-[13px] font-semibold text-[#1a1a1a]">
+                        {rev.customer_name || `${rev.first_name || ''} ${rev.last_name || ''}`.trim() || 'Verified Renter'}
+                      </p>
+                      <p className="text-[11px] text-[#8f8576] mt-0.5">
+                        {rev.created_at && new Date(rev.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= (rev.rating || 0) ? 'fill-[#c4b99a] text-[#c4b99a]' : 'fill-[#f5f2ee] text-[#d6cfc2]'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {rev.comment && (
+                    <p className="text-[13px] text-[#4a453b] leading-relaxed italic">
+                      "{rev.comment}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default CarBooking;
+

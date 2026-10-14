@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { validateNumber, validatePlateNumber, validateRequired } from '../../utils/validation';
 import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const AddCarRentalPage = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [formData, setFormData] = useState({
     vehicle_name: '',
     vehicle_type: '',
@@ -48,6 +50,7 @@ const AddCarRentalPage = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm('Are you sure you want to create this car rental?'))) return;
     const nextErrors = {
       vehicle_name: validateRequired(formData.vehicle_name, 'Vehicle name'),
       vehicle_type: validateRequired(formData.vehicle_type, 'Vehicle type'),

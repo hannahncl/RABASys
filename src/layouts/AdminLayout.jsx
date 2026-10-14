@@ -1,13 +1,15 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useConfirmation } from '../contexts/ConfirmationContext';
 import { notificationService } from '../services/api';
 import { 
-  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check
+  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check, MessageSquare
 } from 'lucide-react';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -71,7 +73,8 @@ const AdminLayout = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     navigate('/');
   };
@@ -80,6 +83,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
+    { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
     { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
     { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
     { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
@@ -94,9 +98,9 @@ const AdminLayout = () => {
     <div className="h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-900 bg-slate-900/50 shrink-0">
-        <div className="h-20 flex items-center px-6 border-b border-slate-900">
-          <Link to="/">
-            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
+        <div className="h-20 flex items-center justify-center px-6 border-b border-slate-900">
+          <Link to="/" className="flex items-center justify-center">
+            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain mx-auto" />
           </Link>
         </div>
 
@@ -142,8 +146,8 @@ const AdminLayout = () => {
               <X className="h-6 w-6" />
             </button>
 
-            <Link to="/" className="mb-8">
-              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
+            <Link to="/" className="mb-8 flex justify-center">
+              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain mx-auto" />
             </Link>
 
             <nav className="flex-grow space-y-1">

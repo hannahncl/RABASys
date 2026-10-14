@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService';
-import { ArrowUpRight, TrendingUp, DollarSign, Loader, ReceiptText, Clock3, CheckCircle2, XCircle } from 'lucide-react';
+import { api } from '../../services/api';
+import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { 
+  ArrowUpRight, TrendingUp, DollarSign, Loader, ReceiptText, Clock3, 
+  CheckCircle2, Star, MessageSquare, Trash2, Car, Compass 
+} from 'lucide-react';
 import {
-  AreaChart, Area, PieChart, Pie, Tooltip, ResponsiveContainer, Cell, CartesianGrid, XAxis, YAxis
+  AreaChart, Area, Tooltip, ResponsiveContainer, CartesianGrid, XAxis, YAxis
 } from 'recharts';
-
-// Refined monochromatic yellow / amber palette
-const YELLOW_CHART_COLORS = [
-  '#ca8a04', // Deep warm gold
-  '#eab308', // Rich golden yellow
-  '#facc15', // Vibrant sunflower yellow
-  '#a16207', // Amber bronze
-  '#fde047', // Soft butter yellow
-  '#854d0e', // Deep ochre
-];
 
 const statusPillClass = (status) => {
   const s = String(status || '').toLowerCase();
-  if (s === 'confirmed') {
+  if (s === 'confirmed' || s === 'completed') {
     return 'bg-yellow-400/20 text-yellow-800 border-yellow-400/40 font-bold';
   }
   if (s === 'cancelled') {
@@ -29,11 +25,13 @@ const statusPillClass = (status) => {
 
 const statusLabel = (status) => {
   if (status === 'Confirmed') return 'Booked';
-  if (status === 'Pending Verification') return 'Pending';
+  if (status === 'Pending Verification' || status === 'Pending') return 'Pending';
   return status;
 };
 
 const Dashboard = () => {
+  const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({
     totalBookings: 0,
@@ -43,80 +41,132 @@ const Dashboard = () => {
     totalRevenue: 0,
   });
   const [salesTrend, setSalesTrend] = useState([]);
-  const [packageBreakdown, setPackageBreakdown] = useState([]);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewFilter, setReviewFilter] = useState('All');
+  const [reviewStats, setReviewStats] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    tourReviewsCount: 0,
+    carReviewsCount: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  });
+  const [deletingReviewId, setDeletingReviewId] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [allBookings, allReviews] = await Promise.all([
+        bookingService.getAll(),
+        api('/reviews').catch(() => [])
+      ]);
+
+      setBookings(allBookings.slice(0, 5));
+
+      const totalBookings = allBookings.length;
+      const confirmedBookings = allBookings.filter((b) => ['confirmed', 'completed'].includes(String(b.status || '').toLowerCase())).length;
+      const pendingBookings = allBookings.filter((b) => String(b.status || '').toLowerCase().includes('pending')).length;
+      const cancelledBookings = allBookings.filter((b) => String(b.status || '').toLowerCase() === 'cancelled').length;
+
+      // Calculate total gross revenue from all bookings in the system
+      const totalRevenue = allBookings.reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
+
+      setStats({
+        totalBookings,
+        confirmedBookings,
+        pendingBookings,
+        cancelledBookings,
+        totalRevenue,
+      });
+
+      // 1. Monthly Sales Trend dynamically from system bookings
+      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlyMap = {};
+
+      allBookings.forEach((b) => {
+        const dateVal = b.createdAt || b.tourDate;
+        if (!dateVal) return;
+        const d = new Date(dateVal);
+        if (isNaN(d.getTime())) return;
+        const monthName = d.toLocaleString('en-US', { month: 'short' });
+        if (!monthlyMap[monthName]) {
+          monthlyMap[monthName] = { month: monthName, sales: 0, bookings: 0 };
+        }
+        monthlyMap[monthName].sales += Number(b.totalPrice) || 0;
+        monthlyMap[monthName].bookings += 1;
+      });
+
+      const sortedMonthly = Object.values(monthlyMap).sort(
+        (a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
+      );
+      setSalesTrend(sortedMonthly.length > 0 ? sortedMonthly : [{ month: 'Current', sales: totalRevenue, bookings: totalBookings }]);
+
+      // Customer Reviews Stats
+      processReviews(allReviews);
+
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processReviews = (revList) => {
+    const validReviews = Array.isArray(revList) ? revList : [];
+    setReviews(validReviews);
+
+    const totalReviews = validReviews.length;
+    const avg = totalReviews > 0
+      ? validReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / totalReviews
+      : 0;
+
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let tourCount = 0;
+    let carCount = 0;
+
+    validReviews.forEach((r) => {
+      const rate = Math.min(Math.max(Math.round(r.rating || 5), 1), 5);
+      distribution[rate] = (distribution[rate] || 0) + 1;
+      if (r.service_type === 'Car Rental') carCount++;
+      else tourCount++;
+    });
+
+    setReviewStats({
+      totalReviews,
+      averageRating: Number(avg.toFixed(1)),
+      tourReviewsCount: tourCount,
+      carReviewsCount: carCount,
+      ratingDistribution: distribution,
+    });
+  };
+
   useEffect(() => {
-    const loadDashboard = async () => {
-      setLoading(true);
-      try {
-        const allBookings = await bookingService.getAll();
-        setBookings(allBookings.slice(0, 5));
-
-        const totalBookings = allBookings.length;
-        const confirmedBookings = allBookings.filter((b) => String(b.status || '').toLowerCase() === 'confirmed').length;
-        const pendingBookings = allBookings.filter((b) => String(b.status || '').toLowerCase().includes('pending')).length;
-        const cancelledBookings = allBookings.filter((b) => String(b.status || '').toLowerCase() === 'cancelled').length;
-
-        // Calculate total gross revenue from all bookings in the system
-        const totalRevenue = allBookings.reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
-
-        setStats({
-          totalBookings,
-          confirmedBookings,
-          pendingBookings,
-          cancelledBookings,
-          totalRevenue,
-        });
-
-        // 1. Monthly Sales Trend dynamically from system bookings
-        const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyMap = {};
-
-        allBookings.forEach((b) => {
-          const dateVal = b.createdAt || b.tourDate;
-          if (!dateVal) return;
-          const d = new Date(dateVal);
-          if (isNaN(d.getTime())) return;
-          const monthName = d.toLocaleString('en-US', { month: 'short' });
-          if (!monthlyMap[monthName]) {
-            monthlyMap[monthName] = { month: monthName, sales: 0, bookings: 0 };
-          }
-          monthlyMap[monthName].sales += Number(b.totalPrice) || 0;
-          monthlyMap[monthName].bookings += 1;
-        });
-
-        const sortedMonthly = Object.values(monthlyMap).sort(
-          (a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
-        );
-        setSalesTrend(sortedMonthly.length > 0 ? sortedMonthly : [{ month: 'Current', sales: totalRevenue, bookings: totalBookings }]);
-
-        // 2. Top Booked Packages dynamically from system bookings
-        const pkgMap = {};
-        allBookings.forEach((b) => {
-          const name = b.packageName || 'Unspecified Service';
-          if (!pkgMap[name]) {
-            pkgMap[name] = { name, bookings: 0, revenue: 0 };
-          }
-          pkgMap[name].bookings += 1;
-          pkgMap[name].revenue += Number(b.totalPrice) || 0;
-        });
-
-        const sortedPackages = Object.values(pkgMap)
-          .sort((a, b) => b.bookings - a.bookings)
-          .slice(0, 5);
-
-        setPackageBreakdown(sortedPackages);
-
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboard();
+    loadDashboardData();
   }, []);
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!(await confirm('Are you sure you want to delete this review?'))) return;
+    setDeletingReviewId(reviewId);
+    try {
+      await api(`/reviews/${reviewId}`, { method: 'DELETE' });
+      showNotification('Review deleted successfully', 'success');
+      const updated = reviews.filter((r) => r.review_id !== reviewId);
+      processReviews(updated);
+    } catch (err) {
+      showNotification(err.message || 'Failed to delete review', 'error');
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
+
+  const filteredReviews = reviews.filter((r) => {
+    if (reviewFilter === 'Tour Package') return r.service_type !== 'Car Rental';
+    if (reviewFilter === 'Car Rental') return r.service_type === 'Car Rental';
+    return true;
+  });
 
   if (loading) {
     return (
@@ -129,7 +179,8 @@ const Dashboard = () => {
   return (
     <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       {/* Minimal KPIs Grid with Warm Yellow Accents */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Sales */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Sales</span>
@@ -145,6 +196,7 @@ const Dashboard = () => {
           </span>
         </div>
 
+        {/* Total Bookings */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Bookings</span>
@@ -156,6 +208,7 @@ const Dashboard = () => {
           <span className="text-[10px] text-slate-400 mt-1 block">All recorded entries</span>
         </div>
 
+        {/* Confirmed Bookings */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Confirmed</span>
@@ -167,9 +220,10 @@ const Dashboard = () => {
           <span className="text-[10px] text-slate-400 mt-1 block">Verified & completed</span>
         </div>
 
+        {/* Pending Verification */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending Review</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending</span>
             <div className="p-1.5 rounded-md bg-yellow-50 border border-yellow-200">
               <Clock3 className="h-3.5 w-3.5 text-yellow-700" />
             </div>
@@ -178,16 +232,26 @@ const Dashboard = () => {
           <span className="text-[10px] text-slate-400 mt-1 block">Awaiting confirmation</span>
         </div>
 
+        {false && (
+        <div>
+        {/* Customer Reviews KPI */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cancelled</span>
-            <div className="p-1.5 rounded-md bg-yellow-50 border border-yellow-200">
-              <XCircle className="h-3.5 w-3.5 text-yellow-700" />
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Customer Rating</span>
+            <div className="p-1.5 rounded-md bg-amber-50 border border-amber-200">
+              <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
             </div>
           </div>
-          <p className="text-2xl font-bold font-display text-[#1a1a1a] mt-2">{stats.cancelledBookings}</p>
-          <span className="text-[10px] text-slate-400 mt-1 block">Inactive bookings</span>
+          <p className="text-2xl font-bold font-display text-[#1a1a1a] mt-2 flex items-baseline gap-1">
+            {reviewStats.totalReviews > 0 ? reviewStats.averageRating.toFixed(1) : '—'}
+            <span className="text-xs font-normal text-slate-400">/ 5.0</span>
+          </p>
+          <span className="text-[10px] text-amber-700 font-semibold block mt-1">
+            {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'Review' : 'Reviews'} recorded
+          </span>
         </div>
+        </div>
+        )}
       </div>
 
       {/* Analytics Charts Grid */}
@@ -256,84 +320,235 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Top Booked Services Donut Chart */}
+        {/* Customer Reviews Summary */}
         <div className="bg-white border border-[#e0dbd0] p-6 rounded-md space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-[#1a1a1a] text-base">Top Booked Services</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Most booked packages & rentals</p>
+              <h3 className="font-semibold text-[#1a1a1a] text-base">Customer Reviews</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Summary of customer feedback</p>
             </div>
-            <Link to="/admin/tour-packages" className="text-xs font-semibold text-yellow-700 hover:text-yellow-800 flex items-center gap-1 transition-colors">
-              Packages <ArrowUpRight className="h-3 w-3" />
+            <Link to="/admin/reviews" className="text-xs font-semibold text-yellow-700 hover:text-yellow-800 flex items-center gap-1 transition-colors">
+              View all <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
 
-          <div className="flex-1 flex flex-col justify-between pt-2">
-            {packageBreakdown.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-slate-400 text-xs italic">
-                No booking records found.
-              </div>
-            ) : (
-              <>
-                <div className="h-44 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#ffffff',
-                          borderColor: '#e0dbd0',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-                          fontSize: '11px',
-                          padding: '6px 10px',
-                          color: '#1a1a1a',
-                        }}
-                        itemStyle={{ color: '#ca8a04', fontWeight: 'bold' }}
-                        formatter={(value) => [`${value} bookings`, 'Bookings']}
-                      />
-                      <Pie 
-                        data={packageBreakdown} 
-                        dataKey="bookings" 
-                        nameKey="name" 
-                        cx="50%" 
-                        cy="50%" 
-                        innerRadius={46} 
-                        outerRadius={70}
-                        paddingAngle={3}
-                      >
-                        {packageBreakdown.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={YELLOW_CHART_COLORS[index % YELLOW_CHART_COLORS.length]} 
-                            stroke="#ffffff"
-                            strokeWidth={2}
-                          />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Minimalist Yellow Breakdown List */}
-                <div className="space-y-1.5 pt-3 border-t border-[#eae5db]">
-                  {packageBreakdown.slice(0, 4).map((item, idx) => (
-                    <div key={item.name} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: YELLOW_CHART_COLORS[idx % YELLOW_CHART_COLORS.length] }}
-                        />
-                        <span className="truncate text-[#4a453b] font-medium text-[11px]">{item.name}</span>
-                      </div>
-                      <span className="font-bold text-[#1a1a1a] text-[11px] shrink-0">{item.bookings}</span>
-                    </div>
+          <div className="flex-1 flex flex-col justify-center gap-5 pt-2">
+            <div className="flex items-center gap-4">
+              <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full border-4 border-amber-100 bg-amber-50">
+                <span className="text-2xl font-extrabold text-[#1a1a1a]">
+                  {reviewStats.totalReviews > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
+                </span>
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-2.5 w-2.5 ${star <= Math.round(reviewStats.averageRating) ? 'fill-amber-400 text-amber-400' : 'fill-[#e0dbd0] text-[#d6cfc2]'}`}
+                    />
                   ))}
                 </div>
-              </>
-            )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#1a1a1a]">
+                  {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Average customer rating</p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              {[5, 4, 3, 2, 1].map((stars) => {
+                const count = reviewStats.ratingDistribution[stars] || 0;
+                const percent = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0;
+                return (
+                  <div key={stars} className="flex items-center gap-2 text-[10px]">
+                    <span className="flex w-8 items-center gap-0.5 text-[#6b6255]">{stars}<Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /></span>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#eae5db]">
+                      <div className="h-full rounded-full bg-amber-400" style={{ width: `${percent}%` }} />
+                    </div>
+                    <span className="w-4 text-right text-slate-400">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
+      </div>
+
+      {/* Customer Reviews & Feedback Section */}
+      <div id="customer-reviews" className="bg-white border border-[#e0dbd0] p-6 rounded-md space-y-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#eae5db]">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-md bg-amber-50 border border-amber-200">
+                <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+              </div>
+              <h3 className="font-semibold text-[#1a1a1a] text-base">Customer Reviews & Ratings</h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Live customer feedback from tour package trips and car rentals</p>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 bg-[#faf9f6] p-1 rounded-lg border border-[#eae5db] self-start sm:self-auto">
+            {['All', 'Tour Package', 'Car Rental'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setReviewFilter(f)}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${
+                  reviewFilter === f
+                    ? 'bg-yellow-400 text-slate-900 shadow-sm font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+                }`}
+              >
+                {f === 'All' ? `All (${reviewStats.totalReviews})` : f === 'Tour Package' ? `Tours (${reviewStats.tourReviewsCount})` : `Car Rentals (${reviewStats.carReviewsCount})`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Rating Overview Summary Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-[#faf9f6] p-5 rounded-lg border border-[#eae5db]">
+          {/* Average Score */}
+          <div className="md:col-span-4 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#eae5db] pb-4 md:pb-0 pr-0 md:pr-6">
+            <span className="text-4xl font-extrabold text-[#1a1a1a]">
+              {reviewStats.totalReviews > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
+            </span>
+            <div className="flex gap-1 my-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-4 w-4 ${
+                    star <= Math.round(reviewStats.averageRating)
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'fill-[#e0dbd0] text-[#d6cfc2]'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-slate-500 font-medium">
+              Based on {reviewStats.totalReviews} total customer reviews
+            </span>
+          </div>
+
+          {/* Star Distribution Bars */}
+          <div className="md:col-span-8 space-y-1.5 flex flex-col justify-center">
+            {[5, 4, 3, 2, 1].map((stars) => {
+              const count = reviewStats.ratingDistribution[stars] || 0;
+              const percent = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0;
+              return (
+                <div key={stars} className="flex items-center gap-3 text-xs">
+                  <span className="w-12 text-[#6b6255] font-semibold flex items-center gap-1">
+                    {stars} <Star className="h-3 w-3 fill-amber-400 text-amber-400 inline" />
+                  </span>
+                  <div className="flex-1 h-2 bg-[#eae5db] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                  <span className="w-8 text-right font-medium text-slate-500">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Reviews Cards List */}
+        <div className="space-y-3">
+          {filteredReviews.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#e0dbd0] rounded-lg bg-white">
+              <MessageSquare className="h-8 w-8 mx-auto text-[#c4b99a] mb-2 opacity-60" />
+              <p className="text-xs font-semibold text-[#1a1a1a]">No reviews found in this category.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Reviews submitted by customers will reflect here automatically.</p>
+            </div>
+          ) : (
+            filteredReviews.map((r) => {
+              const isRental = r.service_type === 'Car Rental';
+              return (
+                <div
+                  key={r.review_id}
+                  className="p-4 rounded-lg border border-[#eae5db] bg-white hover:border-yellow-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Service Category Badge */}
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        isRental
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300/60'
+                          : 'bg-yellow-100 text-yellow-900 border border-yellow-300/60'
+                      }`}>
+                        {isRental ? <Car className="h-3 w-3" /> : <Compass className="h-3 w-3" />}
+                        {r.service_type}
+                      </span>
+
+                      {/* Service Name */}
+                      <span className="text-xs font-semibold text-[#1a1a1a] truncate max-w-[280px]">
+                        {r.service_name || (isRental ? r.vehicle_name : r.package_name) || 'Service'}
+                      </span>
+
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        #{isRental ? `CR-${r.rental_booking_id || r.review_id}` : `BK-${r.booking_id || r.review_id}`}
+                      </span>
+                    </div>
+
+                    {/* Customer Comment */}
+                    {r.comment ? (
+                      <p className="text-xs text-[#4a453b] italic leading-relaxed pt-1">
+                        "{r.comment}"
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic pt-1">No written comment provided.</p>
+                    )}
+
+                    {/* Customer Meta */}
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                      <span className="font-semibold text-slate-700">
+                        {r.customer_name || 'Anonymous Customer'}
+                      </span>
+                      {r.customer_email && (
+                        <span className="text-slate-400">({r.customer_email})</span>
+                      )}
+                      <span>•</span>
+                      <span>
+                        {r.created_at && new Date(r.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rating Stars & Action */}
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0">
+                    <div className="flex items-center gap-1 bg-[#faf9f6] px-2.5 py-1 rounded-md border border-[#eae5db]">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-3 w-3 ${
+                              star <= (r.rating || 0)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'fill-[#e0dbd0] text-[#d6cfc2]'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-[#1a1a1a] ml-1">{r.rating}/5</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteReview(r.review_id)}
+                      disabled={deletingReviewId === r.review_id}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                      title="Delete review"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Recent Bookings Table */}

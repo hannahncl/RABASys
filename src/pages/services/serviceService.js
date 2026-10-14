@@ -7,13 +7,15 @@ const parseJson = (value, fallback) => {
 
 const normalizePackageType = (item = {}) => {
   const rawType = item.package_type || item.packageType || item.category || item.type || 'tour';
-  return rawType === 'tuktrip' ? 'tuktrip' : 'tour';
+  const normalized = String(rawType).toLowerCase().replace(/\s+/g, '_');
+  return ['exclusive', 'joiner', 'tuktrip'].includes(normalized) ? normalized : 'exclusive';
 };
 
 const packageFromApi = (item) => ({
   ...item,
   id: String(item.package_id),
   category: normalizePackageType(item),
+  packageType: normalizePackageType(item),
   title: item.package_name,
   packageName: item.package_name,
   price: Number(item.price),
@@ -22,6 +24,9 @@ const packageFromApi = (item) => ({
   itinerary: parseJson(item.itinerary, item.itinerary || []),
   meetingLocation: item.meeting_location,
   image: item.image || '/CAGSAWA.jpg',
+  joinerDate: item.joiner_date || item.joinerDate || '',
+  joinerSlots: item.joiner_slots ?? item.joinerSlots ?? '',
+  joinerBookingDeadline: item.joiner_booking_deadline || item.joinerBookingDeadline || '',
   tags: item.tags || [],
   rating: Number(item.rating || 0),
   reviewsCount: Number(item.reviews_count || 0),
@@ -45,6 +50,8 @@ const vehicleFromApi = (item) => ({
   fuelType: item.fuel_type || '',
   vehicleBrand: item.vehicle_brand || '',
   transmission: item.transmission || '',
+  rating: Number(item.rating || 0),
+  reviewsCount: Number(item.reviews_count || 0),
 });
 
 const packagePayload = (item) => ({
@@ -60,6 +67,9 @@ const packagePayload = (item) => ({
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
   package_type: normalizePackageType(item),
   image: item.image || null,
+  joiner_date: item.joinerDate || item.joiner_date || null,
+  joiner_slots: item.joinerSlots === '' || item.joinerSlots == null ? null : Number(item.joinerSlots),
+  joiner_booking_deadline: item.joinerBookingDeadline || item.joiner_booking_deadline || null,
 });
 
 const vehiclePayload = (item) => ({
