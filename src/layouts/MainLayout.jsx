@@ -32,11 +32,11 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full shadow-xs" style={{ backgroundColor: '#603524' }}>
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
-            <img src="/White RABAS Travel Logo.png" alt="RABAS Travel and Tours Services" className="h-12 w-auto" />
+            <img src="/rabas-logo.png" alt="RABAS Travel and Tours Services" className="h-11 w-auto object-contain" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-4">
@@ -45,8 +45,8 @@ const MainLayout = () => {
                 key={link.path}
                 to={link.path}
                 className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive(link.path)
-                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
+                  ? 'bg-[#603524]/10 text-[#603524] border-[#603524]/25 shadow-[0_1px_2px_rgba(96,53,36,0.08)]'
+                  : 'text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 border-transparent'
                   }`}
               >
                 {link.name}
@@ -55,23 +55,23 @@ const MainLayout = () => {
           </nav>
 
           {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
-          <div className="hidden md:flex items-center gap-5 border-l border-white/20 pl-6">
+          <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
             {/* Calendar Icon Button (Beside / Left side of Profile icon) */}
             <button
               onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3 py-2 rounded-full cursor-pointer border border-white/20 hover:border-white/30"
+              className="flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
               title="View Schedule Calendar"
             >
-              <CalendarDays className="h-[18px] w-[18px] text-white" />
+              <CalendarDays className="h-[18px] w-[18px] text-[#603524]" />
             </button>
 
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3.5 py-2 rounded-full cursor-pointer"
+                  className="flex items-center gap-2 text-slate-700 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3.5 py-2 rounded-full cursor-pointer"
                 >
-                  <User className="h-[18px] w-[18px]" />
+                  <User className="h-[18px] w-[18px] text-[#603524]" />
                   <span className="text-[11px] font-bold uppercase tracking-[0.15em] hidden lg:block">{user.name.split(' ')[0]}</span>
                 </button>
 
@@ -80,7 +80,7 @@ const MainLayout = () => {
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Logged in as</p>
                       <p className="text-sm font-bold truncate text-slate-800 mt-0.5">{user.name}</p>
-                      <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-yellow-50 text-yellow-600 border border-yellow-200">
+                      <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-[#603524]/10 text-[#603524] border border-[#603524]/20">
                         {user.role}
                       </span>
                     </div>
@@ -88,7 +88,7 @@ const MainLayout = () => {
                     <Link
                       to="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
                     >
                       <User className="h-3.5 w-3.5 text-slate-500" />
                       My Profile
@@ -98,7 +98,7 @@ const MainLayout = () => {
                       <Link
                         to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
                       >
                         <LayoutDashboard className="h-3.5 w-3.5 text-slate-500" />
                         Dashboard
@@ -119,8 +119,8 @@ const MainLayout = () => {
               <Link
                 to="/login"
                 className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive('/login')
-                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
+                  ? 'bg-[#603524] text-white border-[#603524] shadow-[0_1px_2px_rgba(96,53,36,0.2)]'
+                  : 'text-[#603524] hover:bg-[#603524]/10 border-[#603524]/30'
                   }`}
                 title="Sign In"
               >
@@ -134,14 +134,14 @@ const MainLayout = () => {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setCalendarOpen(true)}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 rounded-full transition-colors"
               title="Schedule Calendar"
             >
-              <CalendarDays className="h-5 w-5 text-white" />
+              <CalendarDays className="h-5 w-5 text-[#603524]" />
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white/80 hover:text-white focus:outline-none transition-colors p-1"
+              className="text-slate-600 hover:text-[#603524] focus:outline-none transition-colors p-1"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -159,8 +159,8 @@ const MainLayout = () => {
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all border ${isActive(link.path)
-                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  ? 'bg-[#603524]/10 text-[#603524] border-[#603524]/20 shadow-[0_1px_2px_rgba(96,53,36,0.04)]'
+                  : 'text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 border-transparent'
                   }`}
               >
                 {link.name}
@@ -178,7 +178,7 @@ const MainLayout = () => {
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg font-semibold"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
                 >
                   <User className="h-4 w-4" />
                   My Profile
@@ -187,7 +187,7 @@ const MainLayout = () => {
                   <Link
                     to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-yellow-600 hover:bg-slate-50 rounded-lg font-semibold"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
@@ -207,8 +207,8 @@ const MainLayout = () => {
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all border ${isActive('/login')
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                    : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50/50 text-slate-700'
+                    ? 'bg-[#603524] text-white border-[#603524] shadow-[0_1px_2px_rgba(96,53,36,0.15)]'
+                    : 'border border-slate-200 hover:text-[#603524] hover:border-[#603524]/30 text-slate-700'
                     }`}
                 >
                   Sign In

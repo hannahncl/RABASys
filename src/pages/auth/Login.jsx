@@ -109,7 +109,6 @@ const Login = () => {
   return (
     <div className="w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="text-center mb-7">
-        <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto mx-auto mb-3" />
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">RABAS Travel &amp; Tours</h2>
         <p className="text-xs font-medium text-[#6b6255] mt-1.5">
           Don't have an account?{' '}
@@ -196,13 +195,6 @@ const Login = () => {
 
           {/* ── Google Sign-In Button (rendered by Google GSI) ── */}
           <div ref={googleBtnRef} className="w-full flex justify-center" />
-
-          <p className="pt-2 text-center text-xs text-[#6b6255]">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="font-semibold text-[#a36d17] hover:text-[#2d2a24] transition-colors">
-              Sign up
-            </Link>
-          </p>
         </form>
     </div>
   );
