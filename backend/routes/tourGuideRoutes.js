@@ -44,7 +44,7 @@ const formatGuide = (row) => ({
 // GET active tour guides for public About Us page (no auth required)
 router.get("/about", async (req, res, next) => {
     try {
-        const [rows] = await db.query(`${guideSelect} AND tg.availability_status = 'Available' AND tg.employment_status = 'Active' AND a.account_status = 'Active' ORDER BY tg.years_of_experience DESC`);
+        const { rows } = await db.query(`${guideSelect} AND tg.availability_status = 'Available' AND tg.employment_status = 'Active' AND a.account_status = 'Active' ORDER BY tg.years_of_experience DESC`);
         res.json(rows.map(row => ({
             id: String(row.account_id),
             firstName: row.first_name,
@@ -60,7 +60,7 @@ router.get("/about", async (req, res, next) => {
 // GET all tour guides
 router.get("/", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => {
     try {
-        const [rows] = await db.query(`${guideSelect} ORDER BY a.account_id DESC`);
+        const { rows } = await db.query(`${guideSelect} ORDER BY a.account_id DESC`);
         res.json(rows.map(formatGuide));
     } catch (e) { next(e); }
 });
@@ -68,7 +68,7 @@ router.get("/", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res,
 // GET all available tour guides (Public for booking interface)
 router.get("/public", requireAuth, async (req, res, next) => {
     try {
-        const [rows] = await db.query(`${guideSelect} AND tg.availability_status = 'Available' ORDER BY a.account_id DESC`);
+        const { rows } = await db.query(`${guideSelect} AND tg.availability_status = 'Available' ORDER BY a.account_id DESC`);
         res.json(rows.map(formatGuide));
     } catch (e) { next(e); }
 });
@@ -76,7 +76,7 @@ router.get("/public", requireAuth, async (req, res, next) => {
 // GET single tour guide
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         if (!rows[0]) return res.status(404).json({ message: "Tour guide not found." });
         res.json(formatGuide(rows[0]));
     } catch (e) { next(e); }
@@ -84,102 +84,116 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 
 // POST create tour guide — creates account + tour_guide profile in a transaction
 router.post("/", requireAuth, allowRoles("Admin"), async (req, res, next) => {
-    const conn = await db.getConnection();
+    const client = await db.connect();
+    let transactionCommitted = false;
     try {
-        await conn.beginTransaction();
+        await client.query("BEGIN");
 
         const { firstName, lastName, email, password, contactNumber, sex, birthDate, yearsExperience, description, languageSpoken } = req.body;
 
         if (!firstName || !lastName || !email || !password || !contactNumber) {
-            await conn.rollback();
-            conn.release();
+            await client.query("ROLLBACK");
             return res.status(422).json({ message: "firstName, lastName, email, password, and contactNumber are required." });
         }
 
         // Generate a temporary password — admin should inform the guide to reset it
         if (!hasValidPassword(password)) {
-            await conn.rollback();
-            conn.release();
+            await client.query("ROLLBACK");
             return res.status(422).json({ message: "Password must be at least 8 characters and include one uppercase letter and one number." });
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
 
-        const [accountResult] = await conn.execute(
-            "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role, account_status) VALUES (?, ?, ?, ?, ?, 'Tour Guide', 'Active')",
+        const { rows: accountRows } = await client.query(
+            "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role, account_status) VALUES ($1, $2, $3, $4, $5, 'Tour Guide', 'Active') RETURNING account_id",
             [firstName, lastName, email, passwordHash, contactNumber]
         );
-        const accountId = accountResult.insertId;
+        const accountId = accountRows[0].account_id;
 
         // Insert tour_guide profile
-        await conn.execute(
+        await client.query(
             `INSERT INTO tour_guide (account_id, sex, birthdate, years_of_experience, description, languages_spoken, availability_status, employment_status) 
-             VALUES (?, ?, ?, ?, ?, ?, 'Available', 'Active')`,
+             VALUES ($1, $2, $3, $4, $5, $6, 'Available', 'Active')`,
             [accountId, sex || 'Male', birthDate || null, yearsExperience || 0, description || null, languageSpoken || null]
         );
 
-        await conn.commit();
-        conn.release();
+        await client.query("COMMIT");
+        transactionCommitted = true;
 
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [accountId]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "tour_guide", recordId: accountId, newValues: rows[0], req });
         res.status(201).json(formatGuide(rows[0]));
     } catch (e) {
-        await conn.rollback();
-        conn.release();
+        if (!transactionCommitted) {
+            try {
+                await client.query("ROLLBACK");
+            } catch {
+                // Preserve the original error; the client is released in finally.
+            }
+        }
         next(e);
+    } finally {
+        client.release();
     }
 });
 
 // PATCH update tour guide (both account + tour_guide profile)
 router.patch("/:id", requireAuth, allowRoles("Admin"), async (req, res, next) => {
-    const conn = await db.getConnection();
+    const client = await db.connect();
+    let transactionCommitted = false;
     try {
-        await conn.beginTransaction();
-        const [beforeRows] = await conn.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        await client.query("BEGIN");
+        const { rows: beforeRows } = await client.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         const { firstName, lastName, email, contactNumber, sex, birthDate, yearsExperience, description, languageSpoken } = req.body;
 
         // Update account fields
-        await conn.execute(
-            "UPDATE account SET first_name = COALESCE(?, first_name), last_name = COALESCE(?, last_name), email = COALESCE(?, email), contact_number = COALESCE(?, contact_number) WHERE account_id = ?",
+        await client.query(
+            "UPDATE account SET first_name = COALESCE($1, first_name), last_name = COALESCE($2, last_name), email = COALESCE($3, email), contact_number = COALESCE($4, contact_number) WHERE account_id = $5",
             [firstName || null, lastName || null, email || null, contactNumber || null, req.params.id]
         );
 
         // Update tour_guide profile
-        await conn.execute(
+        await client.query(
             `UPDATE tour_guide SET 
-                sex = COALESCE(?, sex), 
-                birthdate = COALESCE(?, birthdate),
-                years_of_experience = COALESCE(?, years_of_experience),
-                description = COALESCE(?, description),
-                languages_spoken = COALESCE(?, languages_spoken)
-             WHERE account_id = ?`,
+                sex = COALESCE($1, sex),
+                birthdate = COALESCE($2, birthdate),
+                years_of_experience = COALESCE($3, years_of_experience),
+                description = COALESCE($4, description),
+                languages_spoken = COALESCE($5, languages_spoken)
+             WHERE account_id = $6`,
             [sex || null, birthDate || null, yearsExperience ?? null, description || null, languageSpoken || null, req.params.id]
         );
 
-        await conn.commit();
-        conn.release();
+        await client.query("COMMIT");
+        transactionCommitted = true;
 
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         if (!rows[0]) return res.status(404).json({ message: "Tour guide not found." });
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE", tableName: "tour_guide", recordId: req.params.id, oldValues: beforeRows[0], newValues: rows[0], req });
         res.json(formatGuide(rows[0]));
     } catch (e) {
-        await conn.rollback();
-        conn.release();
+        if (!transactionCommitted) {
+            try {
+                await client.query("ROLLBACK");
+            } catch {
+                // Preserve the original error; the client is released in finally.
+            }
+        }
         next(e);
+    } finally {
+        client.release();
     }
 });
 
 // PATCH toggle account status (Active/Inactive)
 router.patch("/:id/status", requireAuth, allowRoles("Admin"), async (req, res, next) => {
     try {
-        const [before] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
-        await db.execute(
-            "UPDATE account SET account_status = CASE WHEN account_status = 'Active' THEN 'Inactive' ELSE 'Active' END WHERE account_id = ? AND deleted_at IS NULL",
+        const { rows: before } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
+        await db.query(
+            "UPDATE account SET account_status = CASE WHEN account_status = 'Active' THEN 'Inactive' ELSE 'Active' END WHERE account_id = $1 AND deleted_at IS NULL",
             [req.params.id]
         );
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "tour_guide", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
         res.json(formatGuide(rows[0]));
     } catch (e) { next(e); }
@@ -188,12 +202,12 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin"), async (req, res, n
 // PATCH toggle availability_status
 router.patch("/:id/availability", requireAuth, allowRoles("Admin"), async (req, res, next) => {
     try {
-        const [before] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
-        await db.execute(
-            "UPDATE tour_guide SET availability_status = CASE WHEN availability_status = 'Available' THEN 'Unavailable' ELSE 'Available' END WHERE account_id = ?",
+        const { rows: before } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
+        await db.query(
+            "UPDATE tour_guide SET availability_status = CASE WHEN availability_status = 'Available' THEN 'Unavailable' ELSE 'Available' END WHERE account_id = $1",
             [req.params.id]
         );
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_AVAILABILITY", tableName: "tour_guide", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
         res.json(formatGuide(rows[0]));
     } catch (e) { next(e); }
@@ -202,12 +216,12 @@ router.patch("/:id/availability", requireAuth, allowRoles("Admin"), async (req, 
 // PATCH toggle employment_status
 router.patch("/:id/employment", requireAuth, allowRoles("Admin"), async (req, res, next) => {
     try {
-        const [before] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
-        await db.execute(
-            "UPDATE tour_guide SET employment_status = CASE WHEN employment_status = 'Active' THEN 'Inactive' ELSE 'Active' END WHERE account_id = ?",
+        const { rows: before } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
+        await db.query(
+            "UPDATE tour_guide SET employment_status = CASE WHEN employment_status = 'Active' THEN 'Inactive' ELSE 'Active' END WHERE account_id = $1",
             [req.params.id]
         );
-        const [rows] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_EMPLOYMENT", tableName: "tour_guide", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
         res.json(formatGuide(rows[0]));
     } catch (e) { next(e); }
@@ -216,12 +230,12 @@ router.patch("/:id/employment", requireAuth, allowRoles("Admin"), async (req, re
 // DELETE soft-delete tour guide account
 router.delete("/:id", requireAuth, allowRoles("Admin"), async (req, res, next) => {
     try {
-        const [before] = await db.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
-        const [result] = await db.execute(
-            "UPDATE account SET deleted_at = NOW() WHERE account_id = ? AND deleted_at IS NULL AND role = 'Tour Guide'",
+        const { rows: before } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
+        const result = await db.query(
+            "UPDATE account SET deleted_at = NOW() WHERE account_id = $1 AND deleted_at IS NULL AND role = 'Tour Guide'",
             [req.params.id]
         );
-        if (!result.affectedRows) return res.status(404).json({ message: "Tour guide not found." });
+        if (!result.rowCount) return res.status(404).json({ message: "Tour guide not found." });
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "DELETE", tableName: "tour_guide", recordId: req.params.id, oldValues: before[0], req });
         res.status(204).end();
     } catch (e) { next(e); }

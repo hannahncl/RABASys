@@ -12,7 +12,7 @@ const sanitizeValues = (value) => {
     );
 };
 
-// JSON is serialized explicitly so mysql2 sends valid JSON values consistently.
+// JSON is serialized explicitly so pg receives valid JSON strings (not objects).
 // Callers intentionally receive errors: silently losing accountability records is unsafe.
 async function logAudit({ accountId = null, sessionId = null, action, tableName, recordId = null, oldValues = null, newValues = null, req = null }) {
     const forwardedFor = req?.headers?.["x-forwarded-for"];
@@ -21,9 +21,9 @@ async function logAudit({ accountId = null, sessionId = null, action, tableName,
         : (req?.ip || req?.socket?.remoteAddress || null);
     const userAgent = req?.get?.("user-agent") || req?.headers?.["user-agent"] || null;
 
-    await db.execute(
+    await db.query(
         `INSERT INTO audit_log (account_id, session_id, action, table_name, record_id, old_values, new_values, ip_address, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
             accountId,
             sessionId,
