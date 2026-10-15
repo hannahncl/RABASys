@@ -128,38 +128,37 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 router.post("/:id/profile-picture", requireAuth, allowRoles("Admin"), handleProfilePictureUpload, async (req, res, next) => {
     if (!req.file) return res.status(422).json({ message: "Choose a profile picture to upload." });
 
-    const conn = await db.getConnection();
+    const client = await db.connect();
     try {
-        await conn.beginTransaction();
-        const [guideRows] = await conn.execute(`${guideSelect} AND a.account_id = ?`, [req.params.id]);
+        await client.query("BEGIN");
+        const { rows: guideRows } = await client.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         if (!guideRows[0]) {
-            await conn.rollback();
+            await client.query("ROLLBACK");
             await fs.promises.unlink(req.file.path);
-            conn.release();
             return res.status(404).json({ message: "Tour guide not found." });
         }
 
         const profilePicturePath = `/uploads/tour-guides/${req.file.filename}`;
         let mediaId = guideRows[0].media_id;
         if (mediaId) {
-            await conn.execute("UPDATE media SET file_path = ?, media_type = 'image' WHERE media_id = ?", [profilePicturePath, mediaId]);
+            await client.query("UPDATE media SET file_path = $1, media_type = 'Image' WHERE media_id = $2", [profilePicturePath, mediaId]);
         } else {
-            const [mediaResult] = await conn.execute(
-                "INSERT INTO media (file_path, media_type, uploaded_by, title) VALUES (?, 'image', ?, ?)",
+            const { rows: mediaRows } = await client.query(
+                "INSERT INTO media (file_path, media_type, uploaded_by, title) VALUES ($1, 'Image', $2, $3) RETURNING media_id",
                 [profilePicturePath, req.user.accountId, `${guideRows[0].first_name} ${guideRows[0].last_name} profile picture`]
             );
-            mediaId = mediaResult.insertId;
+            mediaId = mediaRows[0].media_id;
         }
-        await conn.execute("UPDATE tour_guide SET media_id = ? WHERE account_id = ?", [mediaId, req.params.id]);
-        await conn.commit();
-        conn.release();
+        await client.query("UPDATE tour_guide SET media_id = $1 WHERE account_id = $2", [mediaId, req.params.id]);
+        await client.query("COMMIT");
 
         res.json({ profilePicture: profilePicturePath });
     } catch (error) {
-        await conn.rollback();
-        conn.release();
+        await client.query("ROLLBACK").catch(() => {});
         await fs.promises.unlink(req.file.path).catch(() => {});
         next(error);
+    } finally {
+        client.release();
     }
 });
 
@@ -202,7 +201,13 @@ router.post("/", requireAuth, allowRoles("Admin"), async (req, res, next) => {
         transactionCommitted = true;
 
         const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [accountId]);
-        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "tour_guide", recordId: accountId, newValues: rows[0], req });
+        try {
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "tour_guide", recordId: accountId, newValues: rows[0], req });
+        } catch (auditError) {
+            // The guide is already committed; an audit-table issue must not make
+            // the client treat the successful create as a failed request.
+            console.error("Failed to write tour guide creation audit record:", auditError);
+        }
         res.status(201).json(formatGuide(rows[0]));
     } catch (e) {
         if (!transactionCommitted) {
@@ -250,7 +255,13 @@ router.patch("/:id", requireAuth, allowRoles("Admin"), async (req, res, next) =>
 
         const { rows } = await db.query(`${guideSelect} AND a.account_id = $1`, [req.params.id]);
         if (!rows[0]) return res.status(404).json({ message: "Tour guide not found." });
-        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE", tableName: "tour_guide", recordId: req.params.id, oldValues: beforeRows[0], newValues: rows[0], req });
+        try {
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE", tableName: "tour_guide", recordId: req.params.id, oldValues: beforeRows[0], newValues: rows[0], req });
+        } catch (auditError) {
+            // The profile update is already committed; keep the client moving
+            // so any selected profile photo can be uploaded as the next step.
+            console.error("Failed to write tour guide update audit record:", auditError);
+        }
         res.json(formatGuide(rows[0]));
     } catch (e) {
         if (!transactionCommitted) {

@@ -400,7 +400,7 @@ async function ensureSchema() {
     await db.query(`CREATE TABLE IF NOT EXISTS media (
         media_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         file_path VARCHAR(500) NOT NULL,
-        media_type VARCHAR(50) NOT NULL DEFAULT 'image',
+        media_type VARCHAR(50) NOT NULL DEFAULT 'Image',
         uploaded_by INT UNSIGNED NULL DEFAULT NULL,
         title VARCHAR(255) NULL DEFAULT NULL,
         description TEXT NULL DEFAULT NULL,

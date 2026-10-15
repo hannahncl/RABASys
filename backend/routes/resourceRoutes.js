@@ -98,7 +98,13 @@ function addCrud(router, path, resource) {
             const { rows: inserted } = await db.query(`INSERT INTO ${qi(resource.table)} (${fields.map(qi).join(", ")}) VALUES (${placeholders}) RETURNING ${qi(resource.id)}`, fields.map(f => payload[f]));
             const newId = inserted[0][resource.id];
             const { rows } = await db.query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1`, [newId]);
-            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: resource.table, recordId: newId, newValues: req.body, req });
+            try {
+                await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: resource.table, recordId: newId, newValues: req.body, req });
+            } catch (auditError) {
+                // The resource is already persisted. An audit-table failure
+                // must not make the client retry a successful create.
+                console.error(`Failed to write ${resource.table} creation audit record:`, auditError);
+            }
             res.status(201).json(rows[0]);
         } catch (e) { next(e); }
     });
