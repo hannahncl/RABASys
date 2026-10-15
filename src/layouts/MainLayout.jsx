@@ -1,9 +1,9 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirmation } from '../contexts/ConfirmationContext';
-import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, CalendarDays } from 'lucide-react';
-import PublicCalendarModal from '../components/ui/PublicCalendarModal';
+import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check } from 'lucide-react';
+import { notificationService } from '../services/api';
 import FaqChatbot from '../components/ui/FaqChatbot';
 
 const MainLayout = () => {
@@ -11,7 +11,8 @@ const MainLayout = () => {
   const { confirm } = useConfirmation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,6 +21,52 @@ const MainLayout = () => {
     logout();
     setProfileDropdownOpen(false);
     navigate('/');
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return undefined;
+    }
+
+    let mounted = true;
+    const loadNotifications = async () => {
+      try {
+        const data = await notificationService.getAll();
+        if (mounted) setNotifications(data || []);
+      } catch {
+        if (mounted) setNotifications([]);
+      }
+    };
+
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
+
+  const unreadNotifications = notifications.filter(notification => !notification.is_read);
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.is_read) {
+        await notificationService.markAsRead(notification.notification_id);
+        setNotifications(current => current.map(item => item.notification_id === notification.notification_id ? { ...item, is_read: 1 } : item));
+      }
+    } catch {
+      // Keep the notification visible if marking it read fails.
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(current => current.map(item => ({ ...item, is_read: 1 })));
+    } catch {
+      // Keep the unread state if the request fails.
+    }
   };
 
   const navLinks = [
@@ -60,14 +107,48 @@ const MainLayout = () => {
 
           {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
           <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
-            {/* Calendar Icon Button (Beside / Left side of Profile icon) */}
+            {/* User Notifications */}
             <button
-              onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
-              title="View Schedule Calendar"
+              onClick={() => setNotificationsOpen(current => !current)}
+              className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
+              title="View notifications"
             >
-              <CalendarDays className="h-[18px] w-[18px] text-[#603524]" />
+              <Bell className="h-[18px] w-[18px] text-[#603524]" />
+              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-24 top-14 z-50 w-80 overflow-hidden border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Notifications</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">Your latest updates</p>
+                  </div>
+                  {unreadNotifications.length > 0 && <button onClick={handleMarkAllNotificationsRead} className="text-[10px] font-semibold uppercase tracking-wider text-[#603524] hover:underline">Mark all read</button>}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {!user ? (
+                    <p className="px-4 py-8 text-center text-xs text-slate-500">Sign in to receive booking and trip updates.</p>
+                  ) : notifications.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs text-slate-500">You have no notifications yet.</p>
+                  ) : notifications.map(notification => (
+                    <button
+                      key={notification.notification_id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${notification.is_read ? '' : 'bg-[#603524]/5'}`}
+                    >
+                      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${notification.is_read ? 'bg-slate-100 text-slate-400' : 'bg-[#603524]/10 text-[#603524]'}`}>
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-slate-800">{notification.title}</span>
+                        <span className="mt-1 block text-[11px] leading-relaxed text-slate-500">{notification.message}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {user ? (
               <div className="relative">
@@ -134,14 +215,15 @@ const MainLayout = () => {
             )}
           </div>
 
-          {/* Mobile Menu & Calendar Button */}
+          {/* Mobile Menu & Notifications Button */}
           <div className="md:hidden flex items-center gap-2">
             <button
-              onClick={() => setCalendarOpen(true)}
-              className="p-2 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 rounded-full transition-colors"
-              title="Schedule Calendar"
+              onClick={() => setNotificationsOpen(current => !current)}
+              className="relative p-2 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 rounded-full transition-colors"
+              title="Notifications"
             >
-              <CalendarDays className="h-5 w-5 text-[#603524]" />
+              <Bell className="h-5 w-5 text-[#603524]" />
+              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -259,8 +341,6 @@ const MainLayout = () => {
         </div>
       </footer>
 
-      {/* Public Calendar Modal */}
-      <PublicCalendarModal isOpen={calendarOpen} onClose={() => setCalendarOpen(false)} />
       <FaqChatbot />
     </div>
   );
