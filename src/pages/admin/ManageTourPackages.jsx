@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
-  Plus, Edit, Trash2, Loader, MapPin, Clock, Users, Package, Search, X, RotateCcw, UsersRound, Navigation
+  Plus, Edit, Power, Loader, MapPin, Clock, Users, Package, Search, X, RotateCcw, UsersRound, Navigation
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
@@ -33,12 +33,18 @@ const sortOptions = [
   { key: 'oldest', label: 'Oldest' },
 ];
 
+const isPackageDeactivated = (item) => {
+  const status = item.availabilityStatus ?? item.availability_status;
+  return status != null && String(status).trim().toLowerCase() !== 'available';
+};
+
 const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
   const Icon = catConfig.icon;
+  const isDeactivated = isPackageDeactivated(item);
   return (
     <div
-      onClick={() => onView(item)}
-      className="bg-white border border-[#e0dbd0] hover:border-[#b0a68e] rounded-md overflow-hidden flex flex-col transition-colors group cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+      onClick={isDeactivated ? undefined : () => onView(item)}
+      className={`bg-white border rounded-md overflow-hidden flex flex-col transition-colors group shadow-[0_2px_12px_rgba(0,0,0,0.03)] ${isDeactivated ? 'border-[#d6cfc2] grayscale opacity-60 cursor-default' : 'border-[#e0dbd0] hover:border-[#b0a68e] cursor-pointer'}`}
     >
       <div className="relative h-44 overflow-hidden bg-[#ebe7df]">
         {item.image && item.image !== '/CAGSAWA.jpg' ? (
@@ -53,7 +59,7 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
             <Icon className={`h-12 w-12 ${catConfig.accent} opacity-40`} />
           </div>
         )}
-        <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider ${catConfig.bg} ${catConfig.accent} border ${catConfig.border}`}>
+        <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wider ${isDeactivated ? 'bg-slate-200 text-slate-600 border-slate-300' : `${catConfig.bg} ${catConfig.accent} border ${catConfig.border}`}`}>
           {packageTypeLabels[item.category] || catConfig.label}
         </div>
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -65,10 +71,11 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
             Edit
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="p-1.5 bg-white hover:bg-[#f7f4ef] border border-[#d6cfc2] text-[#1a1a1a] rounded-sm cursor-pointer transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+            title={isDeactivated ? 'Activate package' : 'Deactivate package'}
+            className={`p-1.5 bg-white border border-[#d6cfc2] rounded-sm cursor-pointer transition-colors ${isDeactivated ? 'text-emerald-700 hover:bg-emerald-50' : 'text-[#1a1a1a] hover:bg-[#f7f4ef]'}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Power className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -109,6 +116,7 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
           </div>
         )}
       </div>
+
     </div>
   );
 };
@@ -149,14 +157,18 @@ const ManageTourPackages = () => {
     navigate(`/admin/tour-packages/${item.id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (await confirm('Are you sure you want to delete this tour package?')) {
+  const handleToggleAvailability = async (item) => {
+    const isDeactivated = isPackageDeactivated(item);
+    const nextStatus = isDeactivated ? 'Available' : 'Deactivated';
+    const action = isDeactivated ? 'activate' : 'deactivate';
+
+    if (await confirm(`Are you sure you want to ${action} this tour package?`)) {
       try {
-        await serviceService.delete(id);
-        showNotification('Tour package deleted', 'success');
+        await serviceService.setAvailability(item.id, nextStatus);
+        showNotification(`Tour package ${action}d`, 'success');
         loadServices();
       } catch {
-        showNotification('Failed to delete tour package', 'error');
+        showNotification(`Failed to ${action} tour package`, 'error');
       }
     }
   };
@@ -170,6 +182,9 @@ const ManageTourPackages = () => {
     .filter(item => selectedType === 'all' || item.category === selectedType)
     .filter(item => !search.trim() || `${item.packageName || item.title} ${item.destination || ''}`.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
+      const aDeactivated = isPackageDeactivated(a);
+      const bDeactivated = isPackageDeactivated(b);
+      if (aDeactivated !== bDeactivated) return aDeactivated ? 1 : -1;
       const newestFirst = new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime();
       return selectedSort === 'oldest' ? -newestFirst : newestFirst;
     });
@@ -212,7 +227,7 @@ const ManageTourPackages = () => {
               key={item.id}
               item={item}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={handleToggleAvailability}
               onView={handleView}
             />
           ))}

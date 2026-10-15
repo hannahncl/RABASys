@@ -16,6 +16,7 @@ const packageFromApi = (item) => ({
   id: String(item.package_id),
   category: normalizePackageType(item),
   packageType: normalizePackageType(item),
+  availabilityStatus: item.availability_status ?? item.availabilityStatus ?? 'Available',
   title: item.package_name,
   packageName: item.package_name,
   price: Number(item.price),
@@ -46,7 +47,7 @@ const vehicleFromApi = (item) => ({
   seatingCapacity: item.capacity,
   image: item.image || '/CAGSAWA.jpg',
   duration: 'Per Day',
-  availabilityStatus: item.availability_status || 'Available',
+  availabilityStatus: item.availability_status ?? item.availabilityStatus ?? 'Available',
   fuelType: item.fuel_type || '',
   vehicleBrand: item.vehicle_brand || '',
   transmission: item.transmission || '',
@@ -108,13 +109,24 @@ export const serviceService = {
   update: async (id, item) => item.category === 'car'
     ? vehicleFromApi(await api(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(vehiclePayload(item)) }))
     : packageFromApi(await api(`/packages/${id}`, { method: 'PATCH', body: JSON.stringify(packagePayload(item)) })),
+  setAvailability: async (id, status) => packageFromApi(await api(`/packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ availability_status: status }),
+  })),
+  setVehicleAvailability: async (id, status) => vehicleFromApi(await api(`/vehicles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ availability_status: status }),
+  })),
   delete: async (id, category = 'tour') => api(`/${category === 'car' ? 'vehicles' : 'packages'}/${id}`, { method: 'DELETE' }),
 };
 
 export const packageService = {
-  getAll: () => serviceService.getAll(),
-  getById: (id) => serviceService.getById(id),
-  getRecommendations: (preferences) => serviceService.getRecommendations(preferences),
+  getAll: async () => (await serviceService.getAll()).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
+  getById: async (id) => {
+    const item = await serviceService.getById(id);
+    return String(item?.availabilityStatus ?? item?.availability_status ?? 'Available').trim().toLowerCase() === 'available' ? item : null;
+  },
+  getRecommendations: async (preferences) => (await serviceService.getRecommendations(preferences)).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
   create: (item) => serviceService.create({ ...item, category: 'tour' }),
   update: (id, item) => serviceService.update(id, { ...item, category: 'tour' }),
   delete: (id) => serviceService.delete(id, 'tour'),

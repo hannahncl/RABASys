@@ -51,7 +51,7 @@ function normalizeVehiclePayload(input = {}) {
         plate_number: String(plateNumber).trim(),
         capacity: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 1,
         daily_rate: Number.isFinite(dailyRate) && dailyRate >= 0 ? dailyRate : 0,
-        availability_status: ["Available", "Unavailable", "Maintenance"].includes(availabilityStatus) ? availabilityStatus : "Available",
+        availability_status: ["Available", "Unavailable", "Maintenance", "Deactivated"].includes(availabilityStatus) ? availabilityStatus : "Available",
         image: image ? String(image) : null,
         fuel_type: fuelType ? String(fuelType).trim() : null,
         vehicle_brand: vehicleBrand ? String(vehicleBrand).trim() : null,

@@ -98,7 +98,7 @@ const CarBooking = () => {
     const fetchCar = async () => {
       try {
         const data = await serviceService.getById(id);
-        if (!data || data.category !== 'car') throw new Error('Not found');
+        if (!data || data.category !== 'car' || String(data.availabilityStatus ?? data.availability_status ?? 'Available').trim().toLowerCase() !== 'available') throw new Error('Not found');
         setCar(data);
       } catch (error) {
         showNotification('Car not found', 'error');
