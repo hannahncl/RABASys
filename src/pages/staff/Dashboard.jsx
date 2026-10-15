@@ -85,17 +85,9 @@ const Dashboard = () => {
           <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200" title="Active Guide"></span>
         </div>
         <div className="text-center sm:text-left flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
-            <h2 className="text-lg font-bold text-[#1a1a1a]">
-              Welcome back, {user?.firstName || user?.name || 'Tour Guide'}!
-            </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-800 border border-yellow-200">
-              DOT-Accredited Guide
-            </span>
-          </div>
-          <p className="text-xs text-[#6b6255] mt-1">
-            {guideProfile?.description || 'Assigned tour guide ready for scheduled tours, itinerary milestones, and field updates.'}
-          </p>
+          <h2 className="text-lg md:text-xl font-semibold text-[#1a1a1a]">
+            Welcome back, {user?.firstName || user?.name || 'Tour Guide'}!
+          </h2>
         </div>
       </div>
 

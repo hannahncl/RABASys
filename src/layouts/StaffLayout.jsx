@@ -85,27 +85,8 @@ const StaffLayout = () => {
           })}
         </nav>
 
-        {/* User Profile Summary */}
-        <div className="p-3 mx-4 mb-1 rounded-xl bg-stone-50 border border-stone-200/70 flex items-center gap-3">
-          {profilePicture ? (
-            <img 
-              src={profilePicture} 
-              alt={user?.name || 'Tour Guide'} 
-              className="h-10 w-10 rounded-lg object-cover border border-amber-300 shadow-xs shrink-0" 
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-lg bg-yellow-100 border border-yellow-300 flex items-center justify-center text-yellow-800 font-bold font-display shrink-0 text-sm">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-stone-800 truncate">{user?.name || 'Tour Guide'}</p>
-            <p className="text-[10px] text-yellow-700 font-semibold uppercase tracking-wider">Tour Guide</p>
-          </div>
-        </div>
-
         {/* Logout */}
-        <div className="px-4 pb-4">
+        <div className="p-4 mt-auto">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50/70 hover:text-rose-600 transition-colors cursor-pointer"
@@ -157,28 +138,9 @@ const StaffLayout = () => {
               })}
             </nav>
 
-            {/* Mobile User Profile Summary */}
-            <div className="p-3 mb-3 rounded-xl bg-stone-50 border border-stone-200/70 flex items-center gap-3">
-              {profilePicture ? (
-                <img 
-                  src={profilePicture} 
-                  alt={user?.name || 'Tour Guide'} 
-                  className="h-10 w-10 rounded-lg object-cover border border-amber-300 shadow-xs shrink-0" 
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-lg bg-yellow-100 border border-yellow-300 flex items-center justify-center text-yellow-800 font-bold font-display shrink-0 text-sm">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-stone-800 truncate">{user?.name || 'Tour Guide'}</p>
-                <p className="text-[10px] text-yellow-700 font-semibold uppercase tracking-wider">Tour Guide</p>
-              </div>
-            </div>
-
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+              className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors mt-auto cursor-pointer"
             >
               <LogOut className="h-5 w-5 text-rose-500" />
               Logout

@@ -118,7 +118,6 @@ const Calendar = () => {
             {selectedBooking.status}
           </span>
           <div className="space-y-2"><p><strong>Client:</strong> {selectedBooking.customerName}</p><p><strong>Contact:</strong> {selectedBooking.customerPhone || 'Not set'}</p><p><strong>Tour date:</strong> {selectedBooking.tourDate}</p><p><strong>Guests:</strong> {selectedBooking.guestsCount}</p><p><strong>Reference:</strong> <span className="font-mono text-yellow-700">{selectedBooking.paymentRef || selectedBooking.id}</span></p></div>
-          <div className="border-t border-[#eae5db] pt-3 flex justify-between"><span>Total Paid</span><strong>PHP {Number(selectedBooking.totalPrice || 0).toLocaleString()}</strong></div>
         </div> : <p className="p-8 text-center text-sm text-[#6b6255]">Click a booking on the calendar to view its details.</p>}
       </aside>
       </div>
