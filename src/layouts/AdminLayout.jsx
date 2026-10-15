@@ -76,7 +76,7 @@ const AdminLayout = () => {
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   const menuItems = [
@@ -206,9 +206,7 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            {!['Dashboard', 'Car Rentals', 'Tour Packages', 'Sales Report', 'Bookings'].includes(currentPageTitle) && (
-              <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
-            )}
+            <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
           </div>
 
           <div className="flex items-center gap-6">

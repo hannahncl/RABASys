@@ -20,7 +20,7 @@ const MainLayout = () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     setProfileDropdownOpen(false);
-    navigate('/');
+    navigate('/login');
   };
 
   useEffect(() => {
@@ -55,8 +55,19 @@ const MainLayout = () => {
         await notificationService.markAsRead(notification.notification_id);
         setNotifications(current => current.map(item => item.notification_id === notification.notification_id ? { ...item, is_read: 1 } : item));
       }
+      setNotificationsOpen(false);
     } catch {
       // Keep the notification visible if marking it read fails.
+    }
+  };
+
+  const handleMarkNotificationRead = async (event, notification) => {
+    event.stopPropagation();
+    try {
+      await notificationService.markAsRead(notification.notification_id);
+      setNotifications(current => current.map(item => item.notification_id === notification.notification_id ? { ...item, is_read: 1 } : item));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
@@ -110,45 +121,11 @@ const MainLayout = () => {
             {/* User Notifications */}
             <button
               onClick={() => setNotificationsOpen(current => !current)}
-              className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
+              className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer"
               title="View notifications"
             >
               <Bell className="h-[18px] w-[18px] text-[#603524]" />
-              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
-
-            {notificationsOpen && (
-              <div className="absolute right-24 top-14 z-50 w-80 overflow-hidden border border-slate-200 bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Notifications</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">Your latest updates</p>
-                  </div>
-                  {unreadNotifications.length > 0 && <button onClick={handleMarkAllNotificationsRead} className="text-[10px] font-semibold uppercase tracking-wider text-[#603524] hover:underline">Mark all read</button>}
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {!user ? (
-                    <p className="px-4 py-8 text-center text-xs text-slate-500">Sign in to receive booking and trip updates.</p>
-                  ) : notifications.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-xs text-slate-500">You have no notifications yet.</p>
-                  ) : notifications.map(notification => (
-                    <button
-                      key={notification.notification_id}
-                      onClick={() => handleNotificationClick(notification)}
-                      className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${notification.is_read ? '' : 'bg-[#603524]/5'}`}
-                    >
-                      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${notification.is_read ? 'bg-slate-100 text-slate-400' : 'bg-[#603524]/10 text-[#603524]'}`}>
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-xs font-semibold text-slate-800">{notification.title}</span>
-                        <span className="mt-1 block text-[11px] leading-relaxed text-slate-500">{notification.message}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {user ? (
               <div className="relative">
@@ -164,7 +141,7 @@ const MainLayout = () => {
                   <div className="absolute right-0 mt-3 w-52 border border-slate-200 bg-white shadow-xl z-50">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Logged in as</p>
-                      <p className="text-sm font-bold truncate text-slate-800 mt-0.5">{user.name}</p>
+                      <p className="text-sm font-bold truncate text-black mt-0.5">{user.name}</p>
                       <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-[#603524]/10 text-[#603524] border border-[#603524]/20">
                         {user.role}
                       </span>
@@ -223,7 +200,6 @@ const MainLayout = () => {
               title="Notifications"
             >
               <Bell className="h-5 w-5 text-[#603524]" />
-              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -234,6 +210,53 @@ const MainLayout = () => {
           </div>
         </div>
       </header>
+
+      {notificationsOpen && (
+        <div className="fixed right-4 top-16 z-50 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/50 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-200">Notifications</h3>
+            {unreadNotifications.length > 0 && (
+              <button onClick={handleMarkAllNotificationsRead} className="cursor-pointer text-[11px] font-medium text-cyan-400 hover:text-cyan-300">
+                Mark all as read
+              </button>
+            )}
+          </div>
+          <div className="max-h-[360px] overflow-y-auto">
+            {!user ? (
+              <div className="px-4 py-8 text-center text-sm text-slate-500">Sign in to receive booking and trip updates.</div>
+            ) : notifications.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-slate-500">No new notifications.</div>
+            ) : (
+              notifications.map(notification => (
+                <div
+                  key={notification.notification_id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`group cursor-pointer border-b border-slate-800/50 px-4 py-3 transition-colors hover:bg-slate-800/30 ${notification.is_read ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-slate-200">{notification.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">{notification.message}</p>
+                      <p className="mt-2 text-[10px] text-slate-500">{notification.sent_at ? new Date(notification.sent_at).toLocaleString() : ''}</p>
+                    </div>
+                    {!notification.is_read && (
+                      <button
+                        type="button"
+                        onClick={event => handleMarkNotificationRead(event, notification)}
+                        className="shrink-0 cursor-pointer rounded-lg p-1.5 text-slate-400 opacity-0 transition-all hover:bg-slate-700 hover:text-cyan-400 group-hover:opacity-100"
+                        title="Mark as read without navigating"
+                        aria-label="Mark notification as read"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
@@ -315,7 +338,7 @@ const MainLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2 space-y-4">
-              <Link to="/" className="inline-flex items-center gap-2 text-cyan-400 font-display font-bold text-xl tracking-wide">
+              <Link to="/" className="inline-flex items-center gap-2 text-[#603524] font-display font-bold text-xl tracking-wide">
                 RABAS TRAVEL & TOURS SERVICES
               </Link>
               <p className="text-slate-400 text-sm max-w-sm leading-relaxed">

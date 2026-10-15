@@ -202,6 +202,17 @@ const CarRentals = () => {
 
           {/* Main Content Grid */}
           <div className="flex-1">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <h2
+                className="text-lg font-semibold"
+                style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+              >
+                Available Car Rentals
+              </h2>
+              <span className="text-[11px] font-medium" style={{ color: '#6b6255' }}>
+                {cars.length} rental{cars.length === 1 ? '' : 's'}
+              </span>
+            </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-7">
                 {[...Array(6)].map((_, i) => (

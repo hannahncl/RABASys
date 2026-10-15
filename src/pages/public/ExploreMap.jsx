@@ -663,9 +663,12 @@ const ExploreMap = () => {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
 
         {/* ── Page Header ── */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #d6cfc2', paddingBottom: '1.5rem', marginBottom: '2rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem' }}>
           <div>
-            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">
+            <h1
+              className="text-lg font-semibold"
+              style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+            >
               EXPLORE MAP &amp; TOURIST GALLERY
             </h1>
           </div>
