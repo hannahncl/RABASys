@@ -3,6 +3,7 @@ import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader, Star } from
 import { Link, useSearchParams } from 'react-router-dom';
 import { serviceService } from '../services/serviceService';
 import { filterCars } from './carRentalsFilters';
+import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const CarRentals = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -236,6 +237,11 @@ const CarRentals = () => {
 
                     {/* Image Area - Clean White Background */}
                     <div className="h-[240px] relative flex items-center justify-center p-0 overflow-hidden" style={{ background: '#fcfbf9' }}>
+                      <FavoriteButton
+                        itemId={car.id}
+                        itemType="vehicle"
+                        className="absolute right-3 top-3 z-10 shadow-sm"
+                      />
                       <img
                         src={car.image || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600'}
                         alt={car.vehicleName}

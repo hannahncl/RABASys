@@ -36,8 +36,8 @@ const StaffLayout = () => {
 
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
-    logout();
-    navigate('/');
+    await logout();
+    navigate('/login');
   };
 
   const menuItems = [

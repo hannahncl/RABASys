@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { Compass, Clock, SlidersHorizontal, Tags, Users } from 'lucide-react';
+import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const packageCategories = [
   {
@@ -285,6 +286,11 @@ const Packages = () => {
 
                     {/* Image Area */}
                     <div className="h-[260px] w-full overflow-hidden relative">
+                      <FavoriteButton
+                        itemId={pkg.id}
+                        itemType="tour"
+                        className="absolute right-3 top-3 z-10 shadow-sm"
+                      />
                       <img
                         src={pkg.image || '/CAGSAWA.jpg'}
                         alt={pkg.title}

@@ -18,9 +18,9 @@ const MainLayout = () => {
 
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
-    logout();
+    await logout();
     setProfileDropdownOpen(false);
-    navigate('/');
+    navigate('/login');
   };
 
   useEffect(() => {
