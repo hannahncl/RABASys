@@ -19,7 +19,7 @@ const CarRentals = () => {
     const fetchCars = async () => {
       try {
         const data = await serviceService.getByCategory('car');
-        setAllCars(Array.isArray(data) ? data : []);
+        setAllCars(Array.isArray(data) ? data.filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available') : []);
       } catch (error) {
         console.error('Failed to fetch cars:', error);
         setAllCars([]);

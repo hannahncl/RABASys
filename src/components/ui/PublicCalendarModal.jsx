@@ -26,7 +26,7 @@ const PublicCalendarModal = ({ isOpen, onClose }) => {
           serviceService.getAll().catch(() => []),
         ]);
         setBookings(bookingsData || []);
-        setPackages(packagesData || []);
+        setPackages((packagesData || []).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'));
       } catch (err) {
         console.error('Failed to load schedule data:', err);
       } finally {

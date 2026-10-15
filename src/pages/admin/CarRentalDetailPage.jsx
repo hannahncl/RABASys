@@ -6,12 +6,12 @@ import { serviceService } from '../../services/serviceService';
 const InfoRow = ({ icon: Icon, label, value }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-850/50 last:border-b-0">
-      <div className="flex items-center gap-2.5">
-        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
-        <span className="text-xs text-slate-400 font-medium">{label}</span>
+    <div className="flex items-center justify-between py-4 border-b border-slate-850/50 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <Icon className="h-5 w-5 text-slate-400 shrink-0" />
+        <span className="text-sm text-slate-400 font-medium">{label}</span>
       </div>
-      <span className="text-xs font-semibold text-slate-200">{value}</span>
+      <span className="text-sm font-semibold text-slate-200 text-right">{value}</span>
     </div>
   );
 };
@@ -63,58 +63,58 @@ const CarRentalDetailPage = () => {
   const title = vehicle.vehicleName || vehicle.vehicle_name || vehicle.title || 'Untitled Vehicle';
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-7xl mx-auto space-y-7">
       {/* Action Navigation Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/admin/car-rentals')}
-          className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+          className="flex items-center gap-2.5 text-base text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Car Rentals
+          <ArrowLeft className="h-5 w-5" /> Back to Car Rentals
         </button>
         <button
           onClick={() => navigate(`/admin/car-rentals/edit/${vehicle.id}`)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-white text-slate-950 rounded-xl text-sm font-bold transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-2.5 px-6 py-3 bg-slate-100 hover:bg-white text-slate-950 rounded-xl text-base font-bold transition-all cursor-pointer shadow-sm"
         >
-          <Edit className="h-4 w-4" /> Edit Vehicle
+          <Edit className="h-5 w-5" /> Edit Vehicle
         </button>
       </div>
 
       {/* 50 / 50 Split Card */}
-      <div className="bg-slate-900/30 border border-slate-850 backdrop-blur-md rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+      <div className="bg-slate-900/30 border border-slate-850 backdrop-blur-md rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
         
         {/* Left Half (50%): Image Top + Title & Daily Rate Underneath */}
-        <div className="bg-slate-950/60 border-b md:border-b-0 md:border-r border-slate-850/60 p-6 flex flex-col justify-between space-y-6">
+        <div className="bg-slate-950/60 border-b md:border-b-0 md:border-r border-slate-850/60 p-8 flex flex-col justify-between space-y-8">
           
           {/* Vehicle Image */}
-          <div className="relative min-h-[220px] md:min-h-[260px] bg-slate-900/60 rounded-2xl p-4 flex items-center justify-center border border-slate-850/40 overflow-hidden">
+          <div className="relative min-h-[320px] md:min-h-[380px] bg-slate-900/60 rounded-2xl p-6 flex items-center justify-center border border-slate-850/40 overflow-hidden">
             {vehicle.image && vehicle.image !== '/CAGSAWA.jpg' ? (
               <img
                 src={vehicle.image}
                 alt={title}
-                className="w-full h-full max-h-[280px] object-contain rounded-xl"
+                className="w-full h-full max-h-[390px] object-contain rounded-xl"
               />
             ) : (
               <div className="flex flex-col items-center gap-3 text-slate-600">
-                <Car className="h-16 w-16 stroke-[1.25]" />
-                <span className="text-xs text-slate-500 font-medium">No Image Provided</span>
+                <Car className="h-20 w-20 stroke-[1.25]" />
+                <span className="text-sm text-slate-500 font-medium">No Image Provided</span>
               </div>
             )}
           </div>
 
           {/* Header Info under picture */}
           <div>
-            <h1 className="text-2xl font-bold text-slate-100 tracking-tight">{title}</h1>
-            <p className="text-lg font-black text-slate-200 mt-1">
+            <h1 className="text-3xl font-bold text-slate-100 tracking-tight">{title}</h1>
+            <p className="text-xl font-black text-slate-200 mt-2">
               PHP {Number(vehicle.dailyRate || vehicle.daily_rate || 0).toLocaleString()}
-              <span className="text-xs font-normal text-slate-400 ml-1.5">/ day</span>
+              <span className="text-sm font-normal text-slate-400 ml-2">/ day</span>
             </p>
           </div>
         </div>
 
         {/* Right Half (50%): Vehicle Specifications */}
-        <div className="p-6 md:p-8 flex flex-col justify-start space-y-4">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-850/80 pb-3 mb-2">
+        <div className="p-8 md:p-10 flex flex-col justify-start space-y-5">
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-850/80 pb-4 mb-2">
             Vehicle Specifications
           </h2>
 

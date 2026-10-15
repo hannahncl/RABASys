@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Users, Package, Edit, Loader, CheckCircle2, ListOrdered } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Package, Edit, Loader, CheckCircle2 } from 'lucide-react';
 import { serviceService } from '../../services/serviceService';
 
 const parseDetailList = (value) => {
@@ -49,8 +49,10 @@ const TourPackageDetailPage = () => {
     const loadPackage = async () => {
       setLoading(true);
       try {
-        const data = await serviceService.getByCategory('tour');
-        const found = data.find((p) => String(p.id) === String(id));
+        // Load by ID so the detail page works for every package type,
+        // including Tuktrip packages (which are excluded from the
+        // general "tour" listing filter).
+        const found = await serviceService.getById(id);
         setPkg(found || null);
       } catch {
         setPkg(null);

@@ -19,10 +19,13 @@ const catConfig = {
   description: 'Tuk-tuk city rides, local tours, and guided sightseeing routes',
 };
 
-const ServiceCard = ({ item, onEdit, onDelete }) => {
+const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
   const Icon = catConfig.icon;
   return (
-    <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group">
+    <div
+      onClick={() => onView(item)}
+      className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-colors group cursor-pointer"
+    >
       <div className="relative h-44 overflow-hidden bg-slate-800">
         {item.image ? (
           <img
@@ -41,14 +44,14 @@ const ServiceCard = ({ item, onEdit, onDelete }) => {
         </div>
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => onEdit(item)}
+              onClick={(event) => { event.stopPropagation(); onEdit(item); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer text-slate-950 ${catConfig.activeBg} hover:opacity-90`}
           >
             <Edit className="h-4 w-4" />
             Edit
           </button>
           <button
-            onClick={() => onDelete(item.id)}
+            onClick={(event) => { event.stopPropagation(); onDelete(item.id); }}
             className="p-1.5 bg-slate-900/90 hover:bg-rose-500 text-white rounded-lg cursor-pointer backdrop-blur-sm transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -116,6 +119,10 @@ const ManageTuktripPackages = () => {
     navigate(`/admin/tuktrip/edit/${item.id}`);
   };
 
+  const handleView = (item) => {
+    navigate(`/admin/tour-packages/${item.id}`);
+  };
+
   const handleDelete = async (id) => {
     if (await confirm('Are you sure you want to delete this tuktrip?')) {
       try {
@@ -163,6 +170,7 @@ const ManageTuktripPackages = () => {
               item={item}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={handleView}
             />
           ))}
 

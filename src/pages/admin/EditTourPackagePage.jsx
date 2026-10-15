@@ -24,6 +24,7 @@ const EditTourPackagePage = () => {
     meetingLocation: '',
     itinerary: '',
     image: '',
+    availabilityStatus: 'Available',
     joinerDate: '',
     joinerSlots: '',
     joinerBookingDeadline: ''
@@ -54,6 +55,7 @@ const EditTourPackagePage = () => {
           meetingLocation: item.meetingLocation || '',
           itinerary: Array.isArray(item.itinerary) ? item.itinerary.map(entry => entry.title || entry.desc || '').join('\n') : (item.itinerary || ''),
           image: item.image || '',
+          availabilityStatus: item.availabilityStatus || item.availability_status || 'Available',
           joinerDate: item.joinerDate || '',
           joinerSlots: item.joinerSlots != null ? String(item.joinerSlots) : '',
           joinerBookingDeadline: item.joinerBookingDeadline || ''
@@ -122,6 +124,7 @@ const EditTourPackagePage = () => {
         joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
         joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
         image: formData.image || '/CAGSAWA.jpg',
+        availabilityStatus: formData.availabilityStatus,
         tags: [formData.destination.trim(), 'Tour Package']
       };
 
