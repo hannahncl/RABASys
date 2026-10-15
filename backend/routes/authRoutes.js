@@ -12,6 +12,26 @@ const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, created_at, updated_at";
+const accountSelect = `
+    SELECT 
+        a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
+        a.role, a.account_status, a.two_factor_enabled, a.google_id, a.created_at, a.updated_at,
+        m.file_path AS profile_picture
+    FROM account a
+    LEFT JOIN tour_guide tg ON tg.account_id = a.account_id
+    LEFT JOIN media m ON m.media_id = tg.media_id
+`;
+const accountSelectWithPassword = `
+    SELECT 
+        a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
+        a.role, a.account_status, a.two_factor_enabled, a.google_id, a.created_at, a.updated_at,
+        a.password_hash,
+        m.file_path AS profile_picture
+    FROM account a
+    LEFT JOIN tour_guide tg ON tg.account_id = a.account_id
+    LEFT JOIN media m ON m.media_id = tg.media_id
+`;
+
 const normalizeRole = (role) => {
     if (!role) return "Customer";
     const normalized = String(role).trim().toLowerCase();
@@ -42,6 +62,7 @@ const publicAccount = (account) => ({
     role: normalizeRole(account.role),
     status: account.account_status,
     twoFactorEnabled: Boolean(account.two_factor_enabled),
+    profilePicture: account.profile_picture || account.profilePicture || "",
     createdAt: account.created_at
 });
 const validate = (req, res, next) => {
@@ -108,7 +129,7 @@ router.post("/register", [
             "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, ?, 'Customer')",
             [firstName, lastName, email, await bcrypt.hash(password, 12), contactNumber]
         );
-        const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
+        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [result.insertId]);
         const account = rows[0];
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
@@ -126,7 +147,7 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         const normalizedEmail = normalizeEmail(identifier);
         const normalizedPhone = identifier.replace(/\D/g, '');
         const [rows] = await db.execute(
-            `SELECT ${accountFields}, password_hash FROM account WHERE deleted_at IS NULL AND (email = ? OR REPLACE(REPLACE(REPLACE(contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
+            `${accountSelectWithPassword} WHERE a.deleted_at IS NULL AND (a.email = ? OR REPLACE(REPLACE(REPLACE(a.contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
@@ -155,7 +176,7 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
 
 router.post("/verify-login-otp", [body("email").isEmail().normalizeEmail(), body("otp").isString().matches(/^\d{6}$/)], validate, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`SELECT ${accountFields}, password_hash FROM account WHERE email = ? AND deleted_at IS NULL`, [req.body.email.toLowerCase()]);
+        const [rows] = await db.execute(`${accountSelectWithPassword} WHERE a.email = ? AND a.deleted_at IS NULL`, [req.body.email.toLowerCase()]);
         const account = rows[0];
         if (!account || !isActiveAccount(account)) return res.status(401).json({ message: "Invalid account." });
 
@@ -230,7 +251,7 @@ router.post("/logout", requireAuth, async (req, res, next) => {
 
 router.get("/me", requireAuth, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ? AND deleted_at IS NULL`, [req.user.accountId]);
+        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ? AND a.deleted_at IS NULL`, [req.user.accountId]);
         if (!rows[0]) return res.status(404).json({ message: "Account not found." });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
@@ -282,7 +303,7 @@ router.patch("/me", requireAuth, [
         if (!supplied.length) return res.status(400).json({ message: "No editable fields supplied." });
         const [before] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [req.user.accountId]);
         await db.execute(`UPDATE account SET ${supplied.map(([, column]) => `${column} = ?`).join(", ")} WHERE account_id = ?`, [...supplied.map(([key]) => req.body[key]), req.user.accountId]);
-        const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [req.user.accountId]);
+        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [req.user.accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_PROFILE", tableName: "account", recordId: req.user.accountId, oldValues: before[0], newValues: rows[0], req });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
@@ -310,7 +331,7 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
 
         // 2. Look up by google_id first (fastest match for returning Google users)
         const [byGoogleId] = await db.execute(
-            `SELECT ${accountFields} FROM account WHERE google_id = ? AND deleted_at IS NULL`,
+            `${accountSelect} WHERE a.google_id = ? AND a.deleted_at IS NULL`,
             [googleId]
         );
 
@@ -319,7 +340,7 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
         } else {
             // 3. Fall back to email match (links existing manual account to Google)
             const [byEmail] = await db.execute(
-                `SELECT ${accountFields} FROM account WHERE email = ? AND deleted_at IS NULL`,
+                `${accountSelect} WHERE a.email = ? AND a.deleted_at IS NULL`,
                 [googleEmail]
             );
 
@@ -340,7 +361,7 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
                 "INSERT INTO account (first_name, last_name, email, google_id, role) VALUES (?, ?, ?, ?, 'Customer')",
                 [firstName, lastName || "", googleEmail, googleId]
             );
-            const [rows] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [result.insertId]);
+            const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [result.insertId]);
             account = rows[0];
             await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, googleId, provider: "google" }, req });
         }

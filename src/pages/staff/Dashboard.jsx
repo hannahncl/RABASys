@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../../contexts/AuthContext';
 import { bookingService } from '../../services/bookingService';
 import { tripUploadService } from '../../services/tripUploadService';
+import { api } from '../../services/api';
 import { FileUp, ClipboardList, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const statusPillClass = (status) => {
@@ -26,6 +28,8 @@ const statusLabel = (status) => {
 };
 
 const Dashboard = () => {
+  const { user } = useContext(AuthContext);
+  const [guideProfile, setGuideProfile] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [totalUpdates, setTotalUpdates] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
@@ -45,8 +49,56 @@ const Dashboard = () => {
     loadStats();
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+    const fetchGuide = async () => {
+      try {
+        const data = await api(`/tour-guides/${user.id}`);
+        if (isMounted && data) setGuideProfile(data);
+      } catch (e) {
+        // Fall back gracefully
+      }
+    };
+    fetchGuide();
+    return () => { isMounted = false; };
+  }, [user?.id]);
+
+  const profilePicture = guideProfile?.profilePicture || user?.profilePicture;
+
   return (
-    <div className="space-y-8" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
+    <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
+      {/* Tour Guide Welcome Banner */}
+      <div className="bg-white p-5 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center gap-5">
+        <div className="relative shrink-0">
+          {profilePicture ? (
+            <img 
+              src={profilePicture} 
+              alt={user?.name || 'Tour Guide'} 
+              className="h-16 w-16 rounded-xl object-cover border-2 border-yellow-400 shadow-xs" 
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-xl bg-yellow-100 border border-yellow-300 flex items-center justify-center text-yellow-800 text-2xl font-bold font-display">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
+            </div>
+          )}
+          <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200" title="Active Guide"></span>
+        </div>
+        <div className="text-center sm:text-left flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+            <h2 className="text-lg font-bold text-[#1a1a1a]">
+              Welcome back, {user?.firstName || user?.name || 'Tour Guide'}!
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-800 border border-yellow-200">
+              DOT-Accredited Guide
+            </span>
+          </div>
+          <p className="text-xs text-[#6b6255] mt-1">
+            {guideProfile?.description || 'Assigned tour guide ready for scheduled tours, itinerary milestones, and field updates.'}
+          </p>
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1 */}
@@ -100,8 +152,12 @@ const Dashboard = () => {
                 <ShieldCheck className="h-3.5 w-3.5 text-yellow-700" />
               </div>
             </div>
-            <span className="text-2xl font-bold font-display text-emerald-600 block mt-1">Active</span>
-            <span className="text-[10px] text-slate-400 block">Ready for departure</span>
+            <span className={`text-2xl font-bold font-display block mt-1 ${guideProfile?.availability === 'Unavailable' ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {guideProfile?.availability || 'Active'}
+            </span>
+            <span className="text-[10px] text-slate-400 block">
+              {guideProfile?.employmentStatus || 'Active'} status &bull; Ready for departure
+            </span>
           </div>
         </div>
       </div>
@@ -111,7 +167,7 @@ const Dashboard = () => {
         
         {/* Left Column: Quick actions */}
         <div className="lg:col-span-1 space-y-4">
-          <h3 className="font-semibold text-slate-100 font-display text-base">Quick Actions</h3>
+          <h3 className="font-semibold text-stone-800 font-display text-base">Quick Actions</h3>
           
           <div className="space-y-3">
             <Link 
@@ -150,7 +206,7 @@ const Dashboard = () => {
 
         {/* Right Column: Recent Bookings list */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-semibold text-slate-100 font-display text-base">Recent Tours</h3>
+          <h3 className="font-semibold text-stone-800 font-display text-base">Recent Tours</h3>
           
           <div className="space-y-3">
             {recentBookings.map((b) => (
