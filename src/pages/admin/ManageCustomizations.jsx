@@ -15,6 +15,7 @@ import {
   MapPin,
   Phone,
   Plus,
+  CalendarDays,
   ReceiptText,
   Save,
   Trash2,
@@ -419,7 +420,7 @@ const ManageCustomizations = () => {
           </div>}
 
       {activeSection === 'review' ? (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start mt-6">
+        <div className="mt-6">
           <div className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-[#eae5db]">
               <div>
@@ -481,12 +482,32 @@ const ManageCustomizations = () => {
             )}
           </div>
 
-          <CustomBookingReview
-            key={selectedBooking?.id || 'empty'}
-            booking={selectedBooking}
-            updatingId={updatingBookingId}
-            onConfirm={handleBookingStatus}
-          />
+          {selectedBooking && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1715]/45 p-4 backdrop-blur-[2px]"
+              onMouseDown={() => setSelectedBooking(null)}
+            >
+              <div
+                className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-md bg-white shadow-2xl"
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedBooking(null)}
+                  className="absolute right-4 top-4 z-10 rounded-full border border-[#e0dbd0] bg-white p-2 text-[#6b6255] transition-colors hover:bg-[#f7f4ef] hover:text-[#1a1a1a]"
+                  aria-label="Close customized booking review"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <CustomBookingReview
+                  key={selectedBooking.id}
+                  booking={selectedBooking}
+                  updatingId={updatingBookingId}
+                  onConfirm={handleBookingStatus}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
@@ -509,7 +530,8 @@ const ManageCustomizations = () => {
 
           <section className="space-y-6">
             {editingDestination && (
-              <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1715]/40 p-4 backdrop-blur-[2px]" onMouseDown={() => setEditingDestination(null)}>
+                <div className="w-full max-w-2xl overflow-y-auto border border-[#e0dbd0] bg-white p-6 shadow-2xl" onMouseDown={event => event.stopPropagation()}>
                 <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
                   <h2 className="text-base font-bold text-[#1a1a1a]">
                     {editingDestination === 'new' ? 'New Customization Destination' : 'Edit Destination Details'}
@@ -543,6 +565,7 @@ const ManageCustomizations = () => {
                   <button onClick={handleSaveDestination} className="px-4 py-2 rounded bg-[#2d2a24] text-[#f7f4ef] text-xs font-semibold uppercase tracking-[0.1em] flex items-center gap-2 cursor-pointer">
                     <Save className="h-4 w-4" /> Save
                   </button>
+                </div>
                 </div>
               </div>
             )}
@@ -684,22 +707,38 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
   const totalAmount = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
 
   return (
-    <aside className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden xl:sticky xl:top-24">
-      <div className="p-5 border-b border-[#eae5db]">
+    <aside className="overflow-hidden bg-white font-sans" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
+      <div className="border-b border-[#ded6c9] bg-[#f7f3ec] px-6 py-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[10px] text-[#c49b27] font-bold">{booking.id}</p>
-            <h2 className="text-base font-bold text-[#1a1a1a] mt-0.5 leading-snug">{booking.packageName}</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a8275]">Customized trip itinerary</p>
+            <h2 className="mt-2 font-sans text-xl font-semibold tracking-tight text-[#1a1a1a]">{booking.packageName}</h2>
           </div>
-          <span className={`shrink-0 inline-flex px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${statusStyle(booking.status)}`}>
-            {statusLabel(booking.status)}
-          </span>
         </div>
       </div>
 
-      <div className="p-5 space-y-5">
-        <section className="space-y-2">
-          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Customer</h3>
+      <div className="space-y-6 p-6">
+        <div className="grid grid-cols-1 gap-3 border border-[#ded6c9] bg-[#fcfbf9] p-4 sm:grid-cols-2 sm:items-center">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Trip origin</p>
+            <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">Custom request</p>
+          </div>
+          <div className="sm:text-right">
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destination</p>
+            <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">{details.destination || booking.destination || 'Not set'}</p>
+          </div>
+          <div className="flex items-center gap-2 border-t border-[#eae5db] pt-3 text-[11px] text-[#6b6255] sm:col-span-2">
+            <CalendarDays className="h-4 w-4 text-[#b08a38]" />
+            <span className="font-semibold">Travel date:</span> {formatDate(booking.tourDate)}
+            <span className="mx-1 text-[#c8bfae]">•</span>
+            <span className="font-semibold">Duration:</span> {details.duration || booking.duration || 'Not set'}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="space-y-6">
+        <section className="space-y-3">
+          <h3 className="border-b border-[#eae5db] pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b6255]">Passenger details</h3>
           <ReviewRow icon={UserRound} label="Name" value={booking.customerName} />
           <ReviewRow icon={Mail} label="Email" value={booking.customerEmail} />
           <ReviewRow icon={Phone} label="Phone" value={booking.customerPhone} />
@@ -707,12 +746,9 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Customized Trip</h3>
-          <DetailLine label="Destination" value={details.destination || booking.destination || 'Not set'} />
+          <h3 className="border-b border-[#eae5db] pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b6255]">Trip details</h3>
           <DetailLine label="Accommodation" value={details.hotel || 'None'} />
           <DetailLine label="Preferred guide" value={details.preferredGuideName || 'No preference'} />
-          <DetailLine label="Duration" value={details.duration || booking.duration || 'Not set'} />
-          <DetailLine label="Tour Date" value={formatDate(booking.tourDate)} />
           {activities.length > 0 && (
             <div className="bg-[#fcfbf9] border border-[#e0dbd0] rounded p-3">
               <p className="text-[#6b6255] text-xs font-semibold mb-2">Selected Tours</p>
@@ -724,6 +760,9 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
             </div>
           )}
         </section>
+
+          </div>
+          <div className="space-y-6">
 
         <section className="space-y-2">
           <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Proposed itinerary</h3>
@@ -801,6 +840,9 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
           {isPending && <p className="text-[11px] text-[#6b6255]">The complete itinerary and breakdown will be emailed for customer approval.</p>}
         </section>
 
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
           <button
             onClick={() => onConfirm(booking, {
@@ -820,11 +862,11 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
 };
 
 const ReviewRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 text-sm">
-    <Icon className="h-4 w-4 text-[#c49b27] shrink-0" />
+  <div className="flex items-center gap-2.5 text-xs">
+    <Icon className="h-3.5 w-3.5 text-[#b08a38] shrink-0" />
     <div className="min-w-0">
-      <p className="text-[10px] uppercase text-[#6b6255] font-bold">{label}</p>
-      <p className="text-[#1a1a1a] font-medium truncate">{value || 'Not set'}</p>
+      <p className="text-[9px] uppercase tracking-wide text-[#8a8275] font-bold">{label}</p>
+      <p className="text-[13px] text-[#1a1a1a] font-medium truncate">{value || 'Not set'}</p>
     </div>
   </div>
 );
@@ -839,34 +881,58 @@ const DetailLine = ({ label, value, mono, strong }) => (
 );
 
 const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onCancel }) => (
-  <div className="bg-[#fcfbf9] border border-[#e0dbd0] rounded p-4 space-y-3">
-    <input
-      value={form.name}
-      onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-      placeholder="Name"
-      className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-sm text-[#1a1a1a] outline-none focus:border-[#b0a68e]"
-    />
-    <input
-      type="number"
-      value={form[priceKey]}
-      onChange={e => setForm(prev => ({ ...prev, [priceKey]: e.target.value }))}
-      placeholder={priceLabel}
-      className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-sm text-[#1a1a1a] outline-none focus:border-[#b0a68e]"
-    />
-    <textarea
-      rows={3}
-      value={form.details}
-      onChange={e => setForm(prev => ({ ...prev, details: e.target.value }))}
-      placeholder="Details"
-      className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-sm text-[#1a1a1a] outline-none focus:border-[#b0a68e] resize-none"
-    />
-    <div className="flex justify-end gap-2">
-      <button onClick={onCancel} className="p-2 rounded bg-white border border-[#e0dbd0] text-[#6b6255] hover:text-[#1a1a1a] cursor-pointer">
-        <X className="h-4 w-4" />
-      </button>
-      <button onClick={onSave} className="p-2 rounded bg-[#2d2a24] text-[#f7f4ef] cursor-pointer">
-        <Save className="h-4 w-4" />
-      </button>
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1715]/40 p-4 backdrop-blur-[2px]" onMouseDown={onCancel}>
+    <div className="w-full max-w-lg border border-[#e0dbd0] bg-white p-6 shadow-2xl" onMouseDown={event => event.stopPropagation()}>
+      <div className="mb-5 flex items-center justify-between border-b border-[#eae5db] pb-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Catalog option</p>
+          <h3 className="mt-1 text-lg font-semibold text-[#1a1a1a]">{priceLabel === 'Price / Guest' ? 'Accommodation' : 'Tour Offered'}</h3>
+        </div>
+        <button type="button" onClick={onCancel} className="text-[#6b6255] hover:text-[#1a1a1a]" aria-label="Close form">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <label className="block">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#6b6255]">Name</span>
+          <input
+            value={form.name}
+            onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+            placeholder={priceLabel === 'Price / Guest' ? 'Accommodation name' : 'Tour name'}
+            className="w-full border border-[#d6cfc2] bg-white p-3 text-sm text-[#1a1a1a] outline-none focus:border-[#8a7f70]"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#6b6255]">{priceLabel}</span>
+          <input
+            type="number"
+            value={form[priceKey]}
+            onChange={e => setForm(prev => ({ ...prev, [priceKey]: e.target.value }))}
+            placeholder="0"
+            className="w-full border border-[#d6cfc2] bg-white p-3 text-sm text-[#1a1a1a] outline-none focus:border-[#8a7f70]"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#6b6255]">Details</span>
+          <textarea
+            rows={4}
+            value={form.details}
+            onChange={e => setForm(prev => ({ ...prev, details: e.target.value }))}
+            placeholder="Add a short description"
+            className="w-full resize-none border border-[#d6cfc2] bg-white p-3 text-sm text-[#1a1a1a] outline-none focus:border-[#8a7f70]"
+          />
+        </label>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-2 border-t border-[#eae5db] pt-4">
+        <button type="button" onClick={onCancel} className="border border-[#d6cfc2] bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#6b6255] hover:bg-[#f7f4ef] cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" onClick={onSave} className="flex items-center gap-2 bg-[#2d2a24] px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#f7f4ef] hover:bg-[#1a1715] cursor-pointer">
+          <Save className="h-4 w-4" /> Save
+        </button>
+      </div>
     </div>
   </div>
 );

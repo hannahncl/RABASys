@@ -7,7 +7,7 @@ import { customizationService } from '../../services/customizationService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
-import { Loader, Calendar } from 'lucide-react';
+import { Loader, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
 import { weatherService } from '../../services/weatherService';
 
 /* ─── Color Palette & Common Styles ─── */
@@ -226,6 +226,7 @@ const CustomPlanner = () => {
   const [otherActivityPreference, setOtherActivityPreference] = useState('');
   const [tourGuides, setTourGuides] = useState([]);
   const [preferredGuideId, setPreferredGuideId] = useState('');
+  const [showGuidePicker, setShowGuidePicker] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [requestReference, setRequestReference] = useState('');
@@ -293,22 +294,39 @@ const CustomPlanner = () => {
 
   if (requestReference) {
     return (
-      <div className="min-h-screen px-4 py-16" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
-        <div className="mx-auto max-w-xl border p-8 text-center" style={{ borderColor: colors.border, background: colors.cardBg }}>
-          <h1 className="text-xl font-semibold" style={{ color: colors.textPrimary }}>Custom trip request sent</h1>
-          <p className="mt-4 text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+      <div className="min-h-screen px-4 py-16 sm:py-24" style={{ background: 'linear-gradient(135deg, #fcfbf9 0%, #f4eee5 100%)', fontFamily: "'Inter', 'Georgia', serif" }}>
+        <div className="mx-auto max-w-2xl overflow-hidden rounded-sm border shadow-[0_20px_60px_rgba(74,62,48,0.12)]" style={{ borderColor: colors.border, background: colors.cardBg }}>
+          <div className="h-1.5" style={{ background: colors.accentDark }} />
+          <div className="px-6 py-10 text-center sm:px-14 sm:py-12">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full" style={{ background: '#eee8de', color: colors.accentDark }}>
+              <CheckCircle2 className="h-11 w-11" strokeWidth={1.5} />
+            </div>
+            <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: colors.accent }}>Request received</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: colors.textPrimary }}>Your custom trip is on its way</h1>
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-7" style={{ color: colors.textSecondary }}>
             The business will review your trip details and prepare the final pricing. No payment is due yet. We’ll email you with the quote and any updates.
-          </p>
-          <p className="mt-5 text-xs" style={{ color: colors.textMuted }}>Request reference: {requestReference}</p>
-          <p className="mt-1 text-xs" style={{ color: colors.textMuted }}>Updates will be sent to {user?.email || email}.</p>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="mt-7 px-6 py-3 text-[11px] font-semibold uppercase"
-            style={{ background: colors.accentDark, color: '#f7f4ef', borderRadius: '2px' }}
-          >
-            Return to home
-          </button>
+            </p>
+
+            <div className="mx-auto mt-8 grid max-w-lg grid-cols-1 gap-3 text-left sm:grid-cols-2">
+              <div className="border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Request reference</p>
+                <p className="mt-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>{requestReference}</p>
+              </div>
+              <div className="border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Updates sent to</p>
+                <p className="mt-2 truncate text-sm font-semibold" style={{ color: colors.textPrimary }}>{user?.email || email}</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="mt-9 inline-flex items-center gap-3 px-7 py-3.5 text-[11px] font-semibold uppercase tracking-wider transition-all hover:gap-4"
+              style={{ background: colors.accentDark, color: '#f7f4ef', borderRadius: '2px' }}
+            >
+              Return to home <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -667,19 +685,16 @@ const CustomPlanner = () => {
                 <label htmlFor="select-tour-guide" className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary }}>
                   Choose a preferred guide (optional)
                 </label>
-                <select
+                <button
                   id="select-tour-guide"
-                  value={preferredGuideId}
-                  onChange={e => setPreferredGuideId(e.target.value)}
-                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                  type="button"
+                  onClick={() => setShowGuidePicker(true)}
+                  className="flex w-full items-center justify-between py-3 px-4 text-left text-[14px] transition-all hover:border-[#1a1715]"
                   style={{ ...inputStyle, cursor: 'pointer' }}
-                  {...inputFocusHandlers}
                 >
-                  <option value="">No preference</option>
-                  {tourGuides.map(guide => (
-                    <option key={guide.guideId} value={guide.guideId}>{guide.name}</option>
-                  ))}
-                </select>
+                  <span>{preferredGuide?.nickname || preferredGuide?.name || 'No preference'}</span>
+                  <span className="text-[18px] leading-none" style={{ color: colors.textMuted }}>⌄</span>
+                </button>
                 {preferredGuide && (
                   <div className="mt-3 flex gap-3 border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
                     {preferredGuide.profilePicture && (
@@ -708,6 +723,66 @@ const CustomPlanner = () => {
                 )}
                 {tourGuides.length === 0 && (
                   <p className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>No guides are currently available to select.</p>
+                )}
+
+                {showGuidePicker && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                    onMouseDown={() => setShowGuidePicker(false)}
+                  >
+                    <div
+                      className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-md bg-white p-5 shadow-2xl"
+                      style={{ border: `1px solid ${colors.border}` }}
+                      onMouseDown={(event) => event.stopPropagation()}
+                    >
+                      <div className="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-base font-semibold" style={{ color: colors.textPrimary }}>Choose a tour guide</h3>
+                          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>Select a guide to include in your custom trip request.</p>
+                        </div>
+                        <button type="button" onClick={() => setShowGuidePicker(false)} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close guide selection">×</button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        {tourGuides.map((guide) => {
+                          const isSelected = String(guide.guideId) === String(preferredGuideId);
+                          const initials = `${guide.firstName?.[0] || ''}${guide.lastName?.[0] || ''}`.toUpperCase() || 'TG';
+                          return (
+                            <button
+                              key={guide.guideId}
+                              type="button"
+                              onClick={() => { setPreferredGuideId(String(guide.guideId)); setShowGuidePicker(false); }}
+                              className={`group flex flex-col items-center rounded-md border p-4 text-center transition-all hover:-translate-y-0.5 hover:border-[#8a7f70] hover:bg-[#f7f4ef] hover:shadow-md ${isSelected ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
+                            >
+                              {guide.profilePicture ? (
+                                <img src={guide.profilePicture} alt={guide.name} className="h-16 w-16 shrink-0 rounded-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                              ) : (
+                                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#e8dfce] text-sm font-semibold" style={{ color: colors.accentDark }}>{initials}</span>
+                              )}
+                              <span className="mt-3 min-w-0">
+                                <span className="block text-sm font-semibold" style={{ color: colors.textPrimary }}>{guide.nickname || guide.name}</span>
+                                <span className="mt-1 block text-[11px]" style={{ color: colors.textSecondary }}>
+                                  {guide.yearsExperience || 0} {Number(guide.yearsExperience) === 1 ? 'year' : 'years'} experience
+                                </span>
+                                <span className="mt-2 block line-clamp-3 text-[11px] leading-relaxed" style={{ color: colors.textMuted }}>{guide.description || 'No profile description provided.'}</span>
+                                <span className="mt-2 block text-[11px]" style={{ color: colors.textSecondary }}>Languages: {guide.languageSpoken || 'Not specified'}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => { setPreferredGuideId(''); setShowGuidePicker(false); }}
+                          className={`group flex flex-col items-center justify-center rounded-md border p-4 text-center transition-all hover:-translate-y-0.5 hover:border-[#8a7f70] hover:bg-[#f7f4ef] hover:shadow-md ${!preferredGuideId ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
+                        >
+                          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f0ede7] text-xl" style={{ color: colors.accent }}>—</span>
+                          <span className="mt-3 text-sm font-semibold" style={{ color: colors.textPrimary }}>No preference</span>
+                          <span className="mt-2 text-[11px] leading-relaxed" style={{ color: colors.textMuted }}>Let the tour team recommend an available guide.</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
