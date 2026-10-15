@@ -59,7 +59,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
     const isCustomTrip = !isRental && Boolean(booking.customized_details);
     const isCustomQuote = type === "custom-quote";
     const isCustomAccepted = type === "custom-accepted";
-    const hasQuote = isCustomQuote || isCustomAccepted;
+    const isCustomSamplePayment = type === "custom-sample-payment";
+    const hasQuote = isCustomQuote || isCustomAccepted || isCustomSamplePayment;
     let customDetails = booking.customized_details;
     if (typeof customDetails === "string") {
         try { customDetails = JSON.parse(customDetails); } catch { customDetails = {}; }
@@ -68,7 +69,9 @@ async function sendBookingConfirmation(booking, type = "tour") {
 
     const title = isRental
         ? "Car Rental Booking Confirmation"
-        : isCustomAccepted
+        : isCustomSamplePayment
+            ? "Customized Trip Sample Payment Receipt"
+            : isCustomAccepted
             ? "Customized Trip Quote Accepted"
             : isCustomQuote
                 ? "Customized Trip Quote"
@@ -100,6 +103,10 @@ async function sendBookingConfirmation(booking, type = "tour") {
                 ["Travel date", booking.travel_date],
                 ["Number of persons", booking.number_of_persons],
             ];
+    if (isCustomSamplePayment) {
+        details.push(["Payment mode", `${booking.payment_method || "Sample Payment"} (simulation)`]);
+        details.push(["Payment reference", booking.payment_transaction_reference]);
+    }
 
     const detailsText = details.map(([label, value]) => `${label}: ${value || "-"}`).join("\n");
     const detailsHtml = details.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(label)}</td><td style="padding:7px 12px;font-weight:bold">${escapeHtml(value || "-")}</td></tr>`).join("");
@@ -122,14 +129,18 @@ async function sendBookingConfirmation(booking, type = "tour") {
     const priceHtml = isCustomTrip && !hasQuote
         ? "<p><strong>Final pricing:</strong> To be provided after business review. No payment is due yet.</p>"
         : `<p style="font-size:16px"><strong>Final quote total: PHP ${escapeHtml(total)}</strong></p>`;
-    const message = isCustomAccepted
+    const message = isCustomSamplePayment
+        ? "Your customized trip sample payment has been recorded."
+        : isCustomAccepted
         ? "Your acceptance of the customized trip quote is confirmed."
         : isCustomQuote
             ? "Your customized trip request has been reviewed and quoted."
             : isCustomTrip
                 ? "We received your customized trip request."
                 : "Your booking has been received.";
-    const followUp = isCustomAccepted
+    const followUp = isCustomSamplePayment
+        ? "This is a sample payment receipt only. No real payment was processed or money transferred."
+        : isCustomAccepted
         ? "Your acceptance has been recorded. Our team will contact you with next steps and payment instructions."
         : isCustomQuote
             ? "To accept this itinerary and quote, sign in to your RABAS account and accept it from your booking details. No payment has been taken yet."

@@ -42,12 +42,24 @@ const StatusBadge = ({ status }) => {
       <Mail className="h-3.5 w-3.5" /> Quote Sent
     </span>
   );
+  if (status === 'Quote Accepted') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+      <CheckCircle2 className="h-3.5 w-3.5" /> Quote Accepted
+    </span>
+  );
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
       <Clock className="h-3.5 w-3.5 animate-pulse" /> Pending Verification
     </span>
   );
 };
+
+const hasPricedCustomQuote = (booking) => Boolean(
+  booking?.customizedDetails?.quoteItinerary?.trim()
+  && Array.isArray(booking.customizedDetails.priceBreakdown)
+  && booking.customizedDetails.priceBreakdown.length > 0
+  && Number(booking.totalPrice) > 0
+);
 
 /* ────────────────────────────────
    Main Profile Component
@@ -63,6 +75,8 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [viewingBooking, setViewingBooking] = useState(null);
   const [acceptingQuoteId, setAcceptingQuoteId] = useState(null);
+  const [samplePaymentBooking, setSamplePaymentBooking] = useState(null);
+  const [samplePaymentMethod, setSamplePaymentMethod] = useState('GCash');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
@@ -161,6 +175,8 @@ const Profile = () => {
     ? allBookings
     : activeTab === 'To Review'
       ? allBookings.filter(isEligibleToReview)
+      : activeTab === 'Quote Sent'
+        ? allBookings.filter(b => ['Quote Sent', 'Quote Accepted'].includes(b.status))
       : allBookings.filter(b => b.status === activeTab);
 
   // ── Reset to page 1 when tab changes ──
@@ -169,17 +185,17 @@ const Profile = () => {
     setCurrentPage(1);
   };
 
-  const handleAcceptCustomQuote = async (booking) => {
-    if (!(await confirm(`Accept the final quote of PHP ${Number(booking.totalPrice || 0).toLocaleString()} for this customized trip?`))) return;
-
-    setAcceptingQuoteId(booking.id);
+  const handleSamplePayment = async () => {
+    if (!samplePaymentBooking) return;
+    setAcceptingQuoteId(samplePaymentBooking.id);
     try {
-      const updated = await bookingService.acceptCustomQuote(booking.id);
-      setAllBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
+      const updated = await bookingService.payCustomQuoteSample(samplePaymentBooking.id, samplePaymentMethod);
+      setAllBookings(prev => prev.map(item => item.id === samplePaymentBooking.id ? updated : item));
       setViewingBooking(updated);
-      showNotification('Quote accepted. The business will email you with payment instructions.', 'success');
+      setSamplePaymentBooking(null);
+      showNotification(`Sample ${samplePaymentMethod} payment recorded. No real money was charged.`, 'success');
     } catch (error) {
-      showNotification(error.message || 'Failed to accept the custom trip quote.', 'error');
+      showNotification(error.message || 'Failed to record the sample payment.', 'error');
     } finally {
       setAcceptingQuoteId(null);
     }
@@ -750,13 +766,15 @@ const Profile = () => {
               <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
                 <Row
                   label="Quote status"
-                  value={viewingBooking.status === 'Pending Verification'
+                  value={!hasPricedCustomQuote(viewingBooking)
                     ? 'Pricing under review'
-                    : viewingBooking.status === 'Quote Sent'
-                      ? 'Review this quote and accept it below'
-                      : 'Quote accepted'}
+                    : viewingBooking.paymentStatus === 'Sample'
+                      ? 'Sample payment recorded'
+                      : viewingBooking.status === 'Quote Accepted'
+                        ? 'Quote accepted, payment pending'
+                        : 'Quote ready for acceptance'}
                 />
-                {viewingBooking.status !== 'Pending Verification' && (
+                {hasPricedCustomQuote(viewingBooking) && (
                   <>
                     {viewingBooking.customizedDetails.quoteItinerary && (
                       <div className="border-t border-[#e0dbd0] pt-3">
@@ -779,17 +797,19 @@ const Profile = () => {
                       <span>Final quote:</span>
                       <span className="text-sm text-[#2d2a24]">PHP {viewingBooking.totalPrice?.toLocaleString()}</span>
                     </div>
+                    {viewingBooking.paymentStatus === 'Sample' && (
+                      <div className="space-y-1 rounded border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+                        <p className="font-bold">Sample payment recorded. No real money was charged.</p>
+                        <Row label="Payment reference" value={viewingBooking.paymentTransactionReference || 'Unavailable'} />
+                        {viewingBooking.paymentDate && <Row label="Recorded" value={new Date(viewingBooking.paymentDate).toLocaleString()} />}
+                      </div>
+                    )}
+                    {!viewingBooking.paymentStatus && viewingBooking.status === 'Confirmed' && (
+                      <p className="rounded border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+                        This quote was accepted before sample checkout was available. No payment is recorded here.
+                      </p>
+                    )}
                   </>
-                )}
-                {viewingBooking.status === 'Quote Sent' && (
-                  <button
-                    type="button"
-                    onClick={() => handleAcceptCustomQuote(viewingBooking)}
-                    disabled={acceptingQuoteId === viewingBooking.id}
-                    className="mt-2 w-full rounded bg-[#2d2a24] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
-                  >
-                    {acceptingQuoteId === viewingBooking.id ? 'Accepting...' : 'Accept itinerary & quote'}
-                  </button>
                 )}
               </div>
             ) : (
@@ -808,6 +828,31 @@ const Profile = () => {
                   <span>Grand Total Paid:</span>
                   <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
                 </div>
+              </div>
+            )}
+
+            {viewingBooking.customizedDetails && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSamplePaymentMethod('GCash');
+                    setSamplePaymentBooking(viewingBooking);
+                  }}
+                  disabled={!hasPricedCustomQuote(viewingBooking) || viewingBooking.paymentStatus === 'Sample' || acceptingQuoteId === viewingBooking.id}
+                  className="w-full rounded bg-[#2d2a24] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {acceptingQuoteId === viewingBooking.id
+                    ? 'Recording sample payment...'
+                    : viewingBooking.paymentStatus === 'Sample'
+                      ? 'Sample payment recorded'
+                      : hasPricedCustomQuote(viewingBooking)
+                        ? 'Accept & simulate sample payment'
+                        : 'Waiting for admin quote'}
+                </button>
+                {hasPricedCustomQuote(viewingBooking) && viewingBooking.paymentStatus !== 'Sample' && (
+                  <p className="text-center text-[10px] text-[#8f8576]">Demo only. No real payment will be charged.</p>
+                )}
               </div>
             )}
 
@@ -854,6 +899,39 @@ const Profile = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {samplePaymentBooking && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="sample-payment-title">
+          <div className="w-full max-w-sm space-y-5 rounded-md border border-[#e0dbd0] bg-white p-5 shadow-xl">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8f8576]">Payment</p>
+              <h3 id="sample-payment-title" className="mt-1 text-lg font-bold text-[#1a1a1a]">Complete Payment</h3>
+            </div>
+            <div className="space-y-3">
+              {['GCash', 'Credit Card'].map((method) => (
+                <label key={method} className={`flex cursor-pointer items-center gap-3 rounded border p-3 text-sm ${samplePaymentMethod === method ? 'border-[#2d2a24] bg-[#fcfbf9]' : 'border-[#e0dbd0]'}`}>
+                  <input type="radio" name="sample-payment-method" value={method} checked={samplePaymentMethod === method} onChange={() => setSamplePaymentMethod(method)} />
+                  <span className="font-semibold text-[#1a1a1a]">{method === 'Credit Card' ? 'Credit / Debit Card' : method}</span>
+                </label>
+              ))}
+              <div className="space-y-2 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                <p>{samplePaymentMethod} is selected. This demo does not connect to {samplePaymentMethod} or process a real transaction.</p>
+                <p className="flex justify-between border-t border-amber-200 pt-2 font-bold">
+                  <span>Quote total</span>
+                  <span>PHP {Number(samplePaymentBooking.totalPrice || 0).toLocaleString()}</span>
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-[#6b6255]">Continue to record a sample receipt and confirm this customized trip. No card or GCash account details are requested.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setSamplePaymentBooking(null)} disabled={acceptingQuoteId === samplePaymentBooking.id} className="flex-1 rounded border border-[#e0dbd0] px-3 py-2.5 text-xs font-semibold text-[#4a453b] disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={handleSamplePayment} disabled={acceptingQuoteId === samplePaymentBooking.id} className="flex-1 rounded bg-[#2d2a24] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50">
+                {acceptingQuoteId === samplePaymentBooking.id ? 'Processing...' : `Pay PHP ${Number(samplePaymentBooking.totalPrice || 0).toLocaleString()} (Demo)`}
+              </button>
+            </div>
           </div>
         </div>
       )}
