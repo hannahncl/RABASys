@@ -11,9 +11,11 @@ import {
   Play, Pause, RotateCcw, Car, Footprints
 } from 'lucide-react';
 import mapGalleryService from '../../services/mapGalleryService';
+import { packageService } from '../../services/serviceService';
 import { useNotification } from '../../hooks/useNotification';
 import { AuthContext } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import FavoriteButton from '../../components/ui/FavoriteButton';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -103,6 +105,30 @@ const PRESET_UPLOAD_IMAGES = [
   { name: 'Calaguas Beach', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800' },
   { name: 'Matnog Pink Sand', url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800' },
 ];
+
+const DESTINATION_COORDINATES = {
+  albay: [13.1391, 123.7438],
+  legazpi: [13.1391, 123.7438],
+  'camarines sur': [13.6218, 123.1948],
+  naga: [13.6218, 123.1948],
+  caramoan: [13.7836, 123.8569],
+  'camarines norte': [14.4716, 122.9366],
+  calaguas: [14.4716, 122.9366],
+  sorsogon: [12.9067, 123.5997],
+  donsol: [12.9067, 123.5997],
+  matnog: [12.5852, 124.0853],
+};
+
+const normalizeDestinationName = (value) => String(value || '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+const getDestinationCoordinates = (destination) => {
+  const normalized = normalizeDestinationName(destination);
+  const match = Object.entries(DESTINATION_COORDINATES).find(([name]) => normalized.includes(name) || name.includes(normalized));
+  return match ? match[1] : null;
+};
 
 const getTimeAgo = (dateStr) => {
   if (!dateStr) return 'Just now';
@@ -318,7 +344,42 @@ const ExploreMap = () => {
   useEffect(() => {
     const initData = async () => {
       const spotList = await mapGalleryService.getSpots();
-      setSpots(spotList);
+      let destinationSpots = [...spotList];
+
+      // Add destinations used by active tour packages when they are not already
+      // represented by one of the curated map spots.
+      try {
+        const packages = await packageService.getAll();
+        const existingNames = new Set(spotList.map((spot) => normalizeDestinationName(spot.name)));
+        const packageDestinations = packages
+          .filter((pkg) => pkg.destination && getDestinationCoordinates(pkg.destination))
+          .filter((pkg) => !existingNames.has(normalizeDestinationName(pkg.destination)))
+          .reduce((unique, pkg) => {
+            const key = normalizeDestinationName(pkg.destination);
+            if (!unique.has(key)) unique.set(key, pkg);
+            return unique;
+          }, new Map());
+
+        destinationSpots = [
+          ...spotList,
+          ...Array.from(packageDestinations.values()).map((pkg) => ({
+            id: `package-destination-${pkg.id}`,
+            name: pkg.destination,
+            coords: getDestinationCoordinates(pkg.destination),
+            description: pkg.description || `Explore ${pkg.destination} with RABAS Travel & Tours Services.`,
+            category: pkg.category || 'Tour Destination',
+            featuredImage: pkg.image,
+            travelTips: pkg.duration ? `Available package duration: ${pkg.duration}.` : '',
+            bestSeason: '',
+            activities: [],
+            packageLink: `/packages/${pkg.id}`,
+          })),
+        ];
+      } catch (error) {
+        console.warn('Could not load package destinations for the map:', error.message);
+      }
+
+      setSpots(destinationSpots);
 
       const allStoryUploads = await mapGalleryService.getAllUploads();
       setUploads(allStoryUploads);
@@ -1004,7 +1065,12 @@ const ExploreMap = () => {
                 {filteredSpots.map(spot => (
                   <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
                     <Popup className="custom-spot-popup">
-                      <div style={{ padding: '0.375rem', maxWidth: '240px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ position: 'relative', padding: '0.375rem', maxWidth: '240px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <FavoriteButton
+                          itemId={spot.id}
+                          itemType="destination"
+                          className="absolute right-2 top-2 z-10 shadow-sm"
+                        />
                         <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5.5rem', objectFit: 'cover', borderRadius: '4px' }} />
                         <div>
                           <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#855912', background: '#fef9c3', padding: '0.15rem 0.5rem', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
