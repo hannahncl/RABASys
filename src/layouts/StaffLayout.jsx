@@ -54,13 +54,13 @@ const StaffLayout = () => {
       <aside className="hidden lg:flex lg:flex-col lg:w-64 h-screen sticky top-0 border-r border-[#ece7de] bg-white shrink-0 shadow-[1px_0_8px_rgba(0,0,0,0.02)]">
         {/* Top Logo */}
         <div className="pt-8 pb-6 px-6 flex items-center justify-center">
-          <Link to="/" className="flex items-center justify-center transition-transform hover:scale-[1.02]">
+          <div className="flex items-center justify-center">
             <img 
               src="/RABAS LOGO.png" 
               alt="RABAS Travel and Tours Services" 
               className="h-12 w-auto object-contain mx-auto" 
             />
-          </Link>
+          </div>
         </div>
 
         {/* Navigation Items */}
@@ -108,13 +108,13 @@ const StaffLayout = () => {
               <X className="h-6 w-6" />
             </button>
 
-            <Link to="/" className="mb-6 pt-2 flex justify-center">
+            <div className="mb-6 pt-2 flex justify-center">
               <img 
                 src="/RABAS LOGO.png" 
                 alt="RABAS Travel and Tours Services" 
                 className="h-12 w-auto object-contain mx-auto" 
               />
-            </Link>
+            </div>
 
             <nav className="flex-grow space-y-1.5">
               {menuItems.map((item) => {
@@ -181,10 +181,10 @@ const StaffLayout = () => {
                 <img 
                   src={profilePicture} 
                   alt={user?.name || 'Tour Guide'} 
-                  className="h-10 w-10 rounded-xl object-cover border border-amber-300 shadow-xs ring-2 ring-amber-100" 
+                  className="h-10 w-10 rounded-xl object-cover shadow-xs" 
                 />
               ) : (
-                <div className="h-10 w-10 rounded-xl bg-yellow-100 border border-yellow-300 flex items-center justify-center text-yellow-800 font-bold font-display">
+                <div className="h-10 w-10 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-800 font-bold font-display">
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
                 </div>
               )}

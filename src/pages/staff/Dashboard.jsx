@@ -75,14 +75,13 @@ const Dashboard = () => {
             <img 
               src={profilePicture} 
               alt={user?.name || 'Tour Guide'} 
-              className="h-16 w-16 rounded-xl object-cover border-2 border-yellow-400 shadow-xs" 
+              className="h-16 w-16 rounded-xl object-cover shadow-xs" 
             />
           ) : (
             <div className="h-16 w-16 rounded-xl bg-yellow-100 border border-yellow-300 flex items-center justify-center text-yellow-800 text-2xl font-bold font-display">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
             </div>
           )}
-          <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200" title="Active Guide"></span>
         </div>
         <div className="text-center sm:text-left flex-1 min-w-0">
           <h2 className="text-lg md:text-xl font-semibold text-[#1a1a1a]">

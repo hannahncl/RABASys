@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Users, MapPin, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, X } from 'lucide-react';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -39,7 +39,7 @@ const Calendar = () => {
 
   const getBookingsForDate = (dateNum) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
-    return bookings.filter(b => b.tourDate === dateStr);
+    return bookings.filter(b => String(b.tourDate || '').slice(0, 10) === dateStr);
   };
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -84,19 +84,24 @@ const Calendar = () => {
               {[...Array(daysInMonth)].map((_, i) => {
                 const dateNum = i + 1;
                 const dayBookings = getBookingsForDate(dateNum);
-                const isToday = new Date().getDate() === dateNum && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
+                const hasBookings = dayBookings.length > 0;
                 
                 return (
-                  <div key={dateNum} className={`h-24 md:h-32 rounded-sm p-2 border flex flex-col gap-1 overflow-y-auto ${isToday ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-[#f0ede6] hover:bg-[#faf9f6] transition-colors'}`}>
-                    <span className={`text-xs font-bold block ${isToday ? 'text-yellow-700' : 'text-[#4a453b]'}`}>{dateNum}</span>
-                    {dayBookings.map((b, idx) => (
-                      <div key={idx} onClick={(event) => { event.stopPropagation(); setSelectedBooking(b); }} className="bg-yellow-50 border border-yellow-100 rounded-sm p-1.5 text-[10px] space-y-1 cursor-pointer hover:bg-yellow-100">
-                        <p className="font-semibold text-[#4a453b] truncate">{b.packageName}</p>
-                        <div className="flex items-center gap-1 text-[#6b6255]">
-                          <Users className="w-3 h-3" /> {b.guestsCount}
-                        </div>
-                      </div>
-                    ))}
+                  <div
+                    key={dateNum}
+                    onClick={() => setSelectedBooking(dayBookings[0] || null)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedBooking(dayBookings[0] || null);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${dateNum} ${monthNames[currentDate.getMonth()]}: ${dayBookings.length} booking${dayBookings.length === 1 ? '' : 's'}`}
+                    className={`h-24 md:h-32 rounded-sm p-2 border flex flex-col gap-1 overflow-y-auto transition-colors ${hasBookings ? 'bg-green-50 border-green-200 hover:bg-green-100' : 'bg-white border-[#f0ede6] hover:bg-[#faf9f6]'}`}
+                  >
+                    <span className={`text-xs font-bold block ${hasBookings ? 'text-green-800' : 'text-[#4a453b]'}`}>{dateNum}</span>
                   </div>
                 );
               })}
