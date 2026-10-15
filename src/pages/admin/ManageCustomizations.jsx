@@ -143,20 +143,20 @@ const ManageCustomizations = () => {
     }
   };
 
-  const handleBookingStatus = async (booking, totalAmount) => {
-    const quote = Number(totalAmount);
-    if (!Number.isFinite(quote) || quote <= 0) {
-      showNotification('Enter a final quote greater than zero.', 'warning');
+  const handleBookingStatus = async (booking, quote) => {
+    const totalAmount = Number(quote.totalAmount);
+    if (!quote.itinerary.trim() || !quote.priceBreakdown.length || !Number.isFinite(totalAmount) || totalAmount <= 0) {
+      showNotification('Add an itinerary and price breakdown before sending the quote.', 'warning');
       return;
     }
-    if (!window.confirm(`Send the PHP ${quote.toLocaleString()} final quote to the customer? This will not mark the trip as booked.`)) return;
+    if (!window.confirm(`Send the itinerary and PHP ${totalAmount.toLocaleString()} itemized quote to the customer?`)) return;
 
     setUpdatingBookingId(booking.id);
     try {
       const updated = await bookingService.updateCustomQuote(booking.id, quote);
       setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification('Final quote emailed to the customer', 'success');
+      showNotification('Itinerary and itemized quote emailed to the customer', 'success');
     } catch {
       showNotification('Failed to update customized booking', 'error');
     } finally {
@@ -659,7 +659,14 @@ const ManageCustomizations = () => {
 };
 
 const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
-  const [quotedPrice, setQuotedPrice] = useState('');
+  const [quoteItinerary, setQuoteItinerary] = useState('');
+  const [priceLines, setPriceLines] = useState([{ description: '', amount: '' }]);
+
+  useEffect(() => {
+    const activities = booking?.customizedDetails?.activities || [];
+    setQuoteItinerary(booking?.customizedDetails?.quoteItinerary || activities.map((activity, index) => `Day ${index + 1}: ${activity}`).join('\n'));
+    setPriceLines([{ description: '', amount: '' }]);
+  }, [booking?.id]);
 
   if (!booking) {
     return (
@@ -674,6 +681,7 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
   const details = booking.customizedDetails || {};
   const activities = Array.isArray(details.activities) ? details.activities : [];
   const isPending = booking.status === 'Pending Verification';
+  const totalAmount = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
 
   return (
     <aside className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden xl:sticky xl:top-24">
@@ -718,30 +726,89 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Final quote</h3>
+          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Proposed itinerary</h3>
           {isPending ? (
-            <label className="block text-xs font-medium text-[#6b6255]">
-              Quote amount (PHP)
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={quotedPrice}
-                onChange={event => setQuotedPrice(event.target.value)}
-                className="mt-1.5 w-full rounded border border-[#e0dbd0] px-3 py-2 text-sm text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
-                placeholder="Enter the reviewed price"
-              />
-            </label>
+            <textarea
+              rows={5}
+              value={quoteItinerary}
+              onChange={event => setQuoteItinerary(event.target.value)}
+              className="w-full resize-y rounded border border-[#e0dbd0] px-3 py-2 text-sm text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
+              placeholder="Add the day-by-day itinerary to include in the quote email"
+            />
           ) : (
-            <DetailLine label={booking.status === 'Quote Sent' ? 'Quote sent' : 'Confirmed price'} value={`PHP ${Number(booking.totalPrice || 0).toLocaleString()}`} strong />
+            <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3 text-xs leading-relaxed text-[#1a1a1a] whitespace-pre-line">
+              {details.quoteItinerary || 'No proposed itinerary saved.'}
+            </div>
           )}
-          {isPending && <p className="text-[11px] text-[#6b6255]">The customer will receive this quote by email when you confirm.</p>}
+        </section>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Itemized price breakdown</h3>
+            {isPending && (
+              <button
+                type="button"
+                onClick={() => setPriceLines(lines => [...lines, { description: '', amount: '' }])}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-[#6b6255] hover:text-[#1a1a1a]"
+              >
+                <Plus className="h-3 w-3" /> Add line
+              </button>
+            )}
+          </div>
+          {isPending ? (
+            <div className="space-y-2">
+              {priceLines.map((line, index) => (
+                <div key={index} className="grid grid-cols-[1fr_105px_28px] gap-2">
+                  <input
+                    value={line.description}
+                    onChange={event => setPriceLines(lines => lines.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))}
+                    className="min-w-0 rounded border border-[#e0dbd0] px-2.5 py-2 text-xs text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
+                    placeholder="Cost item"
+                    aria-label={`Cost item ${index + 1}`}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={line.amount}
+                    onChange={event => setPriceLines(lines => lines.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))}
+                    className="w-full rounded border border-[#e0dbd0] px-2.5 py-2 text-xs text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
+                    placeholder="PHP"
+                    aria-label={`Cost amount ${index + 1}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPriceLines(lines => lines.length > 1 ? lines.filter((_, itemIndex) => itemIndex !== index) : lines)}
+                    className="flex items-center justify-center text-[#8a8275] hover:text-rose-700"
+                    aria-label={`Remove cost item ${index + 1}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(details.priceBreakdown || []).map((line, index) => (
+                <DetailLine key={`${line.description}-${index}`} label={line.description} value={`PHP ${Number(line.amount).toLocaleString()}`} />
+              ))}
+            </div>
+          )}
+          <div className="flex justify-between border-t border-[#e0dbd0] pt-2 text-xs font-bold text-[#1a1a1a]">
+            <span>Final quote</span>
+            <span>PHP {isPending ? totalAmount.toLocaleString() : Number(booking.totalPrice || 0).toLocaleString()}</span>
+          </div>
+          {isPending && <p className="text-[11px] text-[#6b6255]">The complete itinerary and breakdown will be emailed for customer approval.</p>}
         </section>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
           <button
-            onClick={() => onConfirm(booking, quotedPrice)}
-            disabled={!isPending || updatingId === booking.id || !Number.isFinite(Number(quotedPrice)) || Number(quotedPrice) <= 0}
+            onClick={() => onConfirm(booking, {
+              itinerary: quoteItinerary,
+              priceBreakdown: priceLines.map(line => ({ description: line.description.trim(), amount: Number(line.amount) })),
+              totalAmount,
+            })}
+            disabled={!isPending || updatingId === booking.id || !quoteItinerary.trim() || !priceLines.length || priceLines.some(line => !line.description.trim() || !Number.isFinite(Number(line.amount)) || Number(line.amount) < 0) || totalAmount <= 0}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CheckCircle2 className="h-4 w-4" /> Send final quote

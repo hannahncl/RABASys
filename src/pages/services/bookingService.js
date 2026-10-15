@@ -1,29 +1,37 @@
 import { api } from '../../services/api';
 
-const bookingFromApi = (item) => ({
-  ...item,
-  id: String(item.booking_id),
-  type: item.package_type === 'custom' || item.package_type === 'customization' ? 'Customization' : 'Tour Packages',
-  packageId: item.package_id == null ? 'custom-package' : String(item.package_id),
-  packageName: item.package_name,
-  customerName: item.customer_name,
-  customerEmail: item.email,
-  customerPhone: item.contact_number,
-  tourDate: item.travel_date?.slice(0, 10),
-  guestsCount: item.number_of_persons,
-  totalPrice: item.customized_details && item.booking_status === 'Pending'
-    ? null
-    : Number(item.total_amount),
-  status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
-  createdAt: item.created_at,
-  paymentRef: item.booking_reference,
-  hasReviewed: Boolean(item.has_reviewed),
-  customizedDetails: typeof item.customized_details === 'string'
+const bookingFromApi = (item) => {
+  const customizedDetails = typeof item.customized_details === 'string'
     ? JSON.parse(item.customized_details)
-    : item.customized_details || null,
-  guideId: item.guide_id ? String(item.guide_id) : null,
-  guideName: item.guide_name || '',
-});
+    : item.customized_details || null;
+
+  return {
+    ...item,
+    id: String(item.booking_id),
+    type: item.package_type === 'custom' || item.package_type === 'customization' ? 'Customization' : 'Tour Packages',
+    packageId: item.package_id == null ? 'custom-package' : String(item.package_id),
+    packageName: item.package_name,
+    customerName: item.customer_name,
+    customerEmail: item.email,
+    customerPhone: item.contact_number,
+    tourDate: item.travel_date?.slice(0, 10),
+    guestsCount: item.number_of_persons,
+    totalPrice: customizedDetails && item.booking_status === 'Pending' && !customizedDetails.quoteItinerary
+      ? null
+      : Number(item.total_amount),
+    status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
+    createdAt: item.created_at,
+    paymentRef: item.booking_reference,
+    paymentMethod: item.payment_method || null,
+    paymentStatus: item.payment_status || null,
+    paymentTransactionReference: item.payment_transaction_reference || null,
+    paymentDate: item.payment_date || null,
+    hasReviewed: Boolean(item.has_reviewed),
+    customizedDetails,
+    guideId: item.guide_id ? String(item.guide_id) : null,
+    guideName: item.guide_name || '',
+  };
+};
 
 const rentalBookingFromApi = (item) => ({
   ...item,
@@ -93,9 +101,17 @@ export const bookingService = {
     });
     return type === 'Car Rental' ? rentalBookingFromApi(res) : bookingFromApi(res);
   },
-  updateCustomQuote: async (id, totalAmount) => bookingFromApi(await api(`/bookings/${id}/status`, {
+  updateCustomQuote: async (id, quote) => bookingFromApi(await api(`/bookings/${id}/quote`, {
     method: 'PATCH',
-    body: JSON.stringify({ booking_status: 'Quote Sent', total_amount: Number(totalAmount) }),
+    body: JSON.stringify({
+      itinerary: quote.itinerary,
+      price_breakdown: quote.priceBreakdown,
+    }),
+  })),
+  acceptCustomQuote: async (id) => bookingFromApi(await api(`/bookings/${id}/accept-quote`, { method: 'PATCH' })),
+  payCustomQuoteSample: async (id, paymentMethod) => bookingFromApi(await api(`/bookings/${id}/sample-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ payment_method: paymentMethod }),
   })),
   reschedule: async (id, date, type = 'Tour Packages') => {
     const endpoint = type === 'Car Rental' ? `/rental-bookings/${id}/reschedule` : `/bookings/${id}/reschedule`;

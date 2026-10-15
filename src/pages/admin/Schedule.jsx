@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
-import { ChevronLeft, ChevronRight, Users, MapPin, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, MapPin, CalendarDays, Mail, Phone } from 'lucide-react';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dateKey = (value) => (typeof value === 'string' ? value.slice(0, 10) : '');
+const formatDate = (value) => {
+  const key = dateKey(value);
+  return key ? new Date(`${key}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not scheduled';
+};
 
 const Schedule = () => {
   const [bookings, setBookings] = useState([]);
@@ -35,12 +40,20 @@ const Schedule = () => {
     setSelectedDate(null);
   };
 
-  // Build a map of date string -> bookings[]
+  // Index tours on their travel day and rentals on every occupied day.
   const bookingsByDate = {};
   bookings.forEach((b) => {
-    const dateKey = b.tourDate; // "2026-07-15"
-    if (!bookingsByDate[dateKey]) bookingsByDate[dateKey] = [];
-    bookingsByDate[dateKey].push(b);
+    const startKey = dateKey(b.tourDate);
+    const endKey = b.type === 'Car Rental' ? (dateKey(b.returnDate) || startKey) : startKey;
+    if (!startKey) return;
+
+    const start = new Date(`${startKey}T00:00:00Z`);
+    const end = new Date(`${endKey}T00:00:00Z`);
+    for (const day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+      const key = day.toISOString().slice(0, 10);
+      if (!bookingsByDate[key]) bookingsByDate[key] = [];
+      bookingsByDate[key].push(b);
+    }
   });
 
   // Create the calendar grid cells
@@ -119,9 +132,6 @@ const Schedule = () => {
 
                 const hasBookings = cell.bookings.length > 0;
                 const isSelected = selectedDate === cell.dateStr;
-                const confirmedCount = cell.bookings.filter(b => b.status === 'Confirmed').length;
-                const pendingCount = cell.bookings.filter(b => b.status === 'Pending Verification').length;
-
                 return (
                   <div
                     key={cell.dateStr}
@@ -150,7 +160,7 @@ const Schedule = () => {
                       <div className="mt-1.5 space-y-1">
                         {cell.bookings.slice(0, 2).map((b) => (
                           <div
-                            key={b.id}
+                            key={`${b.type}-${b.id}`}
                             className={`text-[8px] leading-tight font-bold px-1.5 py-0.5 rounded-md truncate ${
                               b.status === 'Confirmed'
                                 ? 'bg-white text-emerald-400 border border-emerald-100'
@@ -159,7 +169,7 @@ const Schedule = () => {
                                 : 'bg-white text-amber-400 border border-amber-100'
                             }`}
                           >
-                            {b.customerName.split(' ')[0]}
+                            {b.type === 'Car Rental' ? 'Rental' : 'Tour'}: {b.customerName?.split(' ')[0] || 'Customer'}
                           </div>
                         ))}
                         {cell.bookings.length > 2 && (
@@ -210,15 +220,15 @@ const Schedule = () => {
                 </p>
               ) : selectedBookings.length === 0 ? (
                 <p className="text-slate-500 text-xs text-center py-6">
-                  No tour bookings scheduled for this date.
+                  No bookings scheduled for this date.
                 </p>
               ) : (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                   {selectedBookings.map((b) => (
-                  <div key={b.id} className="bg-white border border-[#f0ede6] rounded-xl p-4 space-y-3">
+                  <div key={`${b.type}-${b.id}`} className="bg-white border border-[#f0ede6] rounded-xl p-4 space-y-3">
                       {/* Status badge + ID */}
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] text-[#6b6255] font-bold">{b.id}</span>
+                        <span className="font-mono text-[10px] text-[#6b6255] font-bold">{b.type} #{b.id}</span>
                         <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
                           b.status === 'Confirmed'
                             ? 'bg-emerald-100 border-emerald-200 text-emerald-600'
@@ -233,22 +243,32 @@ const Schedule = () => {
                       {/* Tour name */}
                       <h4 className="font-bold text-sm text-[#3d3a34] font-display leading-snug">{b.packageName}</h4>
 
+                      <p className="text-[11px] text-[#6b6255]">
+                        {b.type === 'Car Rental' ? 'Rental' : 'Travel'}: {formatDate(b.tourDate)}
+                        {b.type === 'Car Rental' && ` to ${formatDate(b.returnDate)}`}
+                      </p>
+
                       {/* Client info */}
                       <div className="grid grid-cols-1 gap-1.5 text-[11px] text-[#4a453b]">
                         <div className="flex items-center gap-1.5">
                           <Users className="h-3 w-3 text-yellow-500 shrink-0" />
-                          <span>{b.customerName} — {b.guestsCount} guest(s)</span>
+                          <span>{b.customerName}{b.type !== 'Car Rental' && ` — ${b.guestsCount} guest(s)`}</span>
                         </div>
+                        {b.customerEmail && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-yellow-500 shrink-0" /><span className="break-all">{b.customerEmail}</span></div>}
+                        {b.customerPhone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-yellow-500 shrink-0" /><span>{b.customerPhone}</span></div>}
+                        {b.type === 'Car Rental' && b.pickupLocation && <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-yellow-500 shrink-0" /><span>{b.pickupLocation}</span></div>}
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-3 w-3 text-yellow-500 shrink-0" />
-                          <span>GCash Ref: <span className="font-mono text-yellow-600 font-bold">{b.paymentRef}</span></span>
+                          <span>Booking Ref: <span className="font-mono text-yellow-600 font-bold">{b.paymentRef || 'Not available'}</span></span>
                         </div>
                       </div>
 
                       {/* Total */}
                       <div className="flex justify-between items-center border-t border-[#eae5db] pt-2 text-xs">
                         <span className="text-[#6b6255]">Total Paid</span>
-                        <span className="font-extrabold text-[#4a453b] font-display">PHP {b.totalPrice.toLocaleString()}</span>
+                        <span className="font-extrabold text-[#4a453b] font-display">
+                          {b.totalPrice == null ? 'Awaiting quote' : `PHP ${Number(b.totalPrice).toLocaleString()}`}
+                        </span>
                       </div>
                     </div>
                   ))}
