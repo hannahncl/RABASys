@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { validateNumber, validatePlateNumber, validateRequired } from '../../utils/validation';
 import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const AddCarRentalPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = location.pathname.startsWith('/admin/car-rentals/')
+    ? '/admin/car-rentals'
+    : '/admin/services';
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [formData, setFormData] = useState({
     vehicle_name: '',
     vehicle_type: '',
@@ -48,6 +54,7 @@ const AddCarRentalPage = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm('Are you sure you want to create this car rental?'))) return;
     const nextErrors = {
       vehicle_name: validateRequired(formData.vehicle_name, 'Vehicle name'),
       vehicle_type: validateRequired(formData.vehicle_type, 'Vehicle type'),
@@ -81,7 +88,7 @@ const AddCarRentalPage = () => {
         transmission: formData.transmission,
       });
       showNotification('Car rental created successfully', 'success');
-      navigate('/admin/services');
+      navigate(returnPath);
     } catch (error) {
       showNotification(error.message || 'Failed to create car rental', 'error');
     } finally {
@@ -92,10 +99,10 @@ const AddCarRentalPage = () => {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate('/admin/services')}
+        onClick={() => navigate(returnPath)}
         className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Services
+        <ArrowLeft className="h-4 w-4" /> Back to Car Rentals
       </button>
 
       <div className="bg-slate-900/30 border border-slate-850 backdrop-blur-md rounded-3xl p-8 space-y-6 transition-all duration-300">

@@ -160,6 +160,7 @@ const Bookings = () => {
               >
                 <option value="all">All Services</option>
                 <option value="Tour Packages">Tour Packages</option>
+                <option value="Customization">Customization Bookings</option>
                 <option value="Car Rental">Car Rentals</option>
               </select>
             </div>
@@ -276,7 +277,9 @@ const Bookings = () => {
 
                       {/* Price */}
                       <td className="px-5 py-4 text-right font-bold text-[#1a1a1a] whitespace-nowrap">
-                        PHP {Number(booking.totalPrice || 0).toLocaleString()}
+                        {booking.customizedDetails && booking.status === 'Pending Verification'
+                          ? 'Awaiting quote'
+                          : `PHP ${Number(booking.totalPrice || 0).toLocaleString()}`}
                       </td>
 
                       {/* Status */}

@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -31,6 +32,7 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Default Route
 app.get("/", (req, res) => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { packageService } from '../../services/packageService';
 import { Plus, Edit, Trash2, Save, X, Loader } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const ManagePackages = () => {
   const [packages, setPackages] = useState([]);
@@ -9,6 +10,7 @@ const ManagePackages = () => {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(null);
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadPackages();
@@ -63,6 +65,7 @@ const ManagePackages = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to ${editingId === 'new' ? 'create' : 'save'} this package?`))) return;
     try {
       const payload = {
         ...formData,
@@ -85,7 +88,7 @@ const ManagePackages = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this package?')) {
+    if (await confirm('Are you sure you want to delete this package?')) {
       try {
         await packageService.delete(id);
         showNotification('Package deleted', 'success');

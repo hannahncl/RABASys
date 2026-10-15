@@ -1,13 +1,15 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useConfirmation } from '../contexts/ConfirmationContext';
 import { notificationService } from '../services/api';
 import { 
-  LayoutDashboard, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check, MessageSquare
+  LayoutGrid, BarChart3, Package, Car, Users, LogOut, Menu, X, Bell, CalendarDays, Settings, ClipboardList, Check, MessageSquare
 } from 'lucide-react';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -71,13 +73,14 @@ const AdminLayout = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     navigate('/');
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutGrid },
     { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
     { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
     { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
@@ -94,39 +97,47 @@ const AdminLayout = () => {
   return (
     <div className="h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-900 bg-slate-900/50 shrink-0">
-        <div className="h-20 flex items-center px-6 border-b border-slate-900">
-          <Link to="/">
-            <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
-          </Link>
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 h-full border-r border-[#ece7de] bg-white shrink-0 shadow-[1px_0_8px_rgba(0,0,0,0.02)]">
+        {/* Top Logo */}
+        <div className="pt-8 pb-6 px-6 flex items-center justify-center">
+          <div className="flex items-center justify-center">
+            <img 
+              src="/RABAS LOGO.png" 
+              alt="RABAS Travel and Tours Services" 
+              className="h-12 w-auto object-contain mx-auto" 
+            />
+          </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        {/* Navigation Items */}
+        <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
+            const active = isActive(item.path);
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40'
+                className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className={`h-5 w-5 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-900">
+        {/* Logout */}
+        <div className="p-4 mt-auto border-t border-stone-100">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
+            className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50/70 hover:text-rose-600 transition-colors cursor-pointer"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5 text-rose-500" />
             Logout
           </button>
         </div>
@@ -134,34 +145,39 @@ const AdminLayout = () => {
 
       {/* Mobile Sidebar Drawer */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden bg-slate-950/80 backdrop-blur-sm">
-          <div className="relative w-64 bg-slate-900 p-6 flex flex-col h-full border-r border-slate-850">
+        <div className="fixed inset-0 z-50 flex lg:hidden bg-stone-900/40 backdrop-blur-xs">
+          <div className="relative w-64 bg-white p-6 flex flex-col h-full border-r border-stone-200 shadow-xl">
             <button
               onClick={() => setSidebarOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white"
+              className="absolute top-5 right-5 text-stone-400 hover:text-stone-700"
             >
               <X className="h-6 w-6" />
             </button>
 
-            <Link to="/" className="mb-8">
-              <img src="/RABAS LOGO.png" alt="RABAS Logo" className="h-12 object-contain" />
-            </Link>
+            <div className="mb-6 pt-2 flex justify-center">
+              <img 
+                src="/RABAS LOGO.png" 
+                alt="RABAS Travel and Tours Services" 
+                className="h-12 w-auto object-contain mx-auto" 
+              />
+            </div>
 
-            <nav className="flex-grow space-y-1">
+            <nav className="flex-grow space-y-1.5 overflow-y-auto">
               {menuItems.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.path);
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      isActive(item.path)
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                    className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className={`h-5 w-5 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
                     {item.name}
                   </Link>
                 );
@@ -170,9 +186,9 @@ const AdminLayout = () => {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-950/20 transition-colors mt-auto cursor-pointer"
+              className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors mt-auto cursor-pointer"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-5 w-5 text-rose-500" />
               Logout
             </button>
           </div>

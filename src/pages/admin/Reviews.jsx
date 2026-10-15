@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { Car, Compass, Loader, MessageSquare, Search, Star, Trash2 } from 'lucide-react';
 
 const Reviews = () => {
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ratingFilter, setRatingFilter] = useState('all');
@@ -45,7 +47,7 @@ const Reviews = () => {
   }, [reviews, ratingFilter, serviceFilter, sortBy, search]);
 
   const handleDelete = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    if (!(await confirm('Are you sure you want to delete this review?'))) return;
     setDeletingId(reviewId);
     try {
       await api(`/reviews/${reviewId}`, { method: 'DELETE' });

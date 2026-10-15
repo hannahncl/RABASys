@@ -1,21 +1,72 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, CalendarDays } from 'lucide-react';
-import PublicCalendarModal from '../components/ui/PublicCalendarModal';
+import { useConfirmation } from '../contexts/ConfirmationContext';
+import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check } from 'lucide-react';
+import { notificationService } from '../services/api';
+import FaqChatbot from '../components/ui/FaqChatbot';
 
 const MainLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirm('Are you sure you want to log out?'))) return;
     logout();
     setProfileDropdownOpen(false);
     navigate('/');
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return undefined;
+    }
+
+    let mounted = true;
+    const loadNotifications = async () => {
+      try {
+        const data = await notificationService.getAll();
+        if (mounted) setNotifications(data || []);
+      } catch {
+        if (mounted) setNotifications([]);
+      }
+    };
+
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
+
+  const unreadNotifications = notifications.filter(notification => !notification.is_read);
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.is_read) {
+        await notificationService.markAsRead(notification.notification_id);
+        setNotifications(current => current.map(item => item.notification_id === notification.notification_id ? { ...item, is_read: 1 } : item));
+      }
+    } catch {
+      // Keep the notification visible if marking it read fails.
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(current => current.map(item => ({ ...item, is_read: 1 })));
+    } catch {
+      // Keep the unread state if the request fails.
+    }
   };
 
   const navLinks = [
@@ -32,11 +83,11 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full shadow-xs" style={{ backgroundColor: '#603524' }}>
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
-            <img src="/White RABAS Travel Logo.png" alt="RABAS Travel and Tours Services" className="h-12 w-auto" />
+            <img src="/rabas-logo.png" alt="RABAS Travel and Tours Services" className="h-11 w-auto object-contain" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-4">
@@ -45,8 +96,8 @@ const MainLayout = () => {
                 key={link.path}
                 to={link.path}
                 className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive(link.path)
-                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
+                  ? 'bg-[#603524]/10 text-[#603524] border-[#603524]/25 shadow-[0_1px_2px_rgba(96,53,36,0.08)]'
+                  : 'text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 border-transparent'
                   }`}
               >
                 {link.name}
@@ -55,23 +106,57 @@ const MainLayout = () => {
           </nav>
 
           {/* Right Actions — Kinfolk style: thin left divider + minimal icon */}
-          <div className="hidden md:flex items-center gap-5 border-l border-white/20 pl-6">
-            {/* Calendar Icon Button (Beside / Left side of Profile icon) */}
+          <div className="hidden md:flex items-center gap-5 border-l border-slate-200 pl-6">
+            {/* User Notifications */}
             <button
-              onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3 py-2 rounded-full cursor-pointer border border-white/20 hover:border-white/30"
-              title="View Schedule Calendar"
+              onClick={() => setNotificationsOpen(current => !current)}
+              className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
+              title="View notifications"
             >
-              <CalendarDays className="h-[18px] w-[18px] text-white" />
+              <Bell className="h-[18px] w-[18px] text-[#603524]" />
+              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-24 top-14 z-50 w-80 overflow-hidden border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Notifications</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">Your latest updates</p>
+                  </div>
+                  {unreadNotifications.length > 0 && <button onClick={handleMarkAllNotificationsRead} className="text-[10px] font-semibold uppercase tracking-wider text-[#603524] hover:underline">Mark all read</button>}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {!user ? (
+                    <p className="px-4 py-8 text-center text-xs text-slate-500">Sign in to receive booking and trip updates.</p>
+                  ) : notifications.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs text-slate-500">You have no notifications yet.</p>
+                  ) : notifications.map(notification => (
+                    <button
+                      key={notification.notification_id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${notification.is_read ? '' : 'bg-[#603524]/5'}`}
+                    >
+                      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${notification.is_read ? 'bg-slate-100 text-slate-400' : 'bg-[#603524]/10 text-[#603524]'}`}>
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-slate-800">{notification.title}</span>
+                        <span className="mt-1 block text-[11px] leading-relaxed text-slate-500">{notification.message}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 text-white/80 hover:text-white hover:bg-white/10 transition-all px-3.5 py-2 rounded-full cursor-pointer"
+                  className="flex items-center gap-2 text-slate-700 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3.5 py-2 rounded-full cursor-pointer"
                 >
-                  <User className="h-[18px] w-[18px]" />
+                  <User className="h-[18px] w-[18px] text-[#603524]" />
                   <span className="text-[11px] font-bold uppercase tracking-[0.15em] hidden lg:block">{user.name.split(' ')[0]}</span>
                 </button>
 
@@ -80,7 +165,7 @@ const MainLayout = () => {
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Logged in as</p>
                       <p className="text-sm font-bold truncate text-slate-800 mt-0.5">{user.name}</p>
-                      <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-yellow-50 text-yellow-600 border border-yellow-200">
+                      <span className="inline-block mt-1.5 text-[9px] uppercase font-extrabold tracking-widest px-2 py-0.5 bg-[#603524]/10 text-[#603524] border border-[#603524]/20">
                         {user.role}
                       </span>
                     </div>
@@ -88,7 +173,7 @@ const MainLayout = () => {
                     <Link
                       to="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
                     >
                       <User className="h-3.5 w-3.5 text-slate-500" />
                       My Profile
@@ -98,7 +183,7 @@ const MainLayout = () => {
                       <Link
                         to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
                       >
                         <LayoutDashboard className="h-3.5 w-3.5 text-slate-500" />
                         Dashboard
@@ -119,8 +204,8 @@ const MainLayout = () => {
               <Link
                 to="/login"
                 className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all px-3.5 py-2 rounded-full border ${isActive('/login')
-                  ? 'bg-white/15 text-white border-white/25 shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-                  : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
+                  ? 'bg-[#603524] text-white border-[#603524] shadow-[0_1px_2px_rgba(96,53,36,0.2)]'
+                  : 'text-[#603524] hover:bg-[#603524]/10 border-[#603524]/30'
                   }`}
                 title="Sign In"
               >
@@ -130,18 +215,19 @@ const MainLayout = () => {
             )}
           </div>
 
-          {/* Mobile Menu & Calendar Button */}
+          {/* Mobile Menu & Notifications Button */}
           <div className="md:hidden flex items-center gap-2">
             <button
-              onClick={() => setCalendarOpen(true)}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              title="Schedule Calendar"
+              onClick={() => setNotificationsOpen(current => !current)}
+              className="relative p-2 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 rounded-full transition-colors"
+              title="Notifications"
             >
-              <CalendarDays className="h-5 w-5 text-white" />
+              <Bell className="h-5 w-5 text-[#603524]" />
+              {unreadNotifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white/80 hover:text-white focus:outline-none transition-colors p-1"
+              className="text-slate-600 hover:text-[#603524] focus:outline-none transition-colors p-1"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -159,8 +245,8 @@ const MainLayout = () => {
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`text-[11px] font-bold uppercase tracking-[0.15em] px-4 py-2.5 rounded-xl transition-all border ${isActive(link.path)
-                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                  : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50/50 border-transparent'
+                  ? 'bg-[#603524]/10 text-[#603524] border-[#603524]/20 shadow-[0_1px_2px_rgba(96,53,36,0.04)]'
+                  : 'text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 border-transparent'
                   }`}
               >
                 {link.name}
@@ -178,7 +264,7 @@ const MainLayout = () => {
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg font-semibold"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
                 >
                   <User className="h-4 w-4" />
                   My Profile
@@ -187,7 +273,7 @@ const MainLayout = () => {
                   <Link
                     to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-yellow-600 hover:bg-slate-50 rounded-lg font-semibold"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
@@ -207,8 +293,8 @@ const MainLayout = () => {
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`w-full text-center py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all border ${isActive('/login')
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
-                    : 'border border-slate-200 hover:text-yellow-600 hover:bg-yellow-50/50 text-slate-700'
+                    ? 'bg-[#603524] text-white border-[#603524] shadow-[0_1px_2px_rgba(96,53,36,0.15)]'
+                    : 'border border-slate-200 hover:text-[#603524] hover:border-[#603524]/30 text-slate-700'
                     }`}
                 >
                   Sign In
@@ -255,8 +341,7 @@ const MainLayout = () => {
         </div>
       </footer>
 
-      {/* Public Calendar Modal */}
-      <PublicCalendarModal isOpen={calendarOpen} onClose={() => setCalendarOpen(false)} />
+      <FaqChatbot />
     </div>
   );
 };

@@ -153,6 +153,21 @@ async function ensureSchema() {
         await db.query(`ALTER TABLE tour_package ADD COLUMN image LONGTEXT NULL`);
     }
 
+    const [joinerDateColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_date'`);
+    if (!joinerDateColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_date DATE NULL`);
+    }
+
+    const [joinerSlotsColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_slots'`);
+    if (!joinerSlotsColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_slots INT UNSIGNED NULL`);
+    }
+
+    const [joinerDeadlineColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_booking_deadline'`);
+    if (!joinerDeadlineColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_booking_deadline DATE NULL`);
+    }
+
     // 7. Vehicle
     await db.query(`CREATE TABLE IF NOT EXISTS vehicle (
         vehicle_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -207,6 +222,11 @@ async function ensureSchema() {
         CONSTRAINT fk_tour_guide_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
+    const [tourGuideMediaColumn] = await db.query(`SHOW COLUMNS FROM tour_guide LIKE 'media_id'`);
+    if (!tourGuideMediaColumn.length) {
+        await db.query(`ALTER TABLE tour_guide ADD COLUMN media_id INT UNSIGNED NULL DEFAULT NULL`);
+    }
+
     // 9. Booking (Tour Bookings)
     await db.query(`CREATE TABLE IF NOT EXISTS booking (
         booking_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -229,6 +249,12 @@ async function ensureSchema() {
         CONSTRAINT fk_booking_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE ON UPDATE CASCADE,
         CONSTRAINT fk_booking_package FOREIGN KEY (package_id) REFERENCES tour_package(package_id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    await db.query(`ALTER TABLE booking MODIFY COLUMN package_id INT UNSIGNED NULL DEFAULT NULL`);
+    const [customizedDetailsColumn] = await db.query(`SHOW COLUMNS FROM booking LIKE 'customized_details'`);
+    if (!customizedDetailsColumn.length) {
+        await db.query(`ALTER TABLE booking ADD COLUMN customized_details JSON NULL AFTER guide_id`);
+    }
 
     // 10. Car Rental Booking
     await db.query(`CREATE TABLE IF NOT EXISTS car_rental_booking (

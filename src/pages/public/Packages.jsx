@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { Compass, Clock, SlidersHorizontal, Tags, Users } from 'lucide-react';
-import { previewPackages } from './packagePreviewData';
 
 const packageCategories = [
   {
@@ -23,10 +22,10 @@ const packageCategories = [
 ];
 
 const getPackageVisualCategory = (pkg = {}) => {
+  const savedType = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase().replace(/\s+/g, '_');
+  if (['exclusive', 'joiner', 'tuktrip'].includes(savedType)) return savedType;
+
   const text = [
-    pkg.category,
-    pkg.packageType,
-    pkg.package_type,
     pkg.title,
     pkg.packageName,
     pkg.duration,
@@ -70,7 +69,7 @@ const Packages = () => {
   };
 
   // Perform filtering
-  const displayPackages = [...packages, ...previewPackages];
+  const displayPackages = packages;
 
   const filteredPackages = displayPackages.filter((pkg) => {
     const searchableText = [pkg.title, pkg.destination, pkg.description]
@@ -355,7 +354,7 @@ const Packages = () => {
                           </span>
                         </div>
                         <Link
-                          to={`/packages/${pkg.id}`}
+                          to={`/booking/${pkg.id}`}
                           className="px-5 py-2 text-[10px] font-semibold transition-all duration-300"
                           style={{
                             border: '1px solid #2d2a24',
@@ -374,7 +373,7 @@ const Packages = () => {
                             e.target.style.color = '#2d2a24';
                           }}
                         >
-                          View Details
+                          Book Now
                         </Link>
                       </div>
                     </div>

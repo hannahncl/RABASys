@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { accountService } from '../../services/accountService';
 import { Plus, Edit, Save, X, Loader, UserCheck, UserX, Search } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { validatePassword, validateEmail, validateName, validatePhone, sanitizeInput } from '../../utils/validation';
 
 const ManageAccounts = () => {
@@ -13,6 +14,7 @@ const ManageAccounts = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadAccounts();
@@ -81,7 +83,8 @@ const ManageAccounts = () => {
       yearsExperience: acc.yearsExperience || '',
       description: acc.description || '',
       languageSpoken: acc.languageSpoken || '',
-      profilePicture: acc.profilePicture || ''
+      profilePicture: acc.profilePicture || '',
+      profilePictureFile: null
     });
   };
 
@@ -98,7 +101,8 @@ const ManageAccounts = () => {
       yearsExperience: '',
       description: '',
       languageSpoken: '',
-      profilePicture: ''
+      profilePicture: '',
+      profilePictureFile: null
     });
   };
 
@@ -119,10 +123,21 @@ const ManageAccounts = () => {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFormData(prev => ({ ...prev, profilePicture: file.name }));
+    if (!file.type.startsWith('image/')) {
+      showNotification('Choose an image file.', 'error');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('Profile pictures must be 5 MB or smaller.', 'error');
+      e.target.value = '';
+      return;
+    }
+    setFormData(prev => ({ ...prev, profilePictureFile: file }));
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to ${editingId ? 'save these account changes' : 'create this account'}?`))) return;
     const errors = {};
     errors.firstName = validateName(formData.firstName, 'First name');
     errors.lastName = validateName(formData.lastName, 'Last name');
@@ -176,6 +191,10 @@ const ManageAccounts = () => {
     try {
       if (editingId === 'new') {
         const result = await accountService.createTourGuide(formData);
+        if (formData.profilePictureFile) {
+          setEditingId(result.id);
+          await accountService.uploadTourGuidePhoto(result.id, formData.profilePictureFile);
+        }
         if (result.tempPassword) {
           showNotification(
             `Tour guide created! Temporary password: ${result.tempPassword} — please share with the guide.`,
@@ -186,6 +205,9 @@ const ManageAccounts = () => {
         }
       } else {
         await accountService.updateTourGuide(editingId, formData);
+        if (formData.profilePictureFile) {
+          await accountService.uploadTourGuidePhoto(editingId, formData.profilePictureFile);
+        }
         showNotification('Tour guide updated successfully', 'success');
       }
       setEditingId(null);
@@ -397,15 +419,17 @@ const ManageAccounts = () => {
               {fieldErrors.phone && <p className="mt-1.5 text-[11px] text-rose-455 font-medium">{fieldErrors.phone}</p>}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Profile Picture (Attachment)</label>
+              <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Profile Picture</label>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileChange}
                 className="w-full bg-slate-900/20 border border-slate-800 hover:border-slate-750 transition-colors rounded-xl py-2.5 px-3.5 text-xs text-slate-350 file:mr-3.5 file:rounded-lg file:border-0 file:bg-slate-800/80 file:px-4 file:py-1.5 file:text-xs file:text-slate-200 file:font-semibold hover:file:bg-slate-800 cursor-pointer"
               />
-              {formData.profilePicture && (
-                <p className="mt-2 text-xs text-slate-400">Selected file: <span className="font-semibold text-slate-200">{formData.profilePicture}</span></p>
+              {(formData.profilePictureFile || formData.profilePicture) && (
+                <p className="mt-2 text-xs text-slate-400">
+                  {formData.profilePictureFile ? `Selected: ${formData.profilePictureFile.name}` : 'Current profile photo saved'}
+                </p>
               )}
             </div>
             <div>
@@ -590,12 +614,19 @@ const ManageAccounts = () => {
                       <tr key={acc.id} className="hover:bg-slate-900/20 align-top">
                         <td className="p-4 font-medium text-slate-200">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
+                            <div className="relative h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0 overflow-hidden">
                               {(acc.name || 'T').charAt(0).toUpperCase()}
+                              {acc.profilePicture && (
+                                <img
+                                  src={acc.profilePicture}
+                                  alt=""
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                  onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                                />
+                              )}
                             </div>
                             <div className="min-w-0">
                               <div className="truncate">{acc.name || `${acc.firstName || ''} ${acc.lastName || ''}`.trim()}</div>
-                              <div className="text-[10px] text-amber-400 uppercase">Tour Guide</div>
                             </div>
                           </div>
                         </td>

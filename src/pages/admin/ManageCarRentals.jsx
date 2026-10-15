@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serviceService } from '../../services/serviceService';
 import {
-  Plus, Edit, Trash2, Loader, Users, Car, Search
+  Plus, Edit, Power, Loader, Users, Car, Search
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const catConfig = {
   key: 'car',
@@ -18,12 +19,18 @@ const catConfig = {
   description: 'Vehicle rental services with driver - sedans, SUVs, and vans',
 };
 
+const isVehicleDeactivated = (item) => {
+  const status = item.availabilityStatus ?? item.availability_status;
+  return status != null && String(status).trim().toLowerCase() !== 'available';
+};
+
 const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
   const Icon = catConfig.icon;
+  const isDeactivated = isVehicleDeactivated(item);
   return (
     <div
-      onClick={() => onView(item)}
-      className="bg-white border border-[#e0dbd0] hover:border-[#b0a68e] rounded-md overflow-hidden flex flex-col transition-colors group cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+      onClick={isDeactivated ? undefined : () => onView(item)}
+      className={`border rounded-md overflow-hidden flex flex-col transition-colors group shadow-[0_2px_12px_rgba(0,0,0,0.03)] ${isDeactivated ? 'bg-[#e5e5e5] border-[#c8c8c8] grayscale opacity-60 cursor-default' : 'bg-white border-[#e0dbd0] hover:border-[#b0a68e] cursor-pointer'}`}
     >
       <div className="relative h-44 overflow-hidden bg-[#ebe7df]">
         {item.image && item.image !== '/CAGSAWA.jpg' ? (
@@ -50,10 +57,11 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
             Edit
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-            className="p-1.5 bg-white hover:bg-[#f7f4ef] border border-[#d6cfc2] text-[#1a1a1a] rounded-sm cursor-pointer transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+            title={isDeactivated ? 'Reactivate vehicle' : 'Deactivate vehicle'}
+            className={`p-1.5 bg-white border border-[#d6cfc2] rounded-sm cursor-pointer transition-colors ${isDeactivated ? 'text-emerald-700 hover:bg-emerald-50' : 'text-[#1a1a1a] hover:bg-[#f7f4ef]'}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Power className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -95,6 +103,7 @@ const ManageCarRentals = () => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     loadServices();
@@ -120,14 +129,17 @@ const ManageCarRentals = () => {
     navigate(`/admin/car-rentals/${item.id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this car rental?')) {
+  const handleToggleAvailability = async (item) => {
+    const isDeactivated = isVehicleDeactivated(item);
+    const nextStatus = isDeactivated ? 'Available' : 'Deactivated';
+    const action = isDeactivated ? 'activate' : 'deactivate';
+    if (await confirm(`Are you sure you want to ${action} this car rental?`)) {
       try {
-        await serviceService.delete(id);
-        showNotification('Car rental deleted', 'success');
+        await serviceService.setVehicleAvailability(item.id, nextStatus);
+        showNotification(`Car rental ${action}d`, 'success');
         loadServices();
       } catch {
-        showNotification('Failed to delete car rental', 'error');
+        showNotification(`Failed to ${action} car rental`, 'error');
       }
     }
   };
@@ -153,12 +165,15 @@ const ManageCarRentals = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.filter(item => !search.trim() || `${item.title || ''} ${item.vehicleBrand || ''} ${item.vehicleType || ''}`.toLowerCase().includes(search.toLowerCase())).map(item => (
+          {services
+            .filter(item => !search.trim() || `${item.title || ''} ${item.vehicleBrand || ''} ${item.vehicleType || ''}`.toLowerCase().includes(search.toLowerCase()))
+            .sort((a, b) => Number(isVehicleDeactivated(a)) - Number(isVehicleDeactivated(b)))
+            .map(item => (
             <ServiceCard
               key={item.id}
               item={item}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={handleToggleAvailability}
               onView={handleView}
             />
           ))}

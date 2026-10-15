@@ -117,7 +117,6 @@ const Register = () => {
   return (
     <div className="w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="mb-4 text-center">
-        <img src="/RABAS LOGO.png" alt="RABAS Travel" className="h-12 w-auto mx-auto mb-3" />
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-[#1a1a1a]">Create Account</h2>
         <p className="text-xs font-medium text-[#6b6255] mt-1.5">
           Already have an account?{' '}

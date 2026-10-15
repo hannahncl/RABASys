@@ -6,6 +6,7 @@ import {
   MapPin, Clock, Users, Car, Package
 } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 // ─── Category config ────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -280,6 +281,7 @@ const ManageServices = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
 
   const catConfig = CATEGORIES.find(c => c.key === activeTab);
 
@@ -340,6 +342,7 @@ const ManageServices = () => {
   };
 
   const handleSave = async () => {
+    if (!(await confirm(`Are you sure you want to ${editingId === 'new' ? 'create' : 'save'} this ${catConfig.singular.toLowerCase()}?`))) return;
     try {
       const payload = { ...serializeForm(formData), category: activeTab };
       if (editingId === 'new') {
@@ -358,7 +361,7 @@ const ManageServices = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
+    if (await confirm('Are you sure you want to delete this service?')) {
       try {
         await serviceService.delete(id);
         showNotification('Service deleted', 'success');

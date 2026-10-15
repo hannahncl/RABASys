@@ -7,13 +7,16 @@ const parseJson = (value, fallback) => {
 
 const normalizePackageType = (item = {}) => {
   const rawType = item.package_type || item.packageType || item.category || item.type || 'tour';
-  return rawType === 'tuktrip' ? 'tuktrip' : 'tour';
+  const normalized = String(rawType).toLowerCase().replace(/\s+/g, '_');
+  return ['exclusive', 'joiner', 'tuktrip'].includes(normalized) ? normalized : 'exclusive';
 };
 
 const packageFromApi = (item) => ({
   ...item,
   id: String(item.package_id),
   category: normalizePackageType(item),
+  packageType: normalizePackageType(item),
+  availabilityStatus: item.availability_status ?? item.availabilityStatus ?? 'Available',
   title: item.package_name,
   packageName: item.package_name,
   price: Number(item.price),
@@ -22,6 +25,9 @@ const packageFromApi = (item) => ({
   itinerary: parseJson(item.itinerary, item.itinerary || []),
   meetingLocation: item.meeting_location,
   image: item.image || '/CAGSAWA.jpg',
+  joinerDate: item.joiner_date || item.joinerDate || '',
+  joinerSlots: item.joiner_slots ?? item.joinerSlots ?? '',
+  joinerBookingDeadline: item.joiner_booking_deadline || item.joinerBookingDeadline || '',
   tags: item.tags || [],
   rating: Number(item.rating || 0),
   reviewsCount: Number(item.reviews_count || 0),
@@ -41,7 +47,7 @@ const vehicleFromApi = (item) => ({
   seatingCapacity: item.capacity,
   image: item.image || '/CAGSAWA.jpg',
   duration: 'Per Day',
-  availabilityStatus: item.availability_status || 'Available',
+  availabilityStatus: item.availability_status ?? item.availabilityStatus ?? 'Available',
   fuelType: item.fuel_type || '',
   vehicleBrand: item.vehicle_brand || '',
   transmission: item.transmission || '',
@@ -62,6 +68,9 @@ const packagePayload = (item) => ({
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
   package_type: normalizePackageType(item),
   image: item.image || null,
+  joiner_date: item.joinerDate || item.joiner_date || null,
+  joiner_slots: item.joinerSlots === '' || item.joinerSlots == null ? null : Number(item.joinerSlots),
+  joiner_booking_deadline: item.joinerBookingDeadline || item.joiner_booking_deadline || null,
 });
 
 const vehiclePayload = (item) => ({
@@ -100,13 +109,24 @@ export const serviceService = {
   update: async (id, item) => item.category === 'car'
     ? vehicleFromApi(await api(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(vehiclePayload(item)) }))
     : packageFromApi(await api(`/packages/${id}`, { method: 'PATCH', body: JSON.stringify(packagePayload(item)) })),
+  setAvailability: async (id, status) => packageFromApi(await api(`/packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ availability_status: status }),
+  })),
+  setVehicleAvailability: async (id, status) => vehicleFromApi(await api(`/vehicles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ availability_status: status }),
+  })),
   delete: async (id, category = 'tour') => api(`/${category === 'car' ? 'vehicles' : 'packages'}/${id}`, { method: 'DELETE' }),
 };
 
 export const packageService = {
-  getAll: () => serviceService.getAll(),
-  getById: (id) => serviceService.getById(id),
-  getRecommendations: (preferences) => serviceService.getRecommendations(preferences),
+  getAll: async () => (await serviceService.getAll()).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
+  getById: async (id) => {
+    const item = await serviceService.getById(id);
+    return String(item?.availabilityStatus ?? item?.availability_status ?? 'Available').trim().toLowerCase() === 'available' ? item : null;
+  },
+  getRecommendations: async (preferences) => (await serviceService.getRecommendations(preferences)).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
   create: (item) => serviceService.create({ ...item, category: 'tour' }),
   update: (id, item) => serviceService.update(id, { ...item, category: 'tour' }),
   delete: (id) => serviceService.delete(id, 'tour'),

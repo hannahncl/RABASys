@@ -12,6 +12,26 @@ const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, created_at, updated_at";
+const accountSelect = `
+    SELECT 
+        a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
+        a.role, a.account_status, a.two_factor_enabled, a.google_id, a.created_at, a.updated_at,
+        m.file_path AS profile_picture
+    FROM account a
+    LEFT JOIN tour_guide tg ON tg.account_id = a.account_id
+    LEFT JOIN media m ON m.media_id = tg.media_id
+`;
+const accountSelectWithPassword = `
+    SELECT 
+        a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
+        a.role, a.account_status, a.two_factor_enabled, a.google_id, a.created_at, a.updated_at,
+        a.password_hash,
+        m.file_path AS profile_picture
+    FROM account a
+    LEFT JOIN tour_guide tg ON tg.account_id = a.account_id
+    LEFT JOIN media m ON m.media_id = tg.media_id
+`;
+
 const normalizeRole = (role) => {
     if (!role) return "Customer";
     const normalized = String(role).trim().toLowerCase();
@@ -42,6 +62,7 @@ const publicAccount = (account) => ({
     role: normalizeRole(account.role),
     status: account.account_status,
     twoFactorEnabled: Boolean(account.two_factor_enabled),
+    profilePicture: account.profile_picture || account.profilePicture || "",
     createdAt: account.created_at
 });
 const validate = (req, res, next) => {
