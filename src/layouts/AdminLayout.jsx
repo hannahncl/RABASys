@@ -75,11 +75,7 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
-<<<<<<< HEAD
-    logout();
-=======
     await logout();
->>>>>>> 262c6a2a3b3b0ecb63920f6555235615512e1ad7
     navigate('/login');
   };
 
