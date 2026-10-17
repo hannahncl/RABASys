@@ -4,6 +4,7 @@ import { Plus, Edit, Save, X, Loader, UserCheck, UserX, Search } from 'lucide-re
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { validatePassword, validateEmail, validateName, validatePhone, sanitizeInput } from '../../utils/validation';
+import PhoneInput from '../../components/ui/PhoneInput';
 
 const ManageAccounts = () => {
   const [accounts, setAccounts] = useState([]);
@@ -405,16 +406,16 @@ const ManageAccounts = () => {
             )}
             <div>
               <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Contact Number *</label>
-              <input
+              <PhoneInput
                 name="phone"
                 value={formData.phone}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9+\-()\s]/g, '');
+                onChange={(val) => {
                   setFormData(prev => ({ ...prev, phone: val }));
                   if (fieldErrors.phone) setFieldErrors(prev => ({ ...prev, phone: '' }));
                 }}
-                placeholder="e.g. +63 9123456789"
-                className={`w-full bg-slate-900/40 border rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none transition-all ${fieldErrors.phone ? 'border-rose-500/50 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20' : 'border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20'}`}
+                placeholder="Phone number"
+                className={`w-full rounded-xl ${fieldErrors.phone ? 'border-rose-500/50 bg-slate-900/40' : 'border-slate-800 bg-slate-900/40'} transition-all focus-within:border-slate-700 focus-within:ring-1 focus-within:ring-slate-700/20`}
+                inputClassName="py-2.5 text-sm text-slate-200 placeholder:text-slate-600"
               />
               {fieldErrors.phone && <p className="mt-1.5 text-[11px] text-rose-455 font-medium">{fieldErrors.phone}</p>}
             </div>

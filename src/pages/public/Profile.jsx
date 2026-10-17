@@ -10,6 +10,7 @@ import {
   Loader2, ArrowRight, History, XCircle, RefreshCw, Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PhoneInput from '../../components/ui/PhoneInput';
 
 /* ────────────────────────────────
    Pre-set avatars tourist can pick
@@ -215,7 +216,7 @@ const Profile = () => {
     if (!firstName.trim()) return;
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) return;
     if (lastName.trim() && !/^[A-Za-z\s]+$/.test(lastName.trim())) return;
-    if (contactNumber.trim() && !/^\d{11}$/.test(contactNumber.trim())) return;
+    if (contactNumber.trim() && (contactNumber.replace(/\D/g, '').length < 10 || contactNumber.replace(/\D/g, '').length > 15)) return;
     setSaving(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
@@ -366,15 +367,17 @@ const Profile = () => {
                 />
 
                 {/* Contact Number */}
-                <FormField
-                  label="Contact Number"
-                  placeholder="e.g. 09171234567"
-                  value={contactNumber}
-                  onChange={setContactNumber}
-                  sanitize={v => v.replace(/\D/g, '').slice(0, 11)}
-                  maxLength={11}
-                  inputMode="numeric"
-                />
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-slate-600">Contact Number</label>
+                  <PhoneInput
+                    placeholder="Phone number"
+                    autoComplete="tel"
+                    className="w-full rounded-xl border-slate-200 bg-white focus-within:border-yellow-400"
+                    inputClassName="py-2.5 text-sm text-slate-800"
+                    value={contactNumber}
+                    onChange={setContactNumber}
+                  />
+                </div>
 
 
                 {/* Save / Cancel */}

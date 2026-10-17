@@ -49,8 +49,9 @@ export function validateName(value, fieldName = 'Name') {
 export function validatePhone(value) {
   const sanitized = sanitizeInput(value);
   if (!sanitized) return 'Contact number is required.';
-  if (!/^\d+$/.test(sanitized)) return 'Contact number must only contain numeric digits.';
-  if (sanitized.length !== 11) return 'Contact number must be exactly 11 digits.';
+  const digits = sanitized.replace(/\D/g, '');
+  if (!/^\+?[\d\s().-]+$/.test(sanitized)) return 'Contact number contains invalid characters.';
+  if (digits.length < 10 || digits.length > 15) return 'Contact number must contain 10 to 15 digits.';
   return '';
 }
 

@@ -9,6 +9,7 @@ import { api } from '../../services/api';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
 import { Loader, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
 import { weatherService } from '../../services/weatherService';
+import PhoneInput from '../../components/ui/PhoneInput';
 
 /* ─── Color Palette & Common Styles ─── */
 const colors = {
@@ -360,7 +361,7 @@ const CustomPlanner = () => {
     if (!firstName || !lastName || !email || !phone) { showNotification('Please fill in all contact fields.', 'warning'); return; }
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) { showNotification('First Name must only contain letters.', 'warning'); return; }
     if (!/^[A-Za-z\s]+$/.test(lastName.trim())) { showNotification('Last Name must only contain letters.', 'warning'); return; }
-    if (!/^\d{11}$/.test(phone)) { showNotification('Contact Number must be exactly 11 digits.', 'warning'); return; }
+    if (!/^\+?[\d\s().-]{10,20}$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) { showNotification('Please enter a valid contact number with country code.', 'warning'); return; }
     if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
 
     const selectedActNames = selectedActivities.map(actId => currentDest.activities.find(a => a.id === actId)?.name).filter(Boolean);
@@ -568,15 +569,12 @@ const CustomPlanner = () => {
                   <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary, letterSpacing: '0.04em' }}>
                     Contact Number <span style={{ color: colors.requiredRed }}>*</span>
                   </label>
-                  <input
+                  <PhoneInput
                     id="input-phone"
-                    type="text"
                     value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    maxLength={11}
-                    inputMode="numeric"
-                    className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                    style={inputStyle}
+                    onChange={setPhone}
+                    className="w-full rounded border-[#d6cfc2] bg-white focus-within:border-[#b0a68e]"
+                    inputClassName="py-3 text-[14px]"
                     {...inputFocusHandlers}
                   />
                 </div>

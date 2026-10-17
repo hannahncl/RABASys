@@ -6,6 +6,7 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useNotification } from '../../hooks/useNotification';
 import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import PhoneInput from '../../components/ui/PhoneInput';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
 import { api } from '../../services/api';
 import { weatherService } from '../../services/weatherService';
@@ -201,8 +202,8 @@ const Booking = () => {
       showNotification('Last Name must only contain letters.', 'warning');
       return;
     }
-    if (!/^\d{11}$/.test(phone)) {
-      showNotification('Contact Number must be exactly 11 digits.', 'warning');
+    if (!/^\+?[\d\s().-]{10,20}$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
+      showNotification('Please enter a valid contact number with country code.', 'warning');
       return;
     }
     if (maxPax > 0 && totalGuests > maxPax) {
@@ -715,15 +716,12 @@ const Booking = () => {
                         >
                           Contact Number <span style={{ color: '#b83b3b' }}>*</span>
                         </label>
-                        <input
-                          type="text"
+                        <PhoneInput
                           required
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                          maxLength={11}
-                          inputMode="numeric"
-                          className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                          style={inputStyle}
+                          onChange={setPhone}
+                          className="w-full rounded border-[#d6cfc2] bg-white focus-within:border-[#b0a68e]"
+                          inputClassName="py-3 text-[14px]"
                           {...inputFocusHandlers}
                         />
                       </div>

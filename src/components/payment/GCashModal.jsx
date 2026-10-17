@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PhoneInput from '../ui/PhoneInput';
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
@@ -89,16 +90,15 @@ const GCashModal = ({ isOpen, onClose, amount, onPaymentSuccess }) => {
 
                 <div className="space-y-2 pt-2">
                   <label className="block text-xs font-bold text-slate-600 uppercase">GCash Mobile Number</label>
-                  <input
-                    type="text"
+                  <PhoneInput
                     required
                     value={mobileNumber}
-                    onChange={(e) => {
-                      setMobileNumber(e.target.value);
+                    onChange={(value) => {
+                      setMobileNumber(value);
                       setError('');
                     }}
-                    placeholder="e.g. 09171234567"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-xl border-slate-200 bg-slate-50 focus-within:border-slate-400"
+                    inputClassName="py-3 text-sm text-slate-800 placeholder-slate-400"
                   />
                   {error && <p className="text-[11px] text-rose-500 font-semibold">{error}</p>}
                 </div>

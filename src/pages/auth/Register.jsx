@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
+import PhoneInput from '../../components/ui/PhoneInput';
 
 const Register = () => {
   const { register, googleLogin } = useContext(AuthContext);
@@ -202,19 +203,15 @@ const Register = () => {
 
           <div>
             <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4a453b]">Contact Number</label>
-            <input
-              type="tel"
+            <PhoneInput
               autoComplete="tel"
-              inputMode="numeric"
               value={contactNumber}
-              onChange={(e) => {
-                const nextValue = e.target.value.replace(/\D/g, '').slice(0, 11);
+              onChange={(nextValue) => {
                 setContactNumber(nextValue);
                 if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
               }}
-              maxLength={11}
-              className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-              placeholder="e.g. 09171234567"
+              className={`w-full rounded transition-all ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus-within:border-[#b0a68e] focus-within:ring-2 focus-within:ring-[#b0a68e]/15'}`}
+              inputClassName="py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e]"
             />
             {fieldErrors.contactNumber && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.contactNumber}</p>}
           </div>

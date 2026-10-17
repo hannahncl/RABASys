@@ -147,8 +147,8 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         const normalizedEmail = normalizeEmail(identifier);
         const normalizedPhone = identifier.replace(/\D/g, '');
         const [rows] = await db.execute(
-            `${accountSelectWithPassword} WHERE a.deleted_at IS NULL AND (a.email = ? OR REPLACE(REPLACE(REPLACE(a.contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
-            [normalizedEmail, normalizedPhone]
+            `${accountSelectWithPassword} WHERE a.deleted_at IS NULL AND (a.email = ? OR REPLACE(REPLACE(REPLACE(a.contact_number, ' ', ''), '-', ''), '+', '') = ? OR RIGHT(REPLACE(REPLACE(REPLACE(a.contact_number, ' ', ''), '-', ''), '+', ''), 10) = RIGHT(?, 10))`,
+            [normalizedEmail, normalizedPhone, normalizedPhone]
         );
         const account = rows[0];
         const passwordMatches = account && (await verifyPassword(req.body.password, account.password_hash));
