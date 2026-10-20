@@ -83,10 +83,10 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/80 shadow-xs">
+      <header className="sticky top-0 z-40 w-full bg-white shadow-none">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center shrink-0">
+          <Link to="/" className="-ml-4 flex shrink-0 items-center">
             <img src="/rabas-logo.png" alt="RABAS Travel and Tours Services" className="h-11 w-auto object-contain" />
           </Link>
 
@@ -110,7 +110,7 @@ const MainLayout = () => {
             {/* User Notifications */}
             <button
               onClick={() => setNotificationsOpen(current => !current)}
-              className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer border border-slate-200/80 hover:border-[#603524]/30"
+              className="relative flex items-center gap-1.5 rounded-full px-3 py-2 text-slate-600 transition-all hover:bg-[#603524]/5 hover:text-[#603524]"
               title="View notifications"
             >
               <Bell className="h-[18px] w-[18px] text-[#603524]" />
@@ -311,14 +311,14 @@ const MainLayout = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-900 mt-auto py-12">
+      <footer className="mt-auto border-t border-[#e8e2d8] bg-white py-12 text-[#4a453b]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2 space-y-4">
-              <Link to="/" className="inline-flex items-center gap-2 text-cyan-400 font-display font-bold text-xl tracking-wide">
+              <Link to="/" className="inline-flex items-center gap-2 font-display text-xl font-bold tracking-wide text-[#60402f]">
                 RABAS TRAVEL & TOURS SERVICES
               </Link>
-              <p className="text-slate-400 text-sm max-w-sm leading-relaxed">
+              <p className="max-w-sm text-sm leading-relaxed text-[#6b6255]">
                 Rabas Travel and Tours provides premium local and domestic tour packages across the Philippines. We support local guides, prioritize eco-tourism, and deliver unforgettable experiences.
               </p>
             </div>
@@ -327,15 +327,15 @@ const MainLayout = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-200 mb-4">Support & Contact</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
+              <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#60402f]">Support & Contact</h4>
+              <ul className="space-y-2 text-sm text-[#6b6255]">
                 <li>Email: support@rabastravel.com</li>
                 <li>Phone: +63 917 123 4567</li>
                 <li>Address: Bicol, Philippines</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-900 mt-10 pt-6 text-center text-xs text-slate-500">
+          <div className="mt-10 border-t border-[#eee9e1] pt-6 text-center text-xs text-[#8a7e6e]">
             © {new Date().getFullYear()} Rabas Travel and Tours. All rights reserved.
           </div>
         </div>

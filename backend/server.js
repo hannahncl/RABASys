@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
     try {
         await db.query("SELECT 1");
+        // Keep the booking table compatible with custom-trip requests.
+        // This is safe to run repeatedly and supports existing Supabase databases.
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB NULL");
         if (process.env.RUN_SCHEMA === "true") {
             await ensureSchema();
         }

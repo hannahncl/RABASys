@@ -8,8 +8,8 @@ const router = express.Router();
 
 
 const bookingSelect = `SELECT b.*,
-    COALESCE(p.package_name, CONCAT('Customized Trip: ', JSON_UNQUOTE(JSON_EXTRACT(b.customized_details, '$.destination')))) AS package_name,
-    COALESCE(p.destination, JSON_UNQUOTE(JSON_EXTRACT(b.customized_details, '$.destination'))) AS destination,
+    COALESCE(p.package_name, CONCAT('Customized Trip: ', b.customized_details->>'destination')) AS package_name,
+    COALESCE(p.destination, b.customized_details->>'destination') AS destination,
     COALESCE(p.package_type, CASE WHEN b.customized_details IS NOT NULL THEN 'customization' ELSE NULL END) AS package_type,
     a.first_name, a.last_name, a.email, a.contact_number,
     CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
@@ -59,16 +59,19 @@ router.post("/", requireAuth, async (req, res, next) => {
         if ((!package_id && !isCustomTrip) || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) {
             return res.status(422).json({ message: "A package or customized trip, travel_date, and a positive number_of_persons are required." });
         }
-        const { rows: packages } = await db.query("SELECT price, max_capacity FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
-        const pkg = packages[0];
-        if (!pkg) return res.status(404).json({ message: "Available tour package not found." });
-        if (pkg.max_capacity && Number(number_of_persons) > Number(pkg.max_capacity)) {
+        let pkg = null;
+        if (package_id) {
+            const { rows: packages } = await db.query("SELECT price, max_capacity FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL", [package_id]);
+            pkg = packages[0];
+            if (!pkg) return res.status(404).json({ message: "Available tour package not found." });
+        }
+        if (pkg?.max_capacity && Number(number_of_persons) > Number(pkg.max_capacity)) {
             return res.status(422).json({ message: `Number of persons exceeds package capacity (${pkg.max_capacity} pax).` });
         }
         const reference = `RBT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         const { rows: inserted } = await db.query(
-            "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount) VALUES ($1, $2, $3, NOW(), $4, $5, $6) RETURNING booking_id",
-            [req.user.accountId, package_id, reference, travel_date, number_of_persons, Number(pkg.price)]
+            "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7) RETURNING booking_id",
+            [req.user.accountId, package_id || null, reference, travel_date, number_of_persons, pkg ? Number(pkg.price) : 0, customizedDetails ? JSON.stringify(customizedDetails) : null]
         );
         const newBookingId = inserted[0].booking_id;
         const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);
