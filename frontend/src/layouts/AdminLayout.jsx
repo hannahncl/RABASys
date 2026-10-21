@@ -216,13 +216,9 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-<<<<<<< HEAD:src/layouts/AdminLayout.jsx
-            <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
-=======
             {!['Dashboard', 'Car Rentals', 'Tour Packages', 'Sales Reports', 'Bookings'].includes(currentPageTitle) && (
               <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
             )}
->>>>>>> b42806ed5361c3bed35e9817f1f08af956de8e5e:frontend/src/layouts/AdminLayout.jsx
           </div>
 
           <div className="flex items-center gap-6">

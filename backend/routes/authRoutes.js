@@ -2,6 +2,9 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const { OAuth2Client } = require("google-auth-library");
 const db = require("../config/db");
@@ -11,7 +14,7 @@ const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, created_at, updated_at";
+const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, profile_picture, created_at, updated_at";
 const accountSelect = `
     SELECT 
         a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
@@ -79,6 +82,28 @@ const logAuditEvent = async (accountId, action, detail = "", req = null) => {
     }
 };
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const profilePicturesDirectory = path.join(__dirname, "..", "uploads", "profile-pictures");
+fs.mkdirSync(profilePicturesDirectory, { recursive: true });
+const profileImageExtensions = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
+const profilePictureUpload = multer({
+    storage: multer.diskStorage({
+        destination: profilePicturesDirectory,
+        filename: (req, file, callback) => callback(null, `${req.user.accountId}-${crypto.randomUUID()}${profileImageExtensions[file.mimetype]}`),
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, callback) => {
+        if (!profileImageExtensions[file.mimetype]) return callback(new Error("Choose a JPEG, PNG, WebP, or GIF image."));
+        callback(null, true);
+    },
+}).single("profilePicture");
+const handleProfilePictureUpload = (req, res, next) => profilePictureUpload(req, res, (error) => {
+    if (!error) return next();
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "Profile pictures must be 5 MB or smaller." });
+    }
+    if (error.message.startsWith("Choose a JPEG")) return res.status(422).json({ message: error.message });
+    next(error);
+});
 const parseTtlMilliseconds = () => {
     const value = process.env.JWT_EXPIRES_IN || "8h";
     const match = value.match(/^(\d+)([smhd])$/i);
@@ -255,6 +280,27 @@ router.get("/me", requireAuth, async (req, res, next) => {
         if (!rows[0]) return res.status(404).json({ message: "Account not found." });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
+});
+
+router.post("/me/profile-picture", requireAuth, handleProfilePictureUpload, async (req, res, next) => {
+    if (!req.file) return res.status(400).json({ message: "Choose a profile picture to upload." });
+    const picturePath = `/uploads/profile-pictures/${req.file.filename}`;
+    try {
+        const { rows: before } = await db.query("SELECT profile_picture FROM account WHERE account_id = $1", [req.user.accountId]);
+        await db.query("UPDATE account SET profile_picture = $1 WHERE account_id = $2", [picturePath, req.user.accountId]);
+        const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1 AND deleted_at IS NULL`, [req.user.accountId]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_PROFILE_PICTURE", tableName: "account", recordId: req.user.accountId, req });
+
+        const previousPath = before[0]?.profile_picture;
+        if (previousPath?.startsWith("/uploads/profile-pictures/")) {
+            const oldFile = path.join(profilePicturesDirectory, path.basename(previousPath));
+            fs.promises.unlink(oldFile).catch(() => {});
+        }
+        res.json({ user: publicAccount(rows[0]) });
+    } catch (error) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+        next(error);
+    }
 });
 
 router.get("/sessions", requireAuth, async (req, res, next) => {

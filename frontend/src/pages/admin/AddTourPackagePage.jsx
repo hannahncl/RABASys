@@ -60,7 +60,6 @@ const AddTourPackagePage = () => {
   };
 
   const handleSave = async () => {
-    if (!(await confirm(`Are you sure you want to create this ${packageTypeLabel}?`))) return;
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const joinerRequired = packageType === 'joiner' ? ['joinerDate', 'joinerSlots', 'joinerBookingDeadline'] : [];
     const missing = [...required, ...joinerRequired].filter(field => !String(formData[field]).trim());
@@ -69,6 +68,11 @@ const AddTourPackagePage = () => {
       showNotification('Please complete all fields before saving.', 'error');
       return;
     }
+    if (packageType === 'joiner' && formData.joinerBookingDeadline > formData.joinerDate) {
+      showNotification('The booking deadline must be on or before the trip date.', 'error');
+      return;
+    }
+    if (!(await confirm(`Are you sure you want to create this ${packageTypeLabel}?`))) return;
 
     if (!user || normalizeFrontendRole(user.role) !== 'admin') {
       showNotification('Please sign in as an admin before creating a package.', 'error');
@@ -214,7 +218,8 @@ const AddTourPackagePage = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Booking Deadline</label>
-                  <input name="joinerBookingDeadline" type="date" value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <input name="joinerBookingDeadline" type="date" max={formData.joinerDate || undefined} value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <p className="mt-1 text-[10px] text-slate-500">Last day to book; must be on or before the trip date.</p>
                 </div>
               </div>
             </div>

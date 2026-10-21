@@ -121,11 +121,7 @@ const MainLayout = () => {
             {/* User Notifications */}
             <button
               onClick={() => setNotificationsOpen(current => !current)}
-<<<<<<< HEAD:src/layouts/MainLayout.jsx
               className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer"
-=======
-              className="relative flex items-center gap-1.5 rounded-full px-3 py-2 text-slate-600 transition-all hover:bg-[#603524]/5 hover:text-[#603524]"
->>>>>>> b42806ed5361c3bed35e9817f1f08af956de8e5e:frontend/src/layouts/MainLayout.jsx
               title="View notifications"
             >
               <Bell className="h-[18px] w-[18px] text-[#603524]" />
@@ -342,11 +338,7 @@ const MainLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2 space-y-4">
-<<<<<<< HEAD:src/layouts/MainLayout.jsx
               <Link to="/" className="inline-flex items-center gap-2 text-[#603524] font-display font-bold text-xl tracking-wide">
-=======
-              <Link to="/" className="inline-flex items-center gap-2 font-display text-xl font-bold tracking-wide text-[#60402f]">
->>>>>>> b42806ed5361c3bed35e9817f1f08af956de8e5e:frontend/src/layouts/MainLayout.jsx
                 RABAS TRAVEL & TOURS SERVICES
               </Link>
               <p className="max-w-sm text-sm leading-relaxed text-[#6b6255]">

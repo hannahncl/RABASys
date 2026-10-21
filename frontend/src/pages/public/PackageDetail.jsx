@@ -4,7 +4,7 @@ import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
-import { MapPin, Star, Clock, ShieldCheck, ArrowLeft, CheckCircle2, Users } from 'lucide-react';
+import { MapPin, Star, Clock, ShieldCheck, ArrowLeft, CheckCircle2, Users, CalendarDays } from 'lucide-react';
 
 const PackageDetail = () => {
   const { id } = useParams();
@@ -12,6 +12,7 @@ const PackageDetail = () => {
   const navigate = useNavigate();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [joinerAvailability, setJoinerAvailability] = useState(null);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
@@ -26,8 +27,14 @@ const PackageDetail = () => {
         const data = await packageService.getById(id);
         if (!active) return;
         setPkg(data || null);
+        setJoinerAvailability(null);
         if (data) {
           loadReviewsForPackage(id);
+          if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
+            api(`/bookings/joiner-availability/${id}`)
+              .then((availability) => { if (active) setJoinerAvailability(availability); })
+              .catch(() => {});
+          }
         } else {
           setReviews([]);
           setLoadingReviews(false);
@@ -191,6 +198,11 @@ const PackageDetail = () => {
     );
   }
 
+  const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
+  const formatJoinerDate = (date) => date
+    ? new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Schedule not set';
+
   return (
     <div className="min-h-screen pb-24" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
       {/* Back Button */}
@@ -220,21 +232,16 @@ const PackageDetail = () => {
 
             {/* Package Image */}
             <div
-              className="w-full h-[340px] relative overflow-hidden"
+              className="relative aspect-[4/3] w-full overflow-hidden bg-[#f2efe8]"
               style={{ borderRadius: '4px' }}
             >
               <img
                 src={pkg.image || '/CAGSAWA.jpg'}
                 alt={pkg.title}
-                className="min-h-full min-w-full object-cover"
+                className="absolute inset-0 h-full w-full object-contain"
                 onError={(e) => {
                   e.currentTarget.src = '/CAGSAWA.jpg';
                 }}
-              />
-              {/* Subtle gradient overlay */}
-              <div
-                className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)' }}
               />
             </div>
 
@@ -320,6 +327,30 @@ const PackageDetail = () => {
                   </div>
                 ))}
               </div>
+
+              {isJoiner && (
+                <div className="rounded border border-[#eae5db] bg-[#faf9f6] p-5">
+                  <div className="mb-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7355]">How Joiner Tours Work</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[#6b6255]">You book individual spots on one scheduled trip and travel with the other guests booked for that departure.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {[
+                      { number: '01', title: 'Choose this departure', text: pkg.joinerDate ? formatJoinerDate(pkg.joinerDate) : 'The operator will publish a date.' },
+                      { number: '02', title: 'Reserve your spots', text: joinerAvailability ? (joinerAvailability.bookingOpen ? `Price is per person; ${joinerAvailability.remainingSlots} spots remain.` : 'Booking is closed for this departure.') : 'Price is per person; availability is loading.' },
+                      { number: '03', title: 'Wait for confirmation', text: 'The operator reviews your booking and shares final trip instructions.' },
+                    ].map((step) => (
+                      <div key={step.number} className="flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[#8b7355]">{step.number}</span>
+                        <div>
+                          <p className="text-xs font-semibold text-[#37332d]">{step.title}</p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-[#777064]">{step.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Itinerary Section */}
@@ -340,29 +371,27 @@ const PackageDetail = () => {
                 Tour Itinerary
               </h2>
 
-              <div className="space-y-0 mt-6">
+              <div className="mt-5 space-y-0">
                 {parseItinerary(pkg.itinerary).map((line, index) => (
-                  <div key={index} className="relative pl-10 pb-6 last:pb-0">
+                  <div key={index} className="relative pl-8 pb-4 last:pb-0">
                     {/* Vertical line connecting steps */}
                     {index < parseItinerary(pkg.itinerary).length - 1 && (
                       <div
-                        className="absolute left-[13px] top-[28px] bottom-0 w-px"
+                        className="absolute left-[9px] top-[20px] bottom-0 w-px"
                         style={{ background: colors.border }}
                       />
                     )}
                     {/* Number marker — minimal square */}
                     <div
-                      className="absolute left-0 top-0.5 flex h-[26px] w-[26px] items-center justify-center text-[10px] font-semibold"
+                      className="absolute left-0 top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-semibold"
                       style={{
-                        background: colors.accentDark,
-                        color: '#f7f4ef',
-                        borderRadius: '2px',
-                        letterSpacing: '0.02em',
+                        background: colors.subtleBg,
+                        color: colors.accentDark,
                       }}
                     >
                       {index + 1}
                     </div>
-                    <div className="pt-1">
+                    <div className="pt-0">
                       <p
                         className="text-[13px] leading-relaxed"
                         style={{ color: colors.textSecondary }}
@@ -626,6 +655,7 @@ const PackageDetail = () => {
                     >
                       ₱{pkg.price.toLocaleString()}
                     </p>
+                    {isJoiner && <p className="mt-0.5 text-[11px] text-[#777064]">Price per person</p>}
                   </div>
 
                   <div className="flex items-center gap-2 text-[12px]" style={{ color: colors.textSecondary }}>
@@ -650,9 +680,22 @@ const PackageDetail = () => {
                     </div>
                   </div>
 
+                  {isJoiner && (
+                    <div className="space-y-2 rounded bg-[#faf9f6] p-3 text-[11px] text-[#514b42]">
+                      <p className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-[#8b7355]" /><span><strong>Departure:</strong> {formatJoinerDate(pkg.joinerDate)}</span></p>
+                      {joinerAvailability && <p className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-[#8b7355]" /><span><strong>Spots remaining:</strong> {joinerAvailability.remainingSlots}</span></p>}
+                      {joinerAvailability && <p><strong>Status:</strong> {joinerAvailability.bookingOpen ? 'Open for booking' : 'Closed'}</p>}
+                      {joinerAvailability?.scheduleValid === false
+                        ? <p className="font-medium text-amber-800">The operator needs to correct this departure’s booking deadline.</p>
+                        : pkg.joinerBookingDeadline && <p><strong>Booking deadline:</strong> {formatJoinerDate(pkg.joinerBookingDeadline)}</p>}
+                      <p className="pt-1 leading-relaxed text-[#777064]">Your booking stays pending until the operator reviews and confirms it.</p>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleBookClick}
-                    className="mt-4 w-full px-4 py-3 text-[11px] font-semibold transition-all duration-300"
+                    disabled={isJoiner && joinerAvailability != null && !joinerAvailability.bookingOpen}
+                    className="mt-4 w-full px-4 py-3 text-[11px] font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
                     style={{
                       background: colors.accentDark,
                       color: '#f7f4ef',
@@ -670,7 +713,7 @@ const PackageDetail = () => {
                       e.target.style.boxShadow = 'none';
                     }}
                   >
-                    Book This Package
+                    {isJoiner && joinerAvailability != null && !joinerAvailability.bookingOpen ? 'Departure Full or Closed' : 'Book This Package'}
                   </button>
                 </div>
 
@@ -699,10 +742,10 @@ const PackageDetail = () => {
                         className="text-[12px] font-semibold"
                         style={{ color: colors.textPrimary, letterSpacing: '0.02em' }}
                       >
-                        Flexible Rescheduling
+                        {isJoiner ? 'Published Departure' : 'Flexible Rescheduling'}
                       </p>
                       <p className="text-[11px] mt-0.5" style={{ color: colors.textMuted }}>
-                        Change your date if needed.
+                        {isJoiner ? 'This group trip runs on the date shown above.' : 'Change your date if needed.'}
                       </p>
                     </div>
                   </div>

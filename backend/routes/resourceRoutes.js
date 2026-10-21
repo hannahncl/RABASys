@@ -67,6 +67,20 @@ function prepareResourcePayload(resource, input = {}) {
     return payload;
 }
 
+function joinerScheduleError(payload, existing = {}) {
+    const packageType = String(payload.package_type ?? existing.package_type ?? "").toLowerCase();
+    if (packageType !== "joiner") return null;
+    const tripDate = String(payload.joiner_date ?? existing.joiner_date ?? "").slice(0, 10);
+    const deadline = String(payload.joiner_booking_deadline ?? existing.joiner_booking_deadline ?? "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tripDate) || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+        return "Joiner trips need a trip date and a booking deadline.";
+    }
+    if (deadline > tripDate) {
+        return "The booking deadline must be on or before the trip date.";
+    }
+    return null;
+}
+
 function approvalAction(resource, values) {
     if (resource.table !== "reschedule_request") return "UPDATE";
     const status = String(values.request_status || "").trim().toLowerCase();
@@ -94,6 +108,8 @@ function addCrud(router, path, resource) {
             const payload = prepareResourcePayload(resource, req.body);
             const fields = selected(resource, payload);
             if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
+            const scheduleError = resource.table === "tour_package" ? joinerScheduleError(payload) : null;
+            if (scheduleError) return res.status(422).json({ message: scheduleError });
             const placeholders = fields.map((_, i) => `$${i + 1}`).join(", ");
             const { rows: inserted } = await db.query(`INSERT INTO ${qi(resource.table)} (${fields.map(qi).join(", ")}) VALUES (${placeholders}) RETURNING ${qi(resource.id)}`, fields.map(f => payload[f]));
             const newId = inserted[0][resource.id];
@@ -116,6 +132,8 @@ function addCrud(router, path, resource) {
             const { rows: existingRows } = await db.query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]);
             const oldValues = existingRows[0];
             if (!oldValues) return res.status(404).json({ message: "Record not found." });
+            const scheduleError = resource.table === "tour_package" ? joinerScheduleError(payload, oldValues) : null;
+            if (scheduleError) return res.status(422).json({ message: scheduleError });
             // SET col = $1, col2 = $2 … WHERE id = $N
             const setClauses = fields.map((f, i) => `${qi(f)} = $${i + 1}`).join(", ");
             const result = await db.query(`UPDATE ${qi(resource.table)} SET ${setClauses} WHERE ${qi(resource.id)} = $${fields.length + 1}${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
