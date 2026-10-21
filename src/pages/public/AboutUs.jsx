@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Route, ShieldCheck, Globe, Users, X, Award, Languages } from 'lucide-react';
+import { ArrowRight, Route, ShieldCheck, Globe, Users } from 'lucide-react';
 
 const features = [
   {
@@ -32,7 +32,6 @@ const avatarGradients = [
 const AboutUs = () => {
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedGuide, setSelectedGuide] = useState(null);
 
   useEffect(() => {
     const fetchGuides = async () => {
@@ -153,17 +152,106 @@ const AboutUs = () => {
         </div>
       </section>
 
-      {/* ── MEET THE TEAM ── */}
+      {/* ── FOUNDER STORY ── */}
+      <section className="mx-auto max-w-7xl px-6 pb-24 sm:px-8 lg:px-12">
+        <div className="grid items-center gap-10 rounded-2xl bg-[#faf8f5] p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)] lg:gap-16 lg:p-14">
+          <div className="space-y-5">
+            <p
+              className="text-[11px] font-semibold tracking-[0.18em] text-[#a09888]"
+              style={{ textTransform: 'uppercase' }}
+            >
+              Meet the Founder
+            </p>
+            <h2
+              className="text-[30px] font-bold leading-[1.2] tracking-tight text-[#1a1a1a] sm:text-[36px]"
+              style={{ fontFamily: "'Outfit', Georgia, serif" }}
+            >
+              Hi, I’m Ate Rikka!
+            </h2>
+            <p className="text-[14px] leading-[1.85] text-[#4a453b]">
+              The proud founder of RABAS Travel &amp; Tours Services and a DOT Regional Tour Guide. I’m just an ordinary girl with big dreams and a passion for travel, adventure, and exploring the beauty of the Philippines. What started as a simple dream of having my own business has turned into a journey of sharing unforgettable travel experiences with others. Through RABAS, I aim to showcase the breathtaking destinations of the Bicol Region, promote local tourism, and help travelers create beautiful memories. My journey is a reminder that with passion, hard work, and determination, even the simplest dreams can turn into something extraordinary.
+            </p>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <img
+              src="/rikka-founder.jpg"
+              alt="Ate Rikka, founder of RABAS Travel & Tours Services"
+              className="aspect-[3/4] w-full max-w-md rounded-xl object-cover object-top shadow-lg"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── OUR MISSION ── */}
+      <section className="mx-auto max-w-7xl px-6 pb-20 sm:px-8 lg:px-12">
+        <div className="rounded-2xl bg-[#faf8f5] px-6 py-10 sm:px-10 sm:py-14 lg:px-16">
+          <div className="mx-auto max-w-4xl">
+            <p
+              className="mb-3 text-[11px] font-semibold tracking-[0.18em] text-[#a09888]"
+              style={{ textTransform: 'uppercase' }}
+            >
+              What Guides Us
+            </p>
+            <h2
+              className="mb-6 text-[30px] font-bold leading-[1.2] tracking-tight text-[#1a1a1a] sm:text-[36px]"
+              style={{ fontFamily: "'Outfit', Georgia, serif" }}
+            >
+              Our Mission
+            </h2>
+            <div className="space-y-5 text-[14px] leading-[1.85] text-[#4a453b]">
+              <p>
+                Our mission is to provide personalized, quality, and premium travel and tour services rooted in local expertise and delivered through the Filipino brand of service excellence. We are committed to designing unique, well-curated travel experiences for solo travelers, joiners, families, and groups, ensuring consistent standards of care, safety, and professionalism across every journey.
+              </p>
+              <p>
+                Through collaboration with accredited guides, local communities, and trusted partners, we strive to make every travel experience feel seamless and familiar—where destinations may be new, but the hospitality feels like coming back to a place you already belong.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── OUR TEAM ── */}
+      <section className="mx-auto max-w-7xl px-6 pb-20 sm:px-8 lg:px-12">
+        <div className="rounded-2xl bg-[#faf8f5] px-6 py-10 sm:px-10 sm:py-14 lg:px-16">
+          <div className="mx-auto max-w-4xl">
+            <p
+              className="mb-3 text-[11px] font-semibold tracking-[0.18em] text-[#a09888]"
+              style={{ textTransform: 'uppercase' }}
+            >
+              The People Behind RABAS
+            </p>
+            <h2
+              className="mb-6 text-[30px] font-bold leading-[1.2] tracking-tight text-[#1a1a1a] sm:text-[36px]"
+              style={{ fontFamily: "'Outfit', Georgia, serif" }}
+            >
+              Our Team
+            </h2>
+            <div className="space-y-5 text-[14px] leading-[1.85] text-[#4a453b]">
+              <p>
+                At RABAS – Travel and Tours Services, our strength lies in our people. Our team is composed of DOT-accredited regional tour guides, experienced local community guides, and dedicated travel professionals who share the same passion for tourism, culture, and service excellence.
+              </p>
+              <p>
+                We collaborate closely with local communities, ensuring authentic storytelling, responsible tourism, and inclusive growth while delivering meaningful travel experiences. Supporting our operations is a reliable network of transportation partners, from skilled drivers and coach operators to logistics coordinators, working alongside our administrative and operations team to ensure smooth, safe, and well-organized journeys.
+              </p>
+              <p>
+                United by a common goal, our team upholds the Filipino brand of service excellence as promoted by the Department of Tourism (DOT), marked by warmth, professionalism, hospitality, and care. Together, we are committed to providing high-quality, legitimate, and memorable travel and tourism services that reflect the true spirit of Bicol and the Philippines.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TOUR GUIDES ── */}
       <section className="mx-auto max-w-7xl px-6 pt-4 pb-24 sm:px-8 lg:px-12">
 
-        {/* Two-column header — matches the reference photo */}
+        {/* Tour guide directory */}
         <div className="grid gap-6 lg:grid-cols-2 items-end mb-14">
           <div>
             <p
               className="mb-3 text-[11px] font-semibold tracking-[0.18em] text-[#a09888]"
               style={{ textTransform: 'uppercase' }}
             >
-              Our Team
+              Tour Guides
               <span
                 className="ml-1.5 inline-flex items-center justify-center rounded-full text-[9px] font-bold"
                 style={{ background: '#f5f0e8', color: '#8a7e6e', width: 20, height: 20, verticalAlign: 'middle' }}
@@ -175,7 +263,7 @@ const AboutUs = () => {
               className="text-[30px] font-bold leading-[1.2] tracking-tight text-[#1a1a1a] sm:text-[36px]"
               style={{ fontFamily: "'Outfit', Georgia, serif" }}
             >
-              The People Behind the Adventures
+              Meet Our Tour Guides
             </h2>
           </div>
         </div>
@@ -198,12 +286,15 @@ const AboutUs = () => {
             {guides.map((guide, i) => {
               const initials = `${guide.firstName?.[0] || ''}${guide.lastName?.[0] || ''}`.toUpperCase();
               return (
-                <div key={guide.id} className="group">
+                <div
+                  key={guide.id}
+                  className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#ddd6c8] bg-white"
+                >
 
                   {/* Portrait area */}
                   <div
-                    className="relative aspect-square overflow-hidden rounded-xl flex items-center justify-center"
-                    style={{ background: '#f0ece4' }}
+                    className="relative aspect-square overflow-hidden flex items-center justify-center"
+                    style={{ background: '#faf8f5' }}
                   >
                     <div
                       className="flex items-center justify-center rounded-full transition-transform duration-500 group-hover:scale-105"
@@ -232,43 +323,21 @@ const AboutUs = () => {
                   </div>
 
                   {/* Info below the portrait */}
-                  <div className="mt-4 px-1">
+                  <div className="flex flex-1 flex-col items-center px-3 pb-4 pt-4 text-center">
                     <p
-                      className="text-[10px] font-medium tracking-[0.1em] text-[#a09888] mb-1"
+                      className="mb-1 text-[10px] font-medium tracking-[0.1em] text-[#a09888]"
                       style={{ textTransform: 'uppercase' }}
                     >
                       Tour Guide
                     </p>
                     <h3
-                      className="text-[16px] font-bold text-[#1a1a1a] leading-snug"
+                      className="text-[16px] font-semibold leading-snug text-[#1a1a1a]"
                       style={{ fontFamily: "'Outfit', Georgia, serif" }}
                     >
                       {guide.name}
                     </h3>
                   </div>
 
-                  {/* View Details button */}
-                  <div className="mt-3 px-1">
-                    <button
-                      onClick={() => setSelectedGuide(guide)}
-                      className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[10px] font-semibold transition-all duration-200 cursor-pointer"
-                      style={{
-                        background: '#2d2a24',
-                        color: '#f7f4ef',
-                        letterSpacing: '0.06em',
-                        border: 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#4a453b';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#2d2a24';
-                      }}
-                    >
-                      <span style={{ fontSize: '8px', lineHeight: 1 }}>●</span>
-                      View Details
-                    </button>
-                  </div>
                 </div>
               );
             })}
@@ -288,134 +357,6 @@ const AboutUs = () => {
           </div>
         )}
       </section>
-
-      {/* ── Guide Detail Modal ── */}
-      {selectedGuide && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedGuide(null)}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" style={{ backdropFilter: 'blur(4px)' }} />
-
-          {/* Modal */}
-          <div
-            className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl"
-            style={{ animation: 'modalIn 0.2s ease-out' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedGuide(null)}
-              className="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-[#7a7265] transition-colors hover:bg-[#f0ece4] cursor-pointer"
-              style={{ border: 'none', background: 'transparent' }}
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Header with avatar */}
-            <div className="flex flex-col items-center pt-10 pb-6 px-8">
-              <div
-                className="flex items-center justify-center overflow-hidden rounded-full mb-5"
-                style={{
-                  width: '88px',
-                  height: '88px',
-                  background: avatarGradients[guides.indexOf(selectedGuide) % avatarGradients.length],
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                }}
-              >
-                {selectedGuide.profilePicture ? (
-                  <img
-                    src={selectedGuide.profilePicture}
-                    alt={selectedGuide.name}
-                    className="h-full w-full object-cover"
-                    onError={(event) => { event.currentTarget.style.display = 'none'; }}
-                  />
-                ) : (
-                  <span
-                    className="text-white font-bold select-none"
-                    style={{ fontSize: '30px', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
-                  >
-                    {`${selectedGuide.firstName?.[0] || ''}${selectedGuide.lastName?.[0] || ''}`.toUpperCase()}
-                  </span>
-                )}
-              </div>
-
-              <p
-                className="text-[10px] font-semibold tracking-[0.14em] text-[#a09888] mb-1"
-                style={{ textTransform: 'uppercase' }}
-              >
-                Tour Guide
-              </p>
-              <h3
-                className="text-[22px] font-bold text-[#1a1a1a] text-center"
-                style={{ fontFamily: "'Outfit', Georgia, serif" }}
-              >
-                {selectedGuide.name}
-              </h3>
-            </div>
-
-            {/* Divider */}
-            <div className="mx-8 h-px bg-[#ebe7df]" />
-
-            {/* Details */}
-            <div className="px-8 py-6 space-y-5">
-
-              {/* Description */}
-              {selectedGuide.description && (
-                <div>
-                  <p className="text-[10px] font-semibold tracking-[0.1em] text-[#a09888] mb-1.5" style={{ textTransform: 'uppercase' }}>
-                    About
-                  </p>
-                  <p className="text-[13.5px] leading-[1.75] text-[#4a453b]">
-                    {selectedGuide.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Experience & Languages row */}
-              <div className="flex gap-4">
-                {selectedGuide.yearsExperience > 0 && (
-                  <div className="flex-1 rounded-lg p-3.5" style={{ background: '#faf8f5' }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Award className="h-3 w-3 text-[#a09888]" />
-                      <p className="text-[9px] font-semibold tracking-[0.1em] text-[#a09888]" style={{ textTransform: 'uppercase' }}>
-                        Experience
-                      </p>
-                    </div>
-                    <p className="text-[15px] font-bold text-[#1a1a1a]" style={{ fontFamily: "'Outfit', Georgia, serif" }}>
-                      {selectedGuide.yearsExperience} {selectedGuide.yearsExperience === 1 ? 'Year' : 'Years'}
-                    </p>
-                  </div>
-                )}
-
-                {selectedGuide.languageSpoken && (
-                  <div className="flex-1 rounded-lg p-3.5" style={{ background: '#faf8f5' }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Languages className="h-3 w-3 text-[#a09888]" />
-                      <p className="text-[9px] font-semibold tracking-[0.1em] text-[#a09888]" style={{ textTransform: 'uppercase' }}>
-                        Languages
-                      </p>
-                    </div>
-                    <p className="text-[14px] font-semibold text-[#1a1a1a]" style={{ fontFamily: "'Outfit', Georgia, serif" }}>
-                      {selectedGuide.languageSpoken}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Modal animation */}
-      <style>{`
-        @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.97) translateY(8px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
 
     </div>
   );
