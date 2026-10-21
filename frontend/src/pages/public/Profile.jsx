@@ -1,0 +1,1003 @@
+import React, { useContext, useState, useEffect } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { bookingService } from '../../services/bookingService';
+import { useNotification } from '../../hooks/useNotification';
+import { api } from '../../services/api';
+import {
+  User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
+  AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,
+  Loader2, ArrowRight, History, XCircle, RefreshCw, Star
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+/* ────────────────────────────────
+   Pre-set avatars tourist can pick
+──────────────────────────────── */
+const AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+];
+
+/* ────────────────────────────────
+   Status badge helper
+──────────────────────────────── */
+const StatusBadge = ({ status }) => {
+  if (status === 'Confirmed' || status === 'Completed' || status === 'Rescheduled') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+      {status === 'Rescheduled' ? <RefreshCw className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />} {status}
+    </span>
+  );
+  if (status === 'Cancelled') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+      <XCircle className="h-3.5 w-3.5" /> Cancelled
+    </span>
+  );
+  if (status === 'Quote Sent') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+      <Mail className="h-3.5 w-3.5" /> Quote Sent
+    </span>
+  );
+  if (status === 'Quote Accepted') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+      <CheckCircle2 className="h-3.5 w-3.5" /> Quote Accepted
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
+      <Clock className="h-3.5 w-3.5 animate-pulse" /> Pending Verification
+    </span>
+  );
+};
+
+const hasPricedCustomQuote = (booking) => Boolean(
+  booking?.customizedDetails?.quoteItinerary?.trim()
+  && Array.isArray(booking.customizedDetails.priceBreakdown)
+  && booking.customizedDetails.priceBreakdown.length > 0
+  && Number(booking.totalPrice) > 0
+);
+
+/* ────────────────────────────────
+   Main Profile Component
+──────────────────────────────── */
+const Profile = () => {
+  const { user, updateUserSession } = useContext(AuthContext);
+  const { confirm } = useConfirmation();
+  const { showNotification } = useNotification();
+
+  // Bookings state
+  const [allBookings, setAllBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [activeTab, setActiveTab] = useState('All');
+  const [viewingBooking, setViewingBooking] = useState(null);
+  const [acceptingQuoteId, setAcceptingQuoteId] = useState(null);
+  const [samplePaymentBooking, setSamplePaymentBooking] = useState(null);
+  const [samplePaymentMethod, setSamplePaymentMethod] = useState('GCash');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  // Profile state
+  const [accountRecord, setAccountRecord] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Edit fields  — match Register.jsx fields exactly
+  const [firstName, setFirstName]         = useState('');
+  const [lastName, setLastName]           = useState('');
+  const [email, setEmail]                 = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [address, setAddress]             = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+
+  // ── Load account & bookings on mount ──
+  useEffect(() => {
+    if (!user) return;
+
+    const loadProfile = async () => {
+      try {
+        const { user: match } = await api('/auth/me');
+        if (match) {
+          const account = {
+            id: String(match.id), name: match.name, email: match.email,
+            phone: match.contactNumber, contactNumber: match.contactNumber,
+          };
+          setAccountRecord(account);
+          const parts = (match.name || user.name || '').split(' ');
+          setFirstName(parts[0] || '');
+          setLastName(parts.slice(1).join(' ') || '');
+          setEmail(match.email || user.email || '');
+          setContactNumber(match.contactNumber || user.contactNumber || '');
+          setAddress(match.address || user.address || '');
+          setSelectedAvatar(match.avatar || AVATARS[0]);
+        } else {
+          // Fall back to session
+          const parts = (user.name || '').split(' ');
+          setFirstName(parts[0] || '');
+          setLastName(parts.slice(1).join(' ') || '');
+          setEmail(user.email || '');
+          setContactNumber(user.contactNumber || '');
+          setAddress(user.address || '');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    const loadBookings = async () => {
+      setLoadingBookings(true);
+      try {
+        const [all, reviews] = await Promise.all([
+          bookingService.getAll(),
+          api('/reviews').catch(() => [])
+        ]);
+        const mine = all.filter(
+          b => b.customerEmail?.toLowerCase() === user.email?.toLowerCase()
+        ).map(b => {
+          const userRev = reviews.find(r => 
+            (b.type === 'Car Rental' && String(r.rental_booking_id) === String(b.id)) ||
+            (b.type !== 'Car Rental' && String(r.booking_id) === String(b.id))
+          );
+          return {
+            ...b,
+            hasReviewed: b.hasReviewed || Boolean(userRev),
+            review: userRev ? {
+              rating: userRev.rating,
+              comment: userRev.comment,
+              createdAt: userRev.created_at,
+            } : null
+          };
+        });
+        setAllBookings(mine);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    loadProfile();
+    loadBookings();
+  }, [user]);
+
+  // ── Filter bookings by tab ──
+  const tabs = ['All', 'Pending Verification', 'Quote Sent', 'Confirmed', 'Rescheduled', 'To Review'];
+
+  const isEligibleToReview = (b) => {
+    const s = String(b.status || '').toLowerCase();
+    return (s === 'confirmed' || s === 'completed') && !b.hasReviewed;
+  };
+
+  const filteredBookings = activeTab === 'All'
+    ? allBookings
+    : activeTab === 'To Review'
+      ? allBookings.filter(isEligibleToReview)
+      : activeTab === 'Quote Sent'
+        ? allBookings.filter(b => ['Quote Sent', 'Quote Accepted'].includes(b.status))
+      : allBookings.filter(b => b.status === activeTab);
+
+  // ── Reset to page 1 when tab changes ──
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const handleSamplePayment = async () => {
+    if (!samplePaymentBooking) return;
+    setAcceptingQuoteId(samplePaymentBooking.id);
+    try {
+      const updated = await bookingService.payCustomQuoteSample(samplePaymentBooking.id, samplePaymentMethod);
+      setAllBookings(prev => prev.map(item => item.id === samplePaymentBooking.id ? updated : item));
+      setViewingBooking(updated);
+      setSamplePaymentBooking(null);
+      showNotification(`Sample ${samplePaymentMethod} payment recorded. No real money was charged.`, 'success');
+    } catch (error) {
+      showNotification(error.message || 'Failed to record the sample payment.', 'error');
+    } finally {
+      setAcceptingQuoteId(null);
+    }
+  };
+
+
+  // ── Pagination calculations ──
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+
+  // ── Save profile edits ──
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!(await confirm('Are you sure you want to save your profile changes?'))) return;
+    if (!firstName.trim()) return;
+    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) return;
+    if (lastName.trim() && !/^[A-Za-z\s]+$/.test(lastName.trim())) return;
+    if (contactNumber.trim() && !/^\d{11}$/.test(contactNumber.trim())) return;
+    setSaving(true);
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+    try {
+      if (accountRecord) {
+        const { user: updated } = await api('/auth/me', {
+          method: 'PATCH',
+          body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), contactNumber: contactNumber.trim() }),
+        });
+        setAccountRecord(prev => ({
+          ...(prev || {}),
+          id: String(updated.id),
+          name: updated.name,
+          email: updated.email,
+          phone: updated.contactNumber,
+          contactNumber: updated.contactNumber,
+        }));
+      }
+      updateUserSession({
+        name: fullName,
+        email: email.trim(),
+        contactNumber: contactNumber.trim(),
+      });
+      setEditing(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    const parts = (accountRecord?.name || user?.name || '').split(' ');
+    setFirstName(parts[0] || '');
+    setLastName(parts.slice(1).join(' ') || '');
+    setEmail(accountRecord?.email || user?.email || '');
+    setContactNumber(accountRecord?.phone || user?.contactNumber || '');
+    setSelectedAvatar(accountRecord?.avatar || AVATARS[0]);
+    setEditing(false);
+  };
+
+  // ── Counts for tab badges ──
+  const countFor = (tab) => tab === 'All'
+    ? allBookings.length
+    : tab === 'To Review'
+      ? allBookings.filter(isEligibleToReview).length
+      : allBookings.filter(b => b.status === tab).length;
+
+  return (
+    <div className="min-h-screen bg-[#f1f4f9] pb-24 pt-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div className="mb-10 flex flex-col justify-between gap-5 border-b border-[#d9e0e5] pb-8 sm:flex-row sm:items-end">
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-[#6f8190]">Account management</p>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight text-[#243746]">My Account</h1>
+            <p className="max-w-xl text-sm text-[#6f8190]">Manage your personal details and review your travel records.</p>
+          </div>
+          <span className="inline-flex w-fit items-center rounded-full border border-[#cbd8e0] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#526b7b]">Customer account</span>
+        </div>
+
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[230px_minmax(0,1fr)]">
+
+          {/* ════════════════════════════════
+              LEFT — Profile Card
+          ════════════════════════════════ */}
+          <div className="rounded-md border border-[#dce3ee] bg-white p-0 shadow-[0_3px_12px_rgba(42,61,91,0.06)]">
+
+            <div className="border-b border-[#e5eaee] bg-[#f8fafb] px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f8190]">Profile details</p>
+            </div>
+            <div className="flex flex-col items-center border-b border-[#e5eaee] px-4 py-5 text-center">
+              <div className="h-16 w-16 overflow-hidden rounded-full ring-2 ring-[#607d91] ring-offset-2 ring-offset-white">
+                <img
+                  src={selectedAvatar}
+                  alt={user?.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="mt-3">
+                <h2 className="text-base font-semibold leading-tight text-[#243746]">{user?.name}</h2>
+                <span className="mt-1.5 inline-block rounded-full border border-[#cbd8e0] bg-[#eef3f6] px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-[#526b7b]">{user?.role}</span>
+              </div>
+            </div>
+
+            {/* ── VIEW MODE ── */}
+            {!editing ? (
+              <div className="space-y-4 px-4 py-5 [&>div:nth-child(1)]:hidden [&>div:nth-child(2)]:hidden">
+
+                <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
+                <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
+
+                <button
+                  onClick={() => setEditing(true)}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-[#b9c9d3] bg-[#f4f7f9] py-2.5 text-xs font-semibold text-[#385467] transition-all hover:bg-[#e8eff3]"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Edit Profile
+                </button>
+              </div>
+            ) : (
+              /* ── EDIT MODE — matches Register.jsx fields ── */
+              <form onSubmit={handleSave} className="space-y-4 px-6 py-6">
+
+                {/* Avatar Picker */}
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">
+                    Choose Avatar
+                  </label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {AVATARS.map((av, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        onClick={() => setSelectedAvatar(av)}
+                        className={`aspect-square rounded-full overflow-hidden border-2 cursor-pointer transition-all ${
+                          selectedAvatar === av
+                            ? 'border-yellow-400 scale-105'
+                            : 'border-transparent opacity-40 hover:opacity-80'
+                        }`}
+                      >
+                        <img src={av} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* First & Last Name */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    label="First Name"
+                    value={firstName}
+                    onChange={setFirstName}
+                    sanitize={v => v.replace(/[^a-zA-Z\s]/g, '')}
+                    capitalize
+                    required
+                  />
+                  <FormField
+                    label="Last Name"
+                    value={lastName}
+                    onChange={setLastName}
+                    sanitize={v => v.replace(/[^a-zA-Z\s]/g, '')}
+                    capitalize
+                  />
+                </div>
+
+                {/* Email */}
+                <FormField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  required
+                />
+
+                {/* Contact Number */}
+                <FormField
+                  label="Contact Number"
+                  placeholder="e.g. 09171234567"
+                  value={contactNumber}
+                  onChange={setContactNumber}
+                  sanitize={v => v.replace(/\D/g, '').slice(0, 11)}
+                  maxLength={11}
+                  inputMode="numeric"
+                />
+
+
+                {/* Save / Cancel */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="flex-1 text-slate-500 text-xs py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-yellow-400 hover:bg-yellow-500 text-slate-900 text-xs font-medium py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-40"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <><Save className="h-3.5 w-3.5" />Save changes</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* ════════════════════════════════
+              RIGHT — Booking History / Logs
+          ════════════════════════════════ */}
+          <div className="hidden rounded-md border border-[#dce3ee] bg-white shadow-[0_3px_12px_rgba(42,61,91,0.06)]">
+            <div className="border-b border-[#e5eaee] bg-[#f8fafb] px-5 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f8190]">General information</p>
+            </div>
+            <div className="grid gap-0 sm:grid-cols-2">
+              <div className="border-b border-[#eef1f4] px-5 py-5 sm:border-r">
+                <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={email || user?.email} />
+              </div>
+              <div className="border-b border-[#eef1f4] px-5 py-5">
+                <InfoRow icon={<Phone className="h-4 w-4" />} label="Contact" value={contactNumber || '—'} />
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0 space-y-4">
+
+            {/* Card */}
+            <div className="overflow-hidden rounded-md border border-[#dce3ee] bg-white shadow-[0_3px_12px_rgba(42,61,91,0.06)]">
+
+              {/* Header row */}
+              <div className="flex flex-col gap-4 border-b border-[#e5eaee] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f8190]">Booking records</p>
+                  <h3 className="mt-1 flex items-center gap-2 text-lg font-semibold text-[#243746]">
+                    <History className="h-4 w-4 text-[#607d91]" />
+                    Trip History
+                  </h3>
+                </div>
+                <Link
+                  to="/packages"
+                  className="flex items-center gap-1 text-xs text-[#6f8190] transition-colors hover:text-[#385467]"
+                >
+                  Book a trip <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+
+              {/* Status Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto border-b border-[#e5eaee] bg-[#f8fafb] px-6 py-3">
+                {tabs.map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => handleTabChange(tab)}
+                    className={`flex items-center gap-1.5 whitespace-nowrap text-xs px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+                      activeTab === tab
+                        ? 'border border-[#b9c9d3] bg-[#eef3f6] font-semibold text-[#385467]'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab === 'Pending Verification' ? 'Pending' : tab}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      activeTab === tab ? 'bg-[#dce7ed] text-[#385467]' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {countFor(tab)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Booking list */}
+              <div className="px-6 py-6">
+                {loadingBookings ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                    <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-2" />
+                    <p className="text-xs font-medium">Loading your trip history...</p>
+                  </div>
+                ) : filteredBookings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-14 text-slate-300 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                    <ShoppingBag className="h-10 w-10 mb-3 stroke-1" />
+                    <p className="text-sm text-slate-400">No trips found</p>
+                    <p className="text-xs text-slate-300 mt-1 text-center max-w-[240px]">
+                      {activeTab === 'All'
+                        ? "You haven't made any bookings yet."
+                        : activeTab === 'To Review'
+                        ? "All caught up! You've reviewed all your trips."
+                        : `No ${activeTab.toLowerCase()} trips.`}
+                    </p>
+                    {activeTab === 'All' && (
+                      <Link
+                        to="/packages"
+                        className="mt-5 rounded-lg border border-[#b9c9d3] bg-[#f0f5f7] px-5 py-2.5 text-xs font-semibold text-[#385467] transition-all hover:bg-[#e2edf1]"
+                      >
+                        Browse Packages
+                      </Link>
+                    )}
+                  </div>
+                ) : activeTab === 'To Review' ? (
+                  /* Pending Reviews Card View */
+                  <div>
+                    <div className="space-y-3">
+                      {paginatedBookings.map(booking => (
+                        <Link
+                          key={booking.id}
+                          to={`/review/${booking.id}`}
+                          className="block p-4 rounded-lg border border-yellow-200/70 bg-yellow-50/50 hover:bg-yellow-50 hover:border-yellow-300 transition-all group shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                  booking.type === 'Car Rental'
+                                    ? 'bg-amber-100/80 text-amber-900 border border-amber-300/60'
+                                    : 'bg-yellow-100 text-yellow-900 border border-yellow-300/60'
+                                }`}>
+                                  {booking.type === 'Car Rental' ? 'Car Rental' : 'Tour Package'}
+                                </span>
+                                <span className="text-[10px] font-mono text-slate-400">#{booking.id}</span>
+                              </div>
+                              <p className="text-sm font-semibold text-slate-800 group-hover:text-yellow-800 truncate">
+                                {booking.packageName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {booking.type === 'Car Rental' ? (
+                                  <>Rental Date: {booking.tourDate} {booking.returnDate ? `— ${booking.returnDate}` : ''}</>
+                                ) : (
+                                  <>Trip Date: {booking.tourDate && new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                    month: 'short', day: 'numeric', year: 'numeric'
+                                  })}</>
+                                )}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-800 text-xs font-semibold group-hover:bg-yellow-400 group-hover:text-slate-900 transition-colors shrink-0">
+                              <span>Write Review</span>
+                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Pagination for To Review */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Timeline-style log */
+                  <div className="relative">
+                    {/* Vertical line */}
+                    <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-100" />
+
+                    <div className="space-y-0">
+                      {paginatedBookings.map((booking, idx) => (
+                        <div key={booking.id} className="relative flex gap-5 items-start py-5">
+
+                          {/* Timeline dot */}
+                          <div className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
+                            (booking.status === 'Confirmed' || booking.status === 'Completed')
+                              ? 'bg-green-50 ring-1 ring-green-200'
+                              : booking.status === 'Cancelled'
+                                ? 'bg-red-50 ring-1 ring-red-200'
+                                : 'bg-yellow-50 ring-1 ring-yellow-200'
+                          }`}>
+                            {(booking.status === 'Confirmed' || booking.status === 'Completed')
+                              ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                              : booking.status === 'Cancelled'
+                                ? <XCircle className="h-3.5 w-3.5 text-red-400" />
+                                : <RefreshCw className="h-3.5 w-3.5 text-yellow-500 animate-spin" />
+                            }
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 hover:bg-yellow-50/40 border border-slate-100 hover:border-yellow-100 rounded-xl p-4 transition-all group">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                              <div className="space-y-1.5 min-w-0">
+
+                                {/* Booking ID + status */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase bg-white border border-slate-200 px-2 py-0.5 rounded font-mono">
+                                    {booking.id}
+                                  </span>
+                                  <StatusBadge status={booking.status} />
+                                </div>
+
+                                {/* Package name */}
+                                <h4 className="text-sm font-medium text-slate-700 leading-snug group-hover:text-yellow-700 transition-colors truncate">
+                                  {booking.packageName}
+                                </h4>
+
+                                {/* Meta row */}
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                      month: 'long', day: 'numeric', year: 'numeric'
+                                    })}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <User className="h-3.5 w-3.5" />
+                                    {booking.guestsCount} {booking.guestsCount > 1 ? 'guests' : 'guest'}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <CreditCard className="h-3.5 w-3.5" />
+                                    {booking.customizedDetails && booking.status === 'Pending Verification'
+                                      ? 'Pricing under review'
+                                      : `₱${booking.totalPrice?.toLocaleString()}`}
+                                  </span>
+                                </div>
+
+                                {/* Booked on */}
+                                <p className="text-[10px] text-slate-400">
+                                  Booked on {new Date(booking.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short', day: 'numeric', year: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => setViewingBooking(booking)}
+                                  className="flex items-center justify-center gap-1.5 shrink-0 text-slate-400 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-slate-100 hover:border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Invoice
+                                </button>
+                                {booking.status !== 'Completed' && (
+                                  <Link
+                                    to={`/reschedule/${booking.id}`}
+                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-700 hover:text-yellow-800 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Reschedule
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          ← Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === page
+                                  ? 'bg-yellow-400 text-slate-900'
+                                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════
+          BOOKING INVOICE MODAL
+      ════════════════════════════════ */}
+
+
+      {viewingBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+          onClick={() => setViewingBooking(null)}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-md border border-[#e0dbd0] bg-white p-5 shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
+              <div>
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8576]">
+                  {viewingBooking.id}
+                </span>
+                <h3 className="mt-1 text-base font-bold tracking-[0.02em] text-[#1a1a1a]">Booking Invoice</h3>
+              </div>
+              <button
+                onClick={() => setViewingBooking(null)}
+                className="cursor-pointer rounded border border-[#e0dbd0] bg-white p-1.5 text-[#6b6255] transition-colors hover:bg-[#fcfbf9] hover:text-[#2d2a24]"
+                title="Close invoice"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Package */}
+            <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Tour Package</p>
+              <h4 className="mt-1 text-sm font-semibold leading-snug text-[#1a1a1a]">{viewingBooking.packageName}</h4>
+            </div>
+
+            {/* Status + Date */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Status</p>
+                <StatusBadge status={viewingBooking.status} />
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Tour Date</p>
+                <p className="text-xs font-semibold text-[#1a1a1a]">
+                  {new Date(viewingBooking.tourDate).toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric'
+                  })}
+                </p>
+              </div>
+            </div>
+
+            {/* Guest info */}
+            <div className="grid grid-cols-2 gap-3 border-y border-[#eae5db] py-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Lead Guest</p>
+                <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.customerName}</p>
+                <p className="text-[10px] text-[#8f8576]">{viewingBooking.customerPhone}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Guests</p>
+                <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.guestsCount} pax</p>
+              </div>
+            </div>
+
+            {/* Payment or quote status */}
+            {viewingBooking.customizedDetails ? (
+              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+                <Row
+                  label="Quote status"
+                  value={!hasPricedCustomQuote(viewingBooking)
+                    ? 'Pricing under review'
+                    : viewingBooking.paymentStatus === 'Sample'
+                      ? 'Sample payment recorded'
+                      : viewingBooking.status === 'Quote Accepted'
+                        ? 'Quote accepted, payment pending'
+                        : 'Quote ready for acceptance'}
+                />
+                {hasPricedCustomQuote(viewingBooking) && (
+                  <>
+                    {viewingBooking.customizedDetails.quoteItinerary && (
+                      <div className="border-t border-[#e0dbd0] pt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Proposed itinerary</p>
+                        <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-[#1a1a1a]">{viewingBooking.customizedDetails.quoteItinerary}</p>
+                      </div>
+                    )}
+                    {Array.isArray(viewingBooking.customizedDetails.priceBreakdown) && viewingBooking.customizedDetails.priceBreakdown.length > 0 && (
+                      <div className="space-y-1 border-t border-[#e0dbd0] pt-3">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Price breakdown</p>
+                        {viewingBooking.customizedDetails.priceBreakdown.map((line, index) => (
+                          <div key={`${line.description}-${index}`} className="flex justify-between gap-3 text-xs text-[#4a453b]">
+                            <span>{line.description}</span>
+                            <span className="shrink-0">PHP {Number(line.amount).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                      <span>Final quote:</span>
+                      <span className="text-sm text-[#2d2a24]">PHP {viewingBooking.totalPrice?.toLocaleString()}</span>
+                    </div>
+                    {viewingBooking.paymentStatus === 'Sample' && (
+                      <div className="space-y-1 rounded border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+                        <p className="font-bold">Sample payment recorded. No real money was charged.</p>
+                        <Row label="Payment reference" value={viewingBooking.paymentTransactionReference || 'Unavailable'} />
+                        {viewingBooking.paymentDate && <Row label="Recorded" value={new Date(viewingBooking.paymentDate).toLocaleString()} />}
+                      </div>
+                    )}
+                    {!viewingBooking.paymentStatus && viewingBooking.status === 'Confirmed' && (
+                      <p className="rounded border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+                        This quote was accepted before sample checkout was available. No payment is recorded here.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+                <Row label="Payment Mode" value={viewingBooking.paymentMethod} />
+                {viewingBooking.gcashNumber && <Row label="GCash Mobile" value={viewingBooking.gcashNumber} />}
+                {viewingBooking.paymentRef && (
+                  <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
+                    <span>Reference ID:</span>
+                    <strong className="rounded border border-[#e0dbd0] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#2d2a24]">
+                      {viewingBooking.paymentRef}
+                    </strong>
+                  </div>
+                )}
+                <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                  <span>Grand Total Paid:</span>
+                  <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+
+            {viewingBooking.customizedDetails && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSamplePaymentMethod('GCash');
+                    setSamplePaymentBooking(viewingBooking);
+                  }}
+                  disabled={!hasPricedCustomQuote(viewingBooking) || viewingBooking.paymentStatus === 'Sample' || acceptingQuoteId === viewingBooking.id}
+                  className="w-full rounded bg-[#2d2a24] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {acceptingQuoteId === viewingBooking.id
+                    ? 'Recording sample payment...'
+                    : viewingBooking.paymentStatus === 'Sample'
+                      ? 'Sample payment recorded'
+                      : hasPricedCustomQuote(viewingBooking)
+                        ? 'Accept & simulate sample payment'
+                        : 'Waiting for admin quote'}
+                </button>
+                {hasPricedCustomQuote(viewingBooking) && viewingBooking.paymentStatus !== 'Sample' && (
+                  <p className="text-center text-[10px] text-[#8f8576]">Demo only. No real payment will be charged.</p>
+                )}
+              </div>
+            )}
+
+            {/* Review Section */}
+            {viewingBooking.hasReviewed && viewingBooking.review && (
+              <div className="space-y-3 rounded border border-[#e0dbd0] bg-white p-3">
+                <div className="flex items-center gap-2">
+                  <Star className="h-3.5 w-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Your Review</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= viewingBooking.review.rating
+                            ? 'fill-[#c4b99a] text-[#c4b99a]'
+                            : 'fill-[#f5f2ee] text-[#d6cfc2]'
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-1 text-xs font-semibold text-[#4a453b]">
+                      {viewingBooking.review.rating}/5
+                    </span>
+                  </div>
+                  {viewingBooking.review.comment && (
+                    <p className="border-l-2 border-[#d6cfc2] pl-3 text-xs italic text-[#4a453b]">
+                      "{viewingBooking.review.comment}"
+                    </p>
+                  )}
+                  <p className="text-[10px] text-[#8f8576]">
+                    Reviewed on {new Date(viewingBooking.review.createdAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setViewingBooking(null)}
+              className="w-full cursor-pointer rounded border border-[#e0dbd0] bg-white py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#4a453b] transition-colors hover:bg-[#fcfbf9]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {samplePaymentBooking && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="sample-payment-title">
+          <div className="w-full max-w-sm space-y-5 rounded-md border border-[#e0dbd0] bg-white p-5 shadow-xl">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8f8576]">Payment</p>
+              <h3 id="sample-payment-title" className="mt-1 text-lg font-bold text-[#1a1a1a]">Complete Payment</h3>
+            </div>
+            <div className="space-y-3">
+              {['GCash', 'Credit Card'].map((method) => (
+                <label key={method} className={`flex cursor-pointer items-center gap-3 rounded border p-3 text-sm ${samplePaymentMethod === method ? 'border-[#2d2a24] bg-[#fcfbf9]' : 'border-[#e0dbd0]'}`}>
+                  <input type="radio" name="sample-payment-method" value={method} checked={samplePaymentMethod === method} onChange={() => setSamplePaymentMethod(method)} />
+                  <span className="font-semibold text-[#1a1a1a]">{method === 'Credit Card' ? 'Credit / Debit Card' : method}</span>
+                </label>
+              ))}
+              <div className="space-y-2 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                <p>{samplePaymentMethod} is selected. This demo does not connect to {samplePaymentMethod} or process a real transaction.</p>
+                <p className="flex justify-between border-t border-amber-200 pt-2 font-bold">
+                  <span>Quote total</span>
+                  <span>PHP {Number(samplePaymentBooking.totalPrice || 0).toLocaleString()}</span>
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-[#6b6255]">Continue to record a sample receipt and confirm this customized trip. No card or GCash account details are requested.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setSamplePaymentBooking(null)} disabled={acceptingQuoteId === samplePaymentBooking.id} className="flex-1 rounded border border-[#e0dbd0] px-3 py-2.5 text-xs font-semibold text-[#4a453b] disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={handleSamplePayment} disabled={acceptingQuoteId === samplePaymentBooking.id} className="flex-1 rounded bg-[#2d2a24] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50">
+                {acceptingQuoteId === samplePaymentBooking.id ? 'Processing...' : `Pay PHP ${Number(samplePaymentBooking.totalPrice || 0).toLocaleString()} (Demo)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Small reusable sub-components ── */
+const InfoRow = ({ icon, label, value }) => (
+  <div className="flex items-center gap-3">
+    <div className="p-2 rounded-lg bg-slate-50 text-slate-400 shrink-0">
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <p className="text-[10px] text-slate-400 tracking-wide mb-0.5">{label}</p>
+      <p className="text-sm text-slate-700 truncate">{value}</p>
+    </div>
+  </div>
+);
+
+const FormField = ({ label, value, onChange, type = 'text', placeholder = '', required = false, capitalize = false, sanitize, maxLength, inputMode }) => (
+  <div>
+    <label className="block text-sm font-semibold text-gray-600 mb-2">
+      {label}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(sanitize ? sanitize(e.target.value) : e.target.value)}
+      placeholder={placeholder}
+      required={required}
+      maxLength={maxLength}
+      inputMode={inputMode}
+      className={`w-full bg-white border border-gray-200 rounded-lg py-3 px-4 text-[15px] text-gray-900 focus:outline-none transition-all ${capitalize ? 'capitalize' : ''}`}
+    />
+  </div>
+);
+
+const Row = ({ label, value }) => (
+  <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
+    <span>{label}:</span>
+    <strong className="text-right font-semibold text-[#1a1a1a]">{value}</strong>
+  </div>
+);
+
+export default Profile;
