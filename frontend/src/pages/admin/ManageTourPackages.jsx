@@ -124,7 +124,6 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
 const ManageTourPackages = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedSort, setSelectedSort] = useState('newest');
@@ -176,6 +175,7 @@ const ManageTourPackages = () => {
   const handleResetFilters = () => {
     setSelectedType('all');
     setSelectedSort('newest');
+    setSearch('');
   };
 
   const filteredServices = services
@@ -197,22 +197,38 @@ const ManageTourPackages = () => {
           <p className="text-[#6b6255] text-sm mt-0.5">{catConfig.description}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {searchOpen && <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search packages..." className="w-40 px-3 py-2 text-xs border border-[#d6cfc2] rounded-sm bg-white text-[#1a1a1a] outline-none focus:border-[#b0a68e]" />}
-          <button onClick={() => setSearchOpen((open) => !open)} className="p-2.5 rounded-sm border border-[#d6cfc2] bg-white text-[#1a1a1a] hover:bg-[#f7f4ef]" aria-label="Search tour packages"><Search className="h-4 w-4" /></button>
           <button onClick={() => setTypePickerOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all cursor-pointer text-white ${catConfig.activeBg} hover:bg-[#333333]`}><Plus className="h-4 w-4" />Add Tour Package</button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-b border-[#e0dbd0] pb-4 text-xs">
-        <label className="font-bold uppercase tracking-wider text-[#1a1a1a]">Type</label>
-        <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)} className="h-10 min-w-[190px] rounded-md border border-[#d6cfc2] bg-white px-3 text-sm text-[#2d2a24] outline-none focus:border-[#1a1a1a]">
-          {packageTypes.map((type) => <option key={type.key} value={type.key}>{type.key === 'all' ? 'All Types' : type.label}</option>)}
-        </select>
-        <label className="ml-1 font-bold uppercase tracking-wider text-[#1a1a1a]">Sort</label>
-        <select value={selectedSort} onChange={(event) => setSelectedSort(event.target.value)} className="h-10 min-w-[140px] rounded-md border border-[#d6cfc2] bg-white px-3 text-sm text-[#2d2a24] outline-none focus:border-[#1a1a1a]">
-          {sortOptions.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
-        </select>
-        <button onClick={handleResetFilters} className="flex h-10 items-center gap-2 rounded-md border border-[#d6cfc2] bg-white px-4 font-semibold text-[#6b6255] hover:bg-[#f7f4ef]"><RotateCcw className="h-4 w-4" />Reset</button>
+      <div className="bg-white border border-[#e0dbd0] p-4 rounded-md shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="package-type-filter" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Type</label>
+              <select id="package-type-filter" value={selectedType} onChange={(event) => setSelectedType(event.target.value)} className="bg-white border border-[#d6cfc2] hover:border-[#b0a68e] focus:border-[#1a1a1a] rounded-sm text-xs text-[#1a1a1a] px-2.5 py-1.5 outline-none transition-colors cursor-pointer">
+                {packageTypes.map((type) => <option key={type.key} value={type.key}>{type.key === 'all' ? 'All Types' : type.label}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="package-sort-filter" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort</label>
+              <select id="package-sort-filter" value={selectedSort} onChange={(event) => setSelectedSort(event.target.value)} className="bg-white border border-[#d6cfc2] hover:border-[#b0a68e] focus:border-[#1a1a1a] rounded-sm text-xs text-[#1a1a1a] px-2.5 py-1.5 outline-none transition-colors cursor-pointer">
+                {sortOptions.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+              </select>
+            </div>
+            <button onClick={handleResetFilters} className="flex items-center gap-1.5 rounded-sm border border-[#d6cfc2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#6b6255] hover:bg-[#f7f4ef] transition-colors"><RotateCcw className="h-3.5 w-3.5" />Reset</button>
+          </div>
+
+          <div className="relative w-full lg:w-64">
+            <Search className="h-3.5 w-3.5 text-[#8a8275] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search package, destination..."
+              className="w-full bg-white border border-[#d6cfc2] focus:border-[#1a1a1a] rounded-sm pl-8 pr-3 py-1.5 text-xs text-[#1a1a1a] placeholder:text-[#8a8275] outline-none transition-colors"
+            />
+          </div>
+        </div>
       </div>
 
 

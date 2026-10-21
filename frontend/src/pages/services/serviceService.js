@@ -68,9 +68,14 @@ const packagePayload = (item) => ({
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
   package_type: normalizePackageType(item),
   image: item.image || null,
-  joiner_date: item.joinerDate || item.joiner_date || null,
-  joiner_slots: item.joinerSlots === '' || item.joinerSlots == null ? null : Number(item.joinerSlots),
-  joiner_booking_deadline: item.joinerBookingDeadline || item.joiner_booking_deadline || null,
+  // These columns were added for joiner packages. Leave them out of ordinary
+  // tour inserts so a database that has not applied the joiner migration can
+  // still create exclusive and tuktrip packages.
+  ...(normalizePackageType(item) === 'joiner' ? {
+    joiner_date: item.joinerDate || item.joiner_date || null,
+    joiner_slots: item.joinerSlots === '' || item.joinerSlots == null ? null : Number(item.joinerSlots),
+    joiner_booking_deadline: item.joinerBookingDeadline || item.joiner_booking_deadline || null,
+  } : {}),
 });
 
 const vehiclePayload = (item) => ({

@@ -144,8 +144,12 @@ if (!storedSpots.length || storedSpots.some(s => !validIds.has(s.id))) {
   localStorage.setItem(SPOTS_STORAGE_KEY, JSON.stringify(INITIAL_SPOTS));
 }
 
-if (!localStorage.getItem(UPLOADS_STORAGE_KEY)) {
-  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(INITIAL_UPLOADS));
+const storedUploads = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY) || '[]');
+const userUploadsOnly = storedUploads.filter((upload) => !String(upload.id || '').startsWith('bu_'));
+if (storedUploads.length !== userUploadsOnly.length) {
+  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(userUploadsOnly));
+} else if (!localStorage.getItem(UPLOADS_STORAGE_KEY)) {
+  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify([]));
 }
 
 export const mapGalleryService = {

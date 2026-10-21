@@ -294,48 +294,44 @@ const ManageAccounts = () => {
 
   return (
     <div className="space-y-8" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
-      <div className="flex flex-col sm:flex-row gap-3 items-center">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or language..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-[#d6cfc2] rounded-sm pl-10 pr-4 py-2.5 text-sm text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap items-center">
-          {['customer', 'tour-guide'].map((role) => {
-            const isTourGuide = role === 'tour-guide';
-            const isCustomer = role === 'customer';
-            const isActive = filterRole === role;
-
-            return (
-              <button
-                key={role}
-                onClick={() => setFilterRole(role)}
-                className={`whitespace-nowrap min-w-[6.5rem] flex items-center justify-center px-4 py-2 rounded-sm text-xs font-medium transition-colors cursor-pointer border ${
-                  isActive
-                    ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                    : isTourGuide
-                      ? 'bg-white text-[#4a453b] border-[#d6cfc2] hover:bg-[#f7f4ef]'
-                      : 'bg-white text-[#4a453b] border-[#d6cfc2] hover:bg-[#f7f4ef]'
-                }`}
+      <div className="bg-white border border-[#e0dbd0] p-4 rounded-md shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="account-role-filter" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</label>
+              <select
+                id="account-role-filter"
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="bg-white border border-[#d6cfc2] hover:border-[#b0a68e] focus:border-[#1a1a1a] rounded-sm text-xs text-[#1a1a1a] px-2.5 py-1.5 outline-none transition-colors cursor-pointer"
               >
-                {role === 'tour-guide' ? 'Tour Guide' : 'Customer'}
+                <option value="tour-guide">Tour Guides</option>
+                <option value="customer">Customers</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative w-full lg:w-64">
+              <Search className="h-3.5 w-3.5 text-[#8a8275] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search name, email, language..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-[#d6cfc2] focus:border-[#1a1a1a] rounded-sm pl-8 pr-3 py-1.5 text-xs text-[#1a1a1a] placeholder:text-[#8a8275] outline-none transition-colors"
+              />
+            </div>
+            {filterRole === 'tour-guide' && (
+              <button
+                onClick={handleAddNew}
+                className="flex items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#333333] text-white px-4 py-2 rounded-sm font-medium text-sm transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4" />
+                Add Tour Guide
               </button>
-            );
-          })}
-          {filterRole === 'tour-guide' && (
-            <button
-              onClick={handleAddNew}
-              className="ml-auto flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333333] text-white px-4 py-2 rounded-sm font-medium text-sm transition-colors cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              Add Tour Guide
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
       {editingId && (
