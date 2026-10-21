@@ -993,7 +993,7 @@ const SalesReports = () => {
             /* Services Breakdown Table for ALL */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">Service</th>
                   <th className="px-5 py-3.5 text-center">Bookings</th>
                   <th className="px-5 py-3.5 text-center">Customers</th>
@@ -1024,7 +1024,7 @@ const SalesReports = () => {
             /* Car Rental Table */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">Vehicle</th>
                   <th className="px-5 py-3.5 text-center">Rentals</th>
                   <th className="px-5 py-3.5 text-center">Rental Days</th>
@@ -1071,7 +1071,7 @@ const SalesReports = () => {
             /* Tour Packages / TukTrip Table */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">
                     {appliedFilters.activeType === 'Tour Packages' ? 'Tour Package' : 'TukTrip Package'}
                   </th>
@@ -1220,7 +1220,7 @@ const SalesReports = () => {
                 <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                         <th className="p-3">Service</th>
                         <th className="p-3 text-center">Bookings</th>
                         <th className="p-3 text-center">Customers</th>
@@ -1258,7 +1258,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">Tour Package</th>
                           <th className="p-3 text-center">Bookings</th>
                           <th className="p-3 text-center">Tourists</th>
@@ -1313,7 +1313,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">TukTrip Package</th>
                           <th className="p-3 text-center">Bookings</th>
                           <th className="p-3 text-center">Tourists</th>
@@ -1368,7 +1368,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">Vehicle</th>
                           <th className="p-3 text-center">Rentals</th>
                           <th className="p-3 text-center">Rental Days</th>

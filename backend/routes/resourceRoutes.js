@@ -209,7 +209,7 @@ router.post("/vehicles", requireAuth, allowRoles("Admin"), async (req, res, next
         );
 
         const { rows } = await db.query("SELECT * FROM vehicle WHERE vehicle_id = $1", [inserted[0].vehicle_id]);
-        await logAudit({ accountId: req.user.accountId, action: "CREATE", tableName: "vehicle", recordId: inserted[0].vehicle_id, newValues: req.body });
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "vehicle", recordId: inserted[0].vehicle_id, newValues: req.body, req });
         res.status(201).json(rows[0]);
     } catch (error) {
         // pg unique violation error code

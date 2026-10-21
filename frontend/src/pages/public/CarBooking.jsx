@@ -97,7 +97,7 @@ const CarBooking = () => {
 
     const fetchCar = async () => {
       try {
-        const data = await serviceService.getById(id);
+        const data = await serviceService.getById(id, 'car');
         if (!data || data.category !== 'car' || String(data.availabilityStatus ?? data.availability_status ?? 'Available').trim().toLowerCase() !== 'available') throw new Error('Not found');
         setCar(data);
       } catch (error) {
@@ -707,8 +707,8 @@ const CarBooking = () => {
                 >
                   <SectionLabel>Summary</SectionLabel>
                   <div className="flex justify-between font-medium mb-2" style={{ color: colors.textSecondary, fontSize: '13px' }}>
-                    <span>â‚±{Number(car.price).toLocaleString()} Ã— {days} day{days !== 1 && 's'}</span>
-                    <span>â‚±{total.toLocaleString()}</span>
+                    <span>₱{Number(car.price).toLocaleString()} × {days} day{days !== 1 && 's'}</span>
+                    <span>₱{total.toLocaleString()}</span>
                   </div>
                   <div
                     className="mt-4 pt-4 flex justify-between items-center"
@@ -722,7 +722,7 @@ const CarBooking = () => {
                         fontFamily: "'Outfit', sans-serif",
                       }}
                     >
-                      â‚±{total.toLocaleString()}
+                      ₱{total.toLocaleString()}
                     </span>
                   </div>
                 </div>

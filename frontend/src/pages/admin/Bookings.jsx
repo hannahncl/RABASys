@@ -40,6 +40,21 @@ const statusLabel = (status) => {
   return status;
 };
 
+const matchesBookingType = (booking, selectedType) => {
+  if (selectedType === 'all') return true;
+
+  const type = String(booking?.type || '').trim().toLowerCase();
+  const selected = String(selectedType || '').trim().toLowerCase();
+
+  if (selected === 'car rental' || selected === 'car rentals' || selected === 'car') {
+    return type === 'car rental' || type === 'car rentals' || type === 'car';
+  }
+  if (selected === 'tour packages' || selected === 'tour package' || selected === 'tour') {
+    return type === 'tour packages' || type === 'tour package' || type === 'tour';
+  }
+  return type === selected;
+};
+
 const formatDate = (value) => {
   if (!value) return 'Not set';
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -78,8 +93,7 @@ const Bookings = () => {
   };
 
   const typeFilteredBookings = useMemo(() => {
-    if (bookingType === 'all') return bookings;
-    return bookings.filter(b => (b.type || 'Tour Packages') === bookingType);
+    return bookings.filter(booking => matchesBookingType(booking, bookingType));
   }, [bookings, bookingType]);
 
   const counts = useMemo(() => ({
@@ -382,51 +396,61 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-white border border-[#e0dbd0] rounded-lg max-w-lg w-full overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.18)] max-h-[90vh] flex flex-col">
+      <div className="bg-white border border-[#d8d8d8] rounded-lg max-w-4xl w-full overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.14)] max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-[#eae5db] bg-[#faf9f6] flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs text-yellow-700 font-bold tracking-wider">#{booking.id}</span>
-              <span className={`inline-flex px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider ${statusStyle(booking.status)}`}>
-                {statusLabel(booking.status)}
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase">
-                {isCarRental ? 'Car Rental' : 'Tour Package'}
-              </span>
+        <div className="p-5 border-b border-[#dedede] bg-white">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src="/rabas-logo.png" alt="RABAS Travel and Tours Services" className="h-12 w-auto object-contain" />
+              <div>
+                <p className="text-[11px] font-extrabold tracking-[0.16em] text-[#222]">RABAS TRAVEL</p>
+                <p className="text-[9px] font-semibold tracking-[0.1em] text-[#666] uppercase">Travel and Tours Services</p>
+              </div>
             </div>
-            <h2 className="text-base font-bold text-[#1a1a1a] leading-snug">{booking.packageName}</h2>
-          </div>
           <button
             onClick={onClose}
             className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#e5e5e5] flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.2em] text-[#666] uppercase">Official Booking Itinerary</p>
+              <h2 className="mt-1 text-xl font-bold text-[#1a1a1a] leading-snug">{booking.packageName}</h2>
+              <p className="mt-1 text-[11px] text-[#666] uppercase tracking-wider">{isCarRental ? 'Vehicle Rental' : 'Tour Package'}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-mono text-xs text-[#222] font-bold tracking-wider">Booking #{booking.id}</p>
+              <span className="mt-2 inline-flex px-2.5 py-1 rounded border border-[#bdbdbd] bg-white text-[#222] text-[9px] font-bold uppercase tracking-wider">
+                {statusLabel(booking.status)}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Customer */}
-          <section className="space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 border-b border-[#eae5db] pb-1.5">
+          <section className="space-y-2 border-b border-[#e5e5e5] pb-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#444] border-b border-[#e5e5e5] pb-2">
               Customer Information
             </h3>
-            <div className="space-y-2 pt-1 text-xs">
-              <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pt-1 text-xs">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500 font-medium">Name:</span>
                 <span className="font-semibold text-[#1a1a1a]">{booking.customerName}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500 font-medium">Email:</span>
                 <span className="font-semibold text-[#1a1a1a]">{booking.customerEmail}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500 font-medium">Contact Number:</span>
                 <span className="font-semibold text-[#1a1a1a]">{booking.customerPhone || 'Not specified'}</span>
               </div>
               {!isCarRental && (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Guests Count:</span>
                   <span className="font-semibold text-[#1a1a1a]">{booking.guestsCount} guest(s)</span>
                 </div>
@@ -435,34 +459,34 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
           </section>
 
           {/* Schedule */}
-          <section className="space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 border-b border-[#eae5db] pb-1.5">
+          <section className="space-y-2 border-b border-[#e5e5e5] pb-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#444] border-b border-[#e5e5e5] pb-2">
               {isCarRental ? "Rental Schedule" : "Tour Schedule"}
             </h3>
-            <div className="space-y-2 pt-1 text-xs">
-              <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pt-1 text-xs">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500 font-medium">{isCarRental ? "Pickup Date:" : "Travel Date:"}</span>
                 <span className="font-semibold text-[#1a1a1a]">{formatDate(booking.tourDate)}</span>
               </div>
               {isCarRental && (
                 <>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500 font-medium">Return Date:</span>
                     <span className="font-semibold text-[#1a1a1a]">{formatDate(booking.returnDate)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500 font-medium">Pickup Location:</span>
                     <span className="font-semibold text-[#1a1a1a]">{booking.pickupLocation || 'Not specified'}</span>
                   </div>
                   {booking.plateNumber && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-slate-500 font-medium">Plate Number:</span>
                       <span className="font-semibold font-mono text-[#1a1a1a]">{booking.plateNumber}</span>
                     </div>
                   )}
                 </>
               )}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+              <div className="flex items-center justify-between gap-3 text-[11px] text-slate-400 pt-1 sm:col-span-2 border-t border-[#f0ece5] mt-1">
                 <span>Booked On:</span>
                 <span>{new Date(booking.createdAt).toLocaleString()}</span>
               </div>
@@ -470,11 +494,11 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
           </section>
 
           {/* Payment */}
-          <section className="space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 border-b border-[#eae5db] pb-1.5">
+          <section className="space-y-2 border-b border-[#e5e5e5] pb-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#444] border-b border-[#e5e5e5] pb-2">
               Payment Information
             </h3>
-            <div className="space-y-2 pt-1 text-xs bg-[#faf9f6] p-3.5 rounded-md border border-[#eae5db]">
+            <div className="space-y-2 pt-1 text-xs bg-white p-0 border-0">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-medium">Payment Method:</span>
                 <span className="font-semibold text-[#1a1a1a]">{booking.paymentMethod || 'GCash'}</span>
@@ -482,38 +506,41 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
               {booking.paymentRef && (
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Reference Code:</span>
-                  <span className="font-mono font-bold text-yellow-700">{booking.paymentRef}</span>
+                  <span className="font-mono font-bold text-[#333]">{booking.paymentRef}</span>
                 </div>
               )}
               <div className="flex items-center justify-between pt-2 border-t border-[#eae5db] text-sm">
                 <span className="font-bold text-[#1a1a1a]">Total Paid:</span>
-                <span className="font-extrabold text-[#1a1a1a]">PHP {Number(booking.totalPrice || 0).toLocaleString()}</span>
+                <span className="font-extrabold text-[#1a1a1a]">₱{Number(booking.totalPrice || 0).toLocaleString()}</span>
               </div>
             </div>
           </section>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#eae5db] bg-[#faf9f6] flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-md border border-[#d6cfc2] hover:bg-white text-xs font-semibold text-[#4a453b] transition-colors cursor-pointer"
-          >
-            Close
-          </button>
-          {isPending && (
+        <div className="p-3 border-t border-[#dedede] bg-white flex flex-col sm:flex-row sm:items-center gap-3">
+          <p className="hidden sm:block flex-1 text-[10px] text-[#666] uppercase tracking-[0.12em]">RABAS Travel and Tours Services</p>
+          <div className="flex w-full sm:w-auto items-center justify-end gap-2">
             <button
-              onClick={() => {
-                onClose();
-                onConfirm(booking);
-              }}
-              disabled={updatingId === booking.id}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+              onClick={onClose}
+              className="px-4 py-2 rounded-md border border-[#d6cfc2] hover:bg-[#f7f7f7] text-xs font-semibold text-[#4a453b] transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Confirm Booking</span>
+              Close
             </button>
-          )}
+            {isPending && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onConfirm(booking);
+                }}
+                disabled={updatingId === booking.id}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-md bg-[#222] hover:bg-[#000] text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Confirm Booking</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

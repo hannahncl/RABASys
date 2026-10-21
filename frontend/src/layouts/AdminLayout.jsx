@@ -140,9 +140,9 @@ const AdminLayout = () => {
   ));
 
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
+    <div className="admin-theme h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 h-full border-r border-[#ece7de] bg-white shrink-0 shadow-[1px_0_8px_rgba(0,0,0,0.02)]">
+      <aside className="admin-sidebar hidden lg:flex lg:flex-col lg:w-64 h-full border-r border-[#ece7de] bg-white shrink-0 shadow-[1px_0_8px_rgba(0,0,0,0.02)]">
         {/* Top Logo */}
         <div className="pt-8 pb-6 px-6 flex items-center justify-center">
           <div className="flex items-center justify-center">
@@ -174,7 +174,7 @@ const AdminLayout = () => {
       {/* Mobile Sidebar Drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden bg-stone-900/40 backdrop-blur-xs">
-          <div className="relative w-64 bg-white p-6 flex flex-col h-full border-r border-stone-200 shadow-xl">
+          <div className="admin-sidebar relative w-64 bg-white p-6 flex flex-col h-full border-r border-stone-200 shadow-xl">
             <button
               onClick={() => setSidebarOpen(false)}
               className="absolute top-5 right-5 text-stone-400 hover:text-stone-700"

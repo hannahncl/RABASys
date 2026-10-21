@@ -177,9 +177,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
+    <div className="dashboard-theme space-y-6" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
       {/* Minimal KPIs Grid with Warm Yellow Accents */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="dashboard-kpis grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Sales */}
         <div className="bg-white border border-[#e0dbd0] p-5 rounded-md transition-colors hover:border-yellow-400 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
@@ -274,9 +274,9 @@ const Dashboard = () => {
               <AreaChart data={salesTrend} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="yellowSalesGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#eab308" stopOpacity={0.4} />
-                    <stop offset="65%" stopColor="#facc15" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#fde047" stopOpacity={0.0} />
+                    <stop offset="0%" stopColor="#603524" stopOpacity={0.4} />
+                    <stop offset="65%" stopColor="#8b6f61" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#b6a59a" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0ece4" vertical={false} />
@@ -303,17 +303,17 @@ const Dashboard = () => {
                     fontSize: '12px',
                     padding: '8px 12px'
                   }}
-                  itemStyle={{ color: '#ca8a04', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#603524', fontWeight: 'bold' }}
                   formatter={(value) => [`PHP ${Number(value).toLocaleString()}`, 'Revenue']}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="sales" 
-                  stroke="#ca8a04" 
+                  stroke="#603524" 
                   strokeWidth={2.5} 
                   fillOpacity={1} 
                   fill="url(#yellowSalesGradient)" 
-                  activeDot={{ r: 5, fill: '#eab308', stroke: '#ffffff', strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: '#603524', stroke: '#ffffff', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>

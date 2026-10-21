@@ -103,7 +103,11 @@ export const serviceService = {
 
     return packages.filter(item => item.category === category);
   },
-  getById: async (id) => {
+  getById: async (id, category) => {
+    if (category === 'car') {
+      return vehicleFromApi(await api(`/vehicles/${id}`));
+    }
+
     try { return packageFromApi(await api(`/packages/${id}`)); }
     catch { return vehicleFromApi(await api(`/vehicles/${id}`)); }
   },
