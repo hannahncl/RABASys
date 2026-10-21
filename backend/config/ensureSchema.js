@@ -12,6 +12,7 @@ async function ensureSchema() {
         role VARCHAR(50) NOT NULL DEFAULT 'Customer',
         account_status VARCHAR(50) NOT NULL DEFAULT 'Active',
         two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        profile_picture TEXT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at DATETIME NULL DEFAULT NULL,
@@ -23,6 +24,7 @@ async function ensureSchema() {
     if (!twoFactorColumns.length) {
         await db.query(`ALTER TABLE account ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0`);
     }
+
 
     // Google sign-in support: add google_id column and index
     const [googleIdCol] = await db.query(`SHOW COLUMNS FROM account LIKE 'google_id'`);

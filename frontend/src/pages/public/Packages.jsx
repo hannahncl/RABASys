@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
-import { Compass, Clock, SlidersHorizontal, Tags, Users } from 'lucide-react';
+import { api } from '../../services/api';
+import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays } from 'lucide-react';
+import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const packageCategories = [
   {
@@ -21,6 +23,14 @@ const packageCategories = [
   },
 ];
 
+const packagePriceRanges = [
+  { label: 'All Packages', min: 0, max: 100000 },
+  { label: 'Under ₱5,000', min: 0, max: 5000 },
+  { label: '₱5,000 - ₱10,000', min: 5000, max: 10000 },
+  { label: '₱10,000 - ₱20,000', min: 10000, max: 20000 },
+  { label: '₱20,000+', min: 20000, max: 100000 },
+];
+
 const getPackageVisualCategory = (pkg = {}) => {
   const savedType = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase().replace(/\s+/g, '_');
   if (['exclusive', 'joiner', 'tuktrip'].includes(savedType)) return savedType;
@@ -37,10 +47,15 @@ const getPackageVisualCategory = (pkg = {}) => {
   return 'exclusive';
 };
 
+const formatPackageDate = (date) => date
+  ? new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })
+  : 'Date not set';
+
 const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [joinerAvailability, setJoinerAvailability] = useState({});
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -52,6 +67,15 @@ const Packages = () => {
       setLoading(true);
       const allPkgs = await packageService.getAll();
       setPackages(allPkgs);
+      const joiners = allPkgs.filter((pkg) => getPackageVisualCategory(pkg) === 'joiner');
+      const availability = await Promise.all(joiners.map(async (pkg) => {
+        try {
+          return [String(pkg.id), await api(`/bookings/joiner-availability/${pkg.id}`)];
+        } catch {
+          return [String(pkg.id), null];
+        }
+      }));
+      setJoinerAvailability(Object.fromEntries(availability));
       setLoading(false);
     };
     loadPackages();
@@ -106,8 +130,8 @@ const Packages = () => {
               <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: '#4a453b' }} /> Search Filters
             </h3>
 
-                        {/* Keyword Search */}
-            <div className="mb-10">
+            {/* Keyword Search */}
+            <div className="mb-6">
               <h4
                 className="text-[10px] font-semibold mb-3"
                 style={{
@@ -123,7 +147,7 @@ const Packages = () => {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="Search..."
-                className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                className="w-full py-2.5 px-3 text-[13px] focus:outline-none transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.7)',
                   border: '1px solid #d6cfc2',
@@ -143,7 +167,7 @@ const Packages = () => {
             </div>
 
             {/* Package Category */}
-            <div className="mb-10">
+            <div className="mb-6">
               <h4
                 className="text-[10px] font-semibold mb-3 flex items-center gap-2"
                 style={{
@@ -154,7 +178,7 @@ const Packages = () => {
               >
                 <Tags className="w-3.5 h-3.5" /> Category
               </h4>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {packageCategories.map((category) => {
                   const isSelected = selectedCategory === category.key;
                   return (
@@ -162,30 +186,23 @@ const Packages = () => {
                       key={category.key}
                       type="button"
                       onClick={() => setSelectedCategory(category.key)}
-                      className="w-full px-4 py-3 text-left transition-all"
+                      className="w-full rounded-md border px-3 py-2 text-left text-[11px] font-medium transition-colors"
                       style={{
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid #2d2a24' : '1px solid #e0dbd0',
-                        background: isSelected ? '#2d2a24' : 'rgba(255,255,255,0.55)',
+                        borderColor: isSelected ? '#2d2a24' : '#e0dbd0',
+                        background: isSelected ? '#2d2a24' : '#fff',
                         color: isSelected ? '#f7f4ef' : '#45403a',
                       }}
                     >
-                      <span className="flex items-center text-[11px] font-semibold uppercase tracking-[0.1em]">
-                        {category.shortLabel}
-                      </span>
+                      {category.shortLabel}
                     </button>
                   );
                 })}
               </div>
             </div>
-
-
-
-
             {/* Price Range */}
-            <div className="mb-8">
+            <div className="mb-6">
               <h4
-                className="text-[10px] font-semibold mb-4"
+                className="text-[10px] font-semibold mb-3"
                 style={{
                   color: '#4a453b',
                   letterSpacing: '0.15em',
@@ -194,46 +211,18 @@ const Packages = () => {
               >
                 Price range
               </h4>
-              <div className="flex flex-col gap-2">
-                {[
-                  { label: 'All Packages', min: 0, max: 100000 },
-                  { label: 'Under ₱5,000', min: 0, max: 5000 },
-                  { label: '₱5,000 - ₱10,000', min: 5000, max: 10000 },
-                  { label: '₱10,000 - ₱20,000', min: 10000, max: 20000 },
-                  { label: '₱20,000+', min: 20000, max: 100000 },
-                ].map((option) => {
-                  const isSelected = priceRange[0] === option.min && priceRange[1] === option.max;
-                  return (
-                    <button
-                      key={option.label}
-                      type="button"
-                      onClick={() => setPriceRange([option.min, option.max])}
-                      className="w-full text-left px-4 py-2.5 text-[12px] font-medium transition-all"
-                      style={{
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid #b0a68e' : '1px solid #e0dbd0',
-                        background: isSelected ? 'rgba(196,185,154,0.12)' : 'rgba(255,255,255,0.5)',
-                        color: isSelected ? '#3d3a34' : '#45403a',
-                        letterSpacing: '0.02em',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#c4b99a';
-                          e.target.style.background = 'rgba(255,255,255,0.8)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#e0dbd0';
-                          e.target.style.background = 'rgba(255,255,255,0.5)';
-                        }
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <select
+                value={priceRange.join('-')}
+                onChange={(e) => {
+                  const selectedRange = packagePriceRanges.find((option) => `${option.min}-${option.max}` === e.target.value);
+                  if (selectedRange) setPriceRange([selectedRange.min, selectedRange.max]);
+                }}
+                className="w-full rounded-md border border-[#e0dbd0] bg-white px-3 py-2.5 text-xs text-[#45403a] outline-none focus:border-[#b0a68e]"
+              >
+                {packagePriceRanges.map((option) => (
+                  <option key={option.label} value={`${option.min}-${option.max}`}>{option.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -252,7 +241,7 @@ const Packages = () => {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
@@ -266,82 +255,81 @@ const Packages = () => {
                 {filteredPackages.map((pkg) => (
                   <div
                     key={pkg.id}
-                    className="overflow-hidden flex flex-col relative group transition-all duration-500"
+                    className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#e7e2d8] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                     style={{
                       background: '#ffffff',
-                      borderRadius: '6px',
-                      border: '1px solid #e0dbd0',
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)';
-                      e.currentTarget.style.transform = 'translateY(-3px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)';
-                      e.currentTarget.style.transform = 'translateY(0)';
+                      borderRadius: '12px',
                     }}
                   >
 
                     {/* Image Area */}
-                    <div className="h-[260px] w-full overflow-hidden relative">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+                      <FavoriteButton
+                        itemId={pkg.id}
+                        itemType="tour"
+                        className="absolute right-3 top-3 z-10 shadow-sm"
+                      />
                       <img
                         src={pkg.image || '/CAGSAWA.jpg'}
                         alt={pkg.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="absolute inset-0 h-full w-full bg-white object-contain"
                         onError={(e) => {
                           e.currentTarget.src = '/CAGSAWA.jpg';
                         }}
                       />
-                      {/* Subtle gradient overlay at the bottom of image */}
-                      <div
-                        className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
-                        style={{
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)',
-                        }}
-                      />
-
-                      {/* Rating badge removed per request */}
                     </div>
 
                     {/* Card Content */}
-                    <div className="px-5 pb-5 pt-5 flex-1 flex flex-col">
+                    <div className="flex flex-1 flex-col p-4">
                       <h3
-                        className="text-[15px] font-semibold mb-3 leading-tight"
+                        className="text-base font-semibold leading-tight"
                         style={{
                           color: '#1a1a1a',
-                          fontFamily: "'Outfit', Georgia, serif",
                           letterSpacing: '0.03em',
                         }}
                       >
                         {pkg.title}
                       </h3>
 
-                      <div className="flex items-center gap-5 text-[11px] font-medium mb-5"
-                        style={{ color: '#4a453b' }}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" style={{ color: '#6b6255' }} /> {pkg.duration}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Users className="w-3 h-3" style={{ color: '#6b6255' }} /> 4-6 guest
-                        </span>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="mb-4" style={{ height: '1px', background: '#eae5db' }} />
+                      {getPackageVisualCategory(pkg) === 'joiner' ? (
+                        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg bg-[#faf9f6] px-3 py-2.5 text-xs text-[#514b42]">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <CalendarDays className="h-4 w-4 shrink-0 text-[#8b7355]" />
+                            <span className="truncate whitespace-nowrap" title={joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate ? formatPackageDate(joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate) : 'Date not set'}>
+                              {joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate ? formatPackageDate(joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate) : 'Date not set'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <Users className="h-4 w-4 shrink-0 text-[#8b7355]" />
+                            <span>{joinerAvailability[pkg.id] ? (joinerAvailability[pkg.id].bookingOpen ? `${joinerAvailability[pkg.id].remainingSlots} ${joinerAvailability[pkg.id].remainingSlots === 1 ? 'spot' : 'spots'} left` : 'Closed') : 'Slots unavailable'}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-lg bg-[#faf9f6] px-3 py-2.5 text-xs text-[#514b42]">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Clock className="h-4 w-4 shrink-0 text-[#8b7355]" />
+                            <span className="truncate whitespace-nowrap" title={pkg.duration || 'To be announced'}>{pkg.duration || 'To be announced'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <Users className="h-4 w-4 shrink-0 text-[#8b7355]" />
+                            <span>{pkg.maximumCapacity ? `Max ${pkg.maximumCapacity} guests` : 'Flexible group'}</span>
+                          </div>
+                        </div>
+                      )}
+                      {getPackageVisualCategory(pkg) === 'joiner' && joinerAvailability[pkg.id]?.scheduleValid !== false && joinerAvailability[pkg.id]?.bookingDeadline && (
+                        <p className="mt-2 text-[10px] text-[#8a7f70]">Booking closes {formatPackageDate(joinerAvailability[pkg.id].bookingDeadline)}</p>
+                      )}
 
                       {/* Price & Action */}
-                      <div className="flex items-center justify-between mt-auto">
+                      <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#eeeae3] pt-3">
                         <div>
                           <span
-                            className="text-xl font-bold"
+                            className="text-base font-semibold"
                             style={{
                               color: '#1a1a1a',
-                              fontFamily: "'Outfit', sans-serif",
                             }}
                           >
-                            ₱{pkg.price.toLocaleString()}
+                            ₱{Number(pkg.price || 0).toLocaleString()}
                           </span>
                           <span
                             className="text-[10px] font-medium ml-1.5"
@@ -354,26 +342,13 @@ const Packages = () => {
                           </span>
                         </div>
                         <Link
-                          to={`/booking/${pkg.id}`}
-                          className="px-5 py-2 text-[10px] font-semibold transition-all duration-300"
+                          to={`/packages/${pkg.id}`}
+                          className="rounded-md border border-[#514b42] px-3 py-2 text-[9px] font-semibold uppercase tracking-wider text-[#37332d] transition-colors hover:bg-[#37332d] hover:text-white"
                           style={{
-                            border: '1px solid #2d2a24',
-                            borderRadius: '2px',
-                            color: '#2d2a24',
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            background: 'transparent',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = '#2d2a24';
-                            e.target.style.color = '#f7f4ef';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = 'transparent';
-                            e.target.style.color = '#2d2a24';
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          Book Now
+                          View Details
                         </Link>
                       </div>
                     </div>

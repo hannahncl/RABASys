@@ -57,6 +57,7 @@ const Booking = () => {
 
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [joinerAvailability, setJoinerAvailability] = useState(null);
 
   // Form fields
   const [firstName, setFirstName] = useState(stateData.firstName || (user?.name ? user.name.split(' ')[0] : ''));
@@ -93,6 +94,7 @@ const Booking = () => {
   useEffect(() => {
     const loadPkg = async () => {
       setLoading(true);
+      setJoinerAvailability(null);
 
       try {
         const guides = await api('/tour-guides/public');
@@ -118,6 +120,20 @@ const Booking = () => {
         return;
       }
       setPkg(data);
+      if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
+        try {
+          const availability = await api(`/bookings/joiner-availability/${packageId}`);
+          setJoinerAvailability(availability);
+          const departureDate = availability.departureDate || data.joinerDate;
+          if (departureDate) {
+            const fixedDate = String(departureDate).slice(0, 10);
+            setTourDate(fixedDate);
+            setCalendarDate(new Date(`${fixedDate}T00:00:00`));
+          }
+        } catch {
+          if (data.joinerDate) setTourDate(String(data.joinerDate).slice(0, 10));
+        }
+      }
       setLoading(false);
     };
     loadPkg();
@@ -150,9 +166,15 @@ const Booking = () => {
     );
   }
 
-  const maxPax = Number(pkg.maximumCapacity || pkg.max_capacity || 0);
+  const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
+  const packageCapacity = Number(pkg.maximumCapacity || pkg.max_capacity || 0);
+  const listedJoinerSlots = Number(joinerAvailability?.remainingSlots ?? pkg.joinerSlots ?? pkg.joiner_slots ?? 0);
+  const maxPax = isJoiner && listedJoinerSlots > 0
+    ? Math.min(packageCapacity || listedJoinerSlots, listedJoinerSlots)
+    : packageCapacity;
   const totalGuests = adultsCount + childrenCount;
-  const totalPrice = Number(pkg.price || 0);
+  const pricePerGuest = Number(pkg.price || 0);
+  const totalPrice = isJoiner ? pricePerGuest * totalGuests : pricePerGuest;
 
   const handleIncreaseAdults = () => {
     if (maxPax > 0 && totalGuests >= maxPax) {
@@ -189,6 +211,10 @@ const Booking = () => {
 
   const handleProceedToPayment = (e) => {
     e.preventDefault();
+    if (isJoiner && (!joinerAvailability?.bookingOpen || totalGuests > joinerAvailability.remainingSlots)) {
+      showNotification('This Joiner departure is closed or no longer has enough spots. Please check another trip.', 'warning');
+      return;
+    }
     if (!firstName || !lastName || !email || !phone || !tourDate || totalGuests === 0) {
       showNotification('Please fill in all booking fields.', 'warning');
       return;
@@ -254,7 +280,7 @@ const Booking = () => {
       showNotification('Booking successfully submitted! A confirmation email has been dispatched.', 'success');
       navigate('/');
     } catch (error) {
-      showNotification('Failed to save booking. Please try again.', 'error');
+      showNotification(error.message || 'Failed to save booking. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -416,7 +442,22 @@ const Booking = () => {
                 <form id="booking-form" onSubmit={handleProceedToPayment} className="space-y-10">
                   {/* Date Selection */}
                   <div>
-                    <SectionLabel>Please select a travel date</SectionLabel>
+                    <SectionLabel>{isJoiner ? 'Scheduled Joiner Departure' : 'Please select a travel date'}</SectionLabel>
+                    {isJoiner ? (
+                      <div className="max-w-[420px] rounded border border-[#e0dbd0] bg-[#faf9f6] p-4">
+                        <div className="flex items-start gap-3">
+                          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#8b7355]" />
+                          <div>
+                            <p className="text-sm font-semibold text-[#2d2a24]">
+                              {tourDate ? new Date(`${tourDate}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Departure date not set'}
+                            </p>
+                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your booking will be sent to the operator for confirmation.</p>
+                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The operator needs to correct this departure schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked. Please refresh.'}</p>
+                            {joinerAvailability?.scheduleValid !== false && pkg.joinerBookingDeadline && <p className="mt-2 text-[11px] text-[#6b6255]">Booking closes {new Date(`${String(pkg.joinerBookingDeadline).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}.</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
                     <div className="relative max-w-[320px]">
                       <button
                         type="button"
@@ -568,6 +609,7 @@ const Booking = () => {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
 
                   {/* Number of Pax */}
@@ -646,7 +688,9 @@ const Booking = () => {
                     </div>
                     {maxPax > 0 && (
                       <p className="text-[11px] mt-1.5 text-[#8a7f70]">
-                        {totalGuests} / {maxPax} total pax selected (package rate is fixed regardless of pax)
+                        {isJoiner
+                          ? `${totalGuests} guest${totalGuests === 1 ? '' : 's'} selected · PHP ${pricePerGuest.toLocaleString()} per person`
+                          : `${totalGuests} / ${maxPax} total pax selected (package rate is fixed regardless of pax)`}
                       </p>
                     )}
                   </div>
@@ -1021,7 +1065,7 @@ const Booking = () => {
                     className="pt-4 flex justify-between items-center"
                     style={{ borderTop: `1px solid ${colors.borderLight}` }}
                   >
-                    <span className="text-[11px] font-semibold" style={{ color: colors.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Total</span>
+                    <span className="text-[11px] font-semibold" style={{ color: colors.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{isJoiner ? 'Total (per person × pax)' : 'Total'}</span>
                     <span
                       className="text-lg font-semibold"
                       style={{

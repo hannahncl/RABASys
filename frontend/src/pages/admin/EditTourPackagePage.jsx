@@ -200,7 +200,8 @@ const EditTourPackagePage = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Booking Deadline</label>
-                  <input name="joinerBookingDeadline" type="date" value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <input name="joinerBookingDeadline" type="date" max={formData.joinerDate || undefined} value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <p className="mt-1 text-[10px] text-slate-500">Last day to book; must be on or before the trip date.</p>
                 </div>
               </div>
             </div>

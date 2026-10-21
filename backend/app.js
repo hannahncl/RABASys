@@ -56,6 +56,9 @@ app.use((error, req, res, next) => {
     if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
         return res.status(400).json({ message: "Invalid JSON body." });
     }
+    if ([400, 404, 409, 422].includes(Number(error.status))) {
+        return res.status(Number(error.status)).json({ message: error.message });
+    }
     if (error.code === "23505") return res.status(409).json({ message: "A record with that unique value already exists." });
     if (error.code === "23503") return res.status(422).json({ message: "A referenced record does not exist." });
     res.status(500).json({ message: "An unexpected server error occurred." });

@@ -1,10 +1,10 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirmation } from '../contexts/ConfirmationContext';
-import { api } from '../services/api';
+import { api, notificationService } from '../services/api';
 import { 
-  Compass, LayoutGrid, CalendarCheck, LogOut, Menu, X, Bell 
+  Compass, LayoutGrid, CalendarCheck, LogOut, Menu, X, Bell, Check 
 } from 'lucide-react';
 
 const StaffLayout = () => {
@@ -12,6 +12,9 @@ const StaffLayout = () => {
   const { confirm } = useConfirmation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [guideProfile, setGuideProfile] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,12 +35,60 @@ const StaffLayout = () => {
     return () => { isMounted = false; };
   }, [user?.id]);
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationService.getAll();
+        if (mounted) setNotifications(data || []);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(current => current.map(notification => (
+        notification.notification_id === id ? { ...notification, is_read: 1 } : notification
+      )));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(current => current.map(notification => ({ ...notification, is_read: 1 })));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
   const profilePicture = guideProfile?.profilePicture || user?.profilePicture;
+  const hasUnreadNotifications = notifications.some(notification => !notification.is_read);
 
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
-    logout();
-    navigate('/');
+    await logout();
+    navigate('/login');
   };
 
   const menuItems = [
@@ -163,14 +214,65 @@ const StaffLayout = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <button 
-              className="relative p-2 rounded-full transition-colors text-stone-500 hover:text-yellow-700 hover:bg-amber-50 cursor-pointer"
-              title="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500"></span>
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setShowNotifications(current => !current)}
+                className={`relative p-2 rounded-full transition-colors ${showNotifications ? 'bg-slate-800 text-white' : 'text-stone-500 hover:bg-slate-100 hover:text-stone-800'} cursor-pointer`}
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded={showNotifications}
+              >
+                <Bell className="h-5 w-5" />
+                {hasUnreadNotifications && (
+                  <>
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500"></span>
+                  </>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl z-50">
+                  <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/50 px-4 py-3">
+                    <h3 className="text-sm font-semibold text-slate-200">Notifications</h3>
+                    {hasUnreadNotifications && (
+                      <button onClick={handleMarkAllAsRead} className="cursor-pointer text-[11px] font-medium text-cyan-400 hover:text-cyan-300">
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[360px] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">No new notifications.</div>
+                    ) : notifications.map(notification => (
+                      <div
+                        key={notification.notification_id}
+                        className={`group border-b border-slate-800/50 px-4 py-3 ${notification.is_read ? 'opacity-60' : ''}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-slate-200">{notification.title}</p>
+                            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">{notification.message}</p>
+                            <p className="mt-2 text-[10px] text-slate-500">{notification.sent_at ? new Date(notification.sent_at).toLocaleString() : ''}</p>
+                          </div>
+                          {!notification.is_read && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkAsRead(notification.notification_id)}
+                              className="shrink-0 cursor-pointer rounded-lg p-1.5 text-slate-400 opacity-0 transition-all hover:bg-slate-700 hover:text-cyan-400 group-hover:opacity-100"
+                              title="Mark as read"
+                              aria-label="Mark notification as read"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             
             <div className="flex items-center gap-3 border-l border-stone-200 pl-6">
               <div className="text-right hidden sm:block">

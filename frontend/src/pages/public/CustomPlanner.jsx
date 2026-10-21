@@ -211,7 +211,8 @@ const CustomPlanner = () => {
 
   const [numDays, setNumDays] = useState('');
   const [numNights, setNumNights] = useState('');
-  const [numGuests, setNumGuests] = useState('');
+  const [adultCount, setAdultCount] = useState(1);
+  const [childCount, setChildCount] = useState(0);
   const [selectedDates, setSelectedDates] = useState([]);
 
   const [firstName, setFirstName] = useState('');
@@ -267,14 +268,13 @@ const CustomPlanner = () => {
     });
   }, [numDays, numNights]);
 
-  const handleDurationChange = (field, value) => {
-    const nextDays = field === 'days' ? value : numDays;
-    const nextNights = field === 'nights' ? value : numNights;
-    if (field === 'days') setNumDays(value);
-    else setNumNights(value);
+  const handleDurationChange = (value) => {
+    const nextNights = value === '' ? '' : String(Math.max(Number(value) - 1, 0));
+    setNumDays(value);
+    setNumNights(nextNights);
 
     if (selectedDates.length) {
-      const durationEndDate = getDurationEndDate(selectedDates[0], nextDays, nextNights);
+      const durationEndDate = getDurationEndDate(selectedDates[0], value, nextNights);
       setSelectedDates(durationEndDate ? [selectedDates[0], durationEndDate] : [selectedDates[0]]);
     }
   };
@@ -348,7 +348,7 @@ const CustomPlanner = () => {
     ? otherAccommodationPreference.trim() || 'Other preference (not specified)'
     : selectedHotel?.name || 'Not selected';
 
-  const guestCount = Number(numGuests) || 0;
+  const guestCount = adultCount + childCount;
 
   const handleBook = async (e) => {
     e.preventDefault();
@@ -379,6 +379,8 @@ const CustomPlanner = () => {
             : selectedHotel?.name || 'None',
           otherAccommodationPreference: otherAccommodationPreference.trim(),
           duration: `${numDays || 0} Days / ${numNights || 0} Nights`,
+          adultCount,
+          childCount,
           activities: selectedActNames,
           preferredGuideId: preferredGuide?.guideId || null,
           preferredGuideName: preferredGuide?.name || null,
@@ -409,15 +411,14 @@ const CustomPlanner = () => {
     <div className="min-h-screen pb-24 pt-10" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="mb-10 border-b border-slate-100 pb-8">
-          <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">Customize Your Trip</h1>
+        <div className="mb-6">
+          <h1
+            className="text-lg font-semibold"
+            style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+          >
+            Customize Your Trip
+          </h1>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        </div>
-
-
 
         {/* Main Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -438,46 +439,12 @@ const CustomPlanner = () => {
                     min="1"
                     max="30"
                     value={numDays}
-                    onChange={e => handleDurationChange('days', e.target.value)}
+                    onChange={e => handleDurationChange(e.target.value)}
                     className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
                     style={inputStyle}
                     {...inputFocusHandlers}
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary, letterSpacing: '0.04em' }}>
-                    Number of Nights
-                  </label>
-                  <input
-                    id="input-nights"
-                    type="number"
-                    min="0"
-                    max="30"
-                    value={numNights}
-                    onChange={e => handleDurationChange('nights', e.target.value)}
-                    className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                    style={inputStyle}
-                    {...inputFocusHandlers}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary, letterSpacing: '0.04em' }}>
-                    Number of Guests / PAX
-                  </label>
-                  <input
-                    id="input-guests"
-                    type="number"
-                    value={numGuests}
-                    onChange={e => setNumGuests(e.target.value)}
-                    className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                    style={inputStyle}
-                    {...inputFocusHandlers}
-                  />
-                </div>
-
                 <div className="relative">
                   <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary, letterSpacing: '0.04em' }}>
                     Preferred Date
@@ -489,7 +456,7 @@ const CustomPlanner = () => {
                   >
                     <span style={{ color: selectedDates.length ? colors.textPrimary : colors.textMuted }}>
                       {selectedDates.length >= 2 && selectedDates[0] !== selectedDates[1]
-                        ? `${selectedDates[0]} to ${selectedDates[1]}`
+                        ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
                         : selectedDates[0] || 'Select dates'}
                     </span>
                     <Calendar className="w-4 h-4" style={{ color: colors.accent }} />
@@ -505,6 +472,48 @@ const CustomPlanner = () => {
                       />
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="mb-3 flex items-center gap-3">
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textSecondary }}>
+                    Number of PAX
+                  </label>
+                  <span className="text-xs" style={{ color: colors.textMuted }}>(max 212 pax)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {[
+                    { label: 'Adult', count: adultCount, setCount: setAdultCount, minimum: guestCount > 1 ? 0 : 1 },
+                    { label: 'Child (6-10)', count: childCount, setCount: setChildCount, minimum: 0 },
+                  ].map(({ label, count, setCount, minimum }) => (
+                    <div key={label} className="flex items-center justify-between rounded-sm border px-5 py-4" style={{ ...inputStyle, borderColor: colors.border }}>
+                      <span className="text-[14px] text-[#1a1a1a]">{label}</span>
+                      <div className="flex items-center gap-6">
+                        <button
+                          type="button"
+                          aria-label={`Decrease ${label.toLowerCase()} count`}
+                          disabled={count <= minimum}
+                          onClick={() => setCount(value => Math.max(minimum, value - 1))}
+                          className="text-sm font-semibold text-[#4a453b] hover:text-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          −
+                        </button>
+                        <span className="min-w-3 text-center text-[14px] font-semibold text-[#1a1a1a]" aria-live="polite">
+                          {count}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Increase ${label.toLowerCase()} count`}
+                          disabled={guestCount >= 212}
+                          onClick={() => setCount(value => value + 1)}
+                          className="text-sm font-semibold text-[#4a453b] hover:text-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -801,7 +810,7 @@ const CustomPlanner = () => {
             >
               <h3
                 className="text-[11px] font-semibold mb-6 text-center"
-                style={{ color: colors.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase' }}
+                style={{ color: colors.textPrimary, letterSpacing: '0.15em', textTransform: 'uppercase' }}
               >
                 Your Trip Selections
               </h3>
@@ -812,6 +821,7 @@ const CustomPlanner = () => {
                   ['Travel dates', selectedTravelDates],
                   ['Duration', `${numDays || 0} days / ${numNights || 0} nights`],
                   ['Guests', guestCount || 'Not selected'],
+                  ['Children (6-10)', childCount],
                   ['Accommodation', accommodationSummary],
                   ['Tour guide', preferredGuide?.name || 'No preference'],
                 ].map(([label, value]) => (
