@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { api } from '../../services/api';
-import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays } from 'lucide-react';
+import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays, Star } from 'lucide-react';
 import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const packageCategories = [
@@ -241,7 +241,7 @@ const Packages = () => {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
@@ -251,19 +251,22 @@ const Packages = () => {
                 ))}
               </div>
             ) : filteredPackages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
+              <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {filteredPackages.map((pkg) => (
                   <div
                     key={pkg.id}
-                    className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#e7e2d8] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                    className="group relative flex h-full w-full flex-col overflow-hidden transition-all duration-500 hover:-translate-y-[3px] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)]"
                     style={{
                       background: '#ffffff',
-                      borderRadius: '12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e0dbd0',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                      fontFamily: "'Inter', sans-serif",
                     }}
                   >
 
                     {/* Image Area */}
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+                    <div className="relative h-[240px] w-full overflow-hidden bg-[#fcfbf9]">
                       <FavoriteButton
                         itemId={pkg.id}
                         itemType="tour"
@@ -272,7 +275,7 @@ const Packages = () => {
                       <img
                         src={pkg.image || '/CAGSAWA.jpg'}
                         alt={pkg.title}
-                        className="absolute inset-0 h-full w-full bg-white object-contain"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         onError={(e) => {
                           e.currentTarget.src = '/CAGSAWA.jpg';
                         }}
@@ -280,9 +283,9 @@ const Packages = () => {
                     </div>
 
                     {/* Card Content */}
-                    <div className="flex flex-1 flex-col p-4">
+                    <div className="flex flex-1 flex-col px-5 pb-5 pt-5">
                       <h3
-                        className="text-base font-semibold leading-tight"
+                        className="mb-1 text-[15px] font-semibold leading-tight"
                         style={{
                           color: '#1a1a1a',
                           letterSpacing: '0.03em',
@@ -291,40 +294,36 @@ const Packages = () => {
                         {pkg.title}
                       </h3>
 
-                      {getPackageVisualCategory(pkg) === 'joiner' ? (
-                        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg bg-[#faf9f6] px-3 py-2.5 text-xs text-[#514b42]">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <CalendarDays className="h-4 w-4 shrink-0 text-[#8b7355]" />
-                            <span className="truncate whitespace-nowrap" title={joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate ? formatPackageDate(joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate) : 'Date not set'}>
-                              {joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate ? formatPackageDate(joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate) : 'Date not set'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Users className="h-4 w-4 shrink-0 text-[#8b7355]" />
-                            <span>{joinerAvailability[pkg.id] ? (joinerAvailability[pkg.id].bookingOpen ? `${joinerAvailability[pkg.id].remainingSlots} ${joinerAvailability[pkg.id].remainingSlots === 1 ? 'spot' : 'spots'} left` : 'Closed') : 'Slots unavailable'}</span>
-                          </div>
+                      <div className="mb-2 flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3.5 w-3.5 fill-[#c4b99a] text-[#c4b99a]" />
+                          <span className="text-xs font-bold text-[#1a1a1a]">New</span>
                         </div>
-                      ) : (
-                        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-lg bg-[#faf9f6] px-3 py-2.5 text-xs text-[#514b42]">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Clock className="h-4 w-4 shrink-0 text-[#8b7355]" />
-                            <span className="truncate whitespace-nowrap" title={pkg.duration || 'To be announced'}>{pkg.duration || 'To be announced'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Users className="h-4 w-4 shrink-0 text-[#8b7355]" />
-                            <span>{pkg.maximumCapacity ? `Max ${pkg.maximumCapacity} guests` : 'Flexible group'}</span>
-                          </div>
+                        <span className="text-[10px] font-medium text-[#8f8576]">No reviews yet</span>
+                      </div>
+                      <div
+                        className="mt-auto grid grid-cols-2 gap-x-2 gap-y-3.5 pt-4 text-[11px] font-medium"
+                        style={{ color: '#4a453b', borderTop: '1px solid #eae5db' }}
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          {getPackageVisualCategory(pkg) === 'joiner' ? <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#6b6255]" /> : <Clock className="h-3.5 w-3.5 shrink-0 text-[#6b6255]" />}
+                          <span className="truncate">{getPackageVisualCategory(pkg) === 'joiner' ? (joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate ? formatPackageDate(joinerAvailability[pkg.id]?.departureDate || pkg.joinerDate) : 'Date not set') : (pkg.duration || 'Duration TBA')}</span>
                         </div>
-                      )}
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Users className="h-3.5 w-3.5 shrink-0 text-[#6b6255]" />
+                          <span className="truncate">{getPackageVisualCategory(pkg) === 'joiner' ? (joinerAvailability[pkg.id] ? (joinerAvailability[pkg.id].bookingOpen ? `${joinerAvailability[pkg.id].remainingSlots} ${joinerAvailability[pkg.id].remainingSlots === 1 ? 'spot' : 'spots'} left` : 'Booking closed') : 'Availability loading') : (pkg.maximumCapacity ? `Up to ${pkg.maximumCapacity} guests` : 'Flexible group size')}</span>
+                        </div>
+                      </div>
                       {getPackageVisualCategory(pkg) === 'joiner' && joinerAvailability[pkg.id]?.scheduleValid !== false && joinerAvailability[pkg.id]?.bookingDeadline && (
                         <p className="mt-2 text-[10px] text-[#8a7f70]">Booking closes {formatPackageDate(joinerAvailability[pkg.id].bookingDeadline)}</p>
                       )}
 
                       {/* Price & Action */}
-                      <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#eeeae3] pt-3">
+                      <div className="mb-4 mt-5 h-px bg-[#eae5db]" />
+                      <div className="flex items-center justify-between gap-3 pt-1">
                         <div>
                           <span
-                            className="text-base font-semibold"
+                            className="mr-1 text-xl font-bold"
                             style={{
                               color: '#1a1a1a',
                             }}
@@ -332,7 +331,7 @@ const Packages = () => {
                             ₱{Number(pkg.price || 0).toLocaleString()}
                           </span>
                           <span
-                            className="text-[10px] font-medium ml-1.5"
+                            className="text-[10px] font-medium"
                             style={{
                               color: '#5c564b',
                               letterSpacing: '0.04em',
@@ -343,12 +342,12 @@ const Packages = () => {
                         </div>
                         <Link
                           to={`/packages/${pkg.id}`}
-                          className="rounded-md border border-[#514b42] px-3 py-2 text-[9px] font-semibold uppercase tracking-wider text-[#37332d] transition-colors hover:bg-[#37332d] hover:text-white"
+                          className="rounded-[2px] border border-[#2d2a24] bg-transparent px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2d2a24] transition-all duration-300 hover:bg-[#2d2a24] hover:text-[#f7f4ef]"
                           style={{
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          View Details
+                          Book Now
                         </Link>
                       </div>
                     </div>

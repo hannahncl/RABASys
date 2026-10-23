@@ -235,6 +235,7 @@ const CarRentals = () => {
                       borderRadius: '6px',
                       border: '1px solid #e0dbd0',
                       boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                      fontFamily: "'Inter', sans-serif",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)';
@@ -274,7 +275,6 @@ const CarRentals = () => {
                         className="text-[15px] font-semibold mb-1 leading-tight"
                         style={{
                           color: '#1a1a1a',
-                          fontFamily: "'Outfit', Georgia, serif",
                           letterSpacing: '0.03em',
                         }}
                       >
@@ -318,7 +318,6 @@ const CarRentals = () => {
                             className="text-xl font-bold ml-1.5 mr-1"
                             style={{
                               color: '#1a1a1a',
-                              fontFamily: "'Outfit', sans-serif",
                             }}
                           >
                             ₱{Number(car.price).toLocaleString()}

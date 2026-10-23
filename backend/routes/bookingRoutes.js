@@ -204,8 +204,29 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         res.json(rows[0]);
     } catch (e) { next(e); }
 });
-router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => { try { const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed"]; if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." }); const { rows: before } = await db.query("SELECT * FROM booking WHERE booking_id = $1 AND deleted_at IS NULL", [req.params.id]); const result = await db.query("UPDATE booking SET booking_status = $1 WHERE booking_id = $2 AND deleted_at IS NULL", [req.body.booking_status, req.params.id]); if (!result.rowCount) return res.status(404).json({ message: "Booking not found." }); const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req }); res.json(rows[0]); } catch (e) { next(e); } });
+router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => {
+    try {
+        const allowed = ["Pending", "Confirmed", "Rescheduled", "Completed", "Cancelled"];
+        if (!allowed.includes(req.body.booking_status)) return res.status(422).json({ message: "Invalid booking_status." });
+        const { rows: before } = await db.query(
+            "SELECT b.*, p.package_type FROM booking b LEFT JOIN tour_package p ON p.package_id = b.package_id WHERE b.booking_id = $1 AND b.deleted_at IS NULL",
+            [req.params.id]
+        );
+        if (!before[0]) return res.status(404).json({ message: "Booking not found." });
+        if (["Completed", "Cancelled"].includes(before[0].booking_status)) {
+            return res.status(409).json({ message: `${before[0].booking_status} bookings cannot be updated.` });
+        }
+        if (req.body.booking_status === "Completed" && String(before[0].package_type || "").toLowerCase() === "joiner") {
+            const { rows: [{ today }] } = await db.query("SELECT CURRENT_DATE::text AS today");
+            if (String(before[0].travel_date).slice(0, 10) >= today) {
+                return res.status(409).json({ message: "A Joiner booking cannot be completed before its departure date." });
+            }
+        }
+        const result = await db.query("UPDATE booking SET booking_status = $1 WHERE booking_id = $2 AND deleted_at IS NULL", [req.body.booking_status, req.params.id]);
+        if (!result.rowCount) return res.status(404).json({ message: "Booking not found." });
+        const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: req.body.booking_status === "Cancelled" ? "CANCEL" : "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
+        res.json(rows[0]);
+    } catch (e) { next(e); }
+});
 module.exports = router;
-
-
-
