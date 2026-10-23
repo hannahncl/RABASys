@@ -103,7 +103,9 @@ const ServiceCard = ({ item, onEdit, onDelete, onView }) => {
           <div className="rounded-sm bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-700">
             {item.joinerDate && <span>{new Date(`${item.joinerDate}T00:00:00`).toLocaleDateString()}</span>}
             {item.joinerDate && item.joinerSlots ? ' · ' : ''}
-            {item.joinerSlots ? `${item.joinerSlots} slots available` : ''}
+            {item.joinerRemainingSlots != null
+              ? `${item.joinerRemainingSlots} of ${item.joinerSlots} spots remaining`
+              : item.joinerSlots ? `${item.joinerSlots} total spots` : ''}
           </div>
         )}
         {item.tags && item.tags.length > 0 && (

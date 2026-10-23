@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
-import { CheckCircle2, DollarSign, Download, FileText, Loader, Printer, ReceiptText, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
+import { CheckCircle2, DollarSign, Download, FileSpreadsheet, FileText, Loader, Printer, ReceiptText, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -421,6 +422,113 @@ const SalesReports = () => {
     .reduce((acc, booking) => acc + (Number(booking.totalPrice) || 0), 0);
   const totalBookings = filteredBookings.length;
   const confirmedCount = filteredBookings.filter((booking) => isRecognizedSale(booking.status)).length;
+
+
+  const handleExportExcel = () => {
+    const generatedAt = new Date();
+    const filenameDate = generatedAt.toISOString().slice(0, 10);
+    const serviceLabel = appliedFilters.activeType === 'ALL' ? 'All Services' : appliedFilters.activeType;
+    const dateRangeLabel = appliedFilters.dateRange === 'Custom'
+      ? `${appliedFilters.startDate || 'Start'} to ${appliedFilters.endDate || 'End'}`
+      : appliedFilters.dateRange;
+
+    const workbook = XLSX.utils.book_new();
+    const appendSheet = (name, rows, columns) => {
+      const sheet = rows.length
+        ? XLSX.utils.json_to_sheet(rows, { header: columns })
+        : XLSX.utils.aoa_to_sheet([columns]);
+      sheet['!cols'] = columns.map((column) => ({ wch: Math.max(14, Math.min(32, column.length + 4)) }));
+      XLSX.utils.book_append_sheet(workbook, sheet, name);
+    };
+
+    const summarySheet = XLSX.utils.aoa_to_sheet([
+      ['RABAS Travel and Tours Services'],
+      ['Official Sales Report'],
+      ['Generated', generatedAt.toLocaleString('en-PH')],
+      ['Date range', dateRangeLabel],
+      ['Service', serviceLabel],
+      ['Search term', appliedFilters.searchTerm || 'All records'],
+      [],
+      ['Metric', 'Value'],
+      ['Recognized sales', totalEarnings],
+      ['Total bookings', totalBookings],
+      ['Confirmed bookings', confirmedCount],
+      ['Filtered records', filteredBookings.length],
+    ]);
+    summarySheet['!cols'] = [{ wch: 28 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    appendSheet('Service Breakdown', serviceStats.rows.map((row) => ({
+      Service: row.service,
+      Bookings: row.bookingsCount,
+      Customers: row.customersCount,
+      'Total Sales': row.totalSales,
+      'Sales Share': row.percentage,
+    })).concat({
+      Service: serviceStats.totalRow.service,
+      Bookings: serviceStats.totalRow.bookingsCount,
+      Customers: serviceStats.totalRow.customersCount,
+      'Total Sales': serviceStats.totalRow.totalSales,
+      'Sales Share': serviceStats.totalRow.percentage,
+    }), ['Service', 'Bookings', 'Customers', 'Total Sales', 'Sales Share']);
+
+    appendSheet('Tour Packages', tourPackageStats.rows.map((row) => ({
+      Package: row.packageName,
+      Bookings: row.bookingsCount,
+      Tourists: row.touristsCount,
+      'Avg. Price per Booking': row.pricePerBooking,
+      'Total Sales': row.totalSales,
+    })).concat({
+      Package: tourPackageStats.totalRow.packageName,
+      Bookings: tourPackageStats.totalRow.bookingsCount,
+      Tourists: tourPackageStats.totalRow.touristsCount,
+      'Avg. Price per Booking': tourPackageStats.totalRow.pricePerBooking,
+      'Total Sales': tourPackageStats.totalRow.totalSales,
+    }), ['Package', 'Bookings', 'Tourists', 'Avg. Price per Booking', 'Total Sales']);
+
+    appendSheet('TukTrip', tuktripStats.rows.map((row) => ({
+      Package: row.packageName,
+      Bookings: row.bookingsCount,
+      Tourists: row.touristsCount,
+      'Avg. Price per Booking': row.pricePerBooking,
+      'Total Sales': row.totalSales,
+    })).concat({
+      Package: tuktripStats.totalRow.packageName,
+      Bookings: tuktripStats.totalRow.bookingsCount,
+      Tourists: tuktripStats.totalRow.touristsCount,
+      'Avg. Price per Booking': tuktripStats.totalRow.pricePerBooking,
+      'Total Sales': tuktripStats.totalRow.totalSales,
+    }), ['Package', 'Bookings', 'Tourists', 'Avg. Price per Booking', 'Total Sales']);
+
+    appendSheet('Car Rentals', carRentalStats.rows.map((row) => ({
+      Vehicle: row.vehicleName,
+      Rentals: row.rentalsCount,
+      'Rental Days': row.totalRentalDays,
+      'Avg. Daily Rate': row.rentalRate,
+      'Total Sales': row.totalSales,
+    })).concat({
+      Vehicle: carRentalStats.totalRow.vehicleName,
+      Rentals: carRentalStats.totalRow.rentalsCount,
+      'Rental Days': carRentalStats.totalRow.totalRentalDays,
+      'Avg. Daily Rate': carRentalStats.totalRow.rentalRate,
+      'Total Sales': carRentalStats.totalRow.totalSales,
+    }), ['Vehicle', 'Rentals', 'Rental Days', 'Avg. Daily Rate', 'Total Sales']);
+
+    appendSheet('Booking Details', filteredBookings.map((booking) => ({
+      Reference: booking.paymentRef || booking.id || '',
+      Date: booking.tourDate || '',
+      Type: getBookingType(booking),
+      Package: booking.packageName || '',
+      Customer: booking.customerName || '',
+      Email: booking.customerEmail || '',
+      Guests: Number(booking.guestsCount) || 0,
+      Status: booking.status || '',
+      Amount: Number(booking.totalPrice) || 0,
+      'Recognized Sale': isRecognizedSale(booking.status) ? 'Yes' : 'No',
+    })), ['Reference', 'Date', 'Type', 'Package', 'Customer', 'Email', 'Guests', 'Status', 'Amount', 'Recognized Sale']);
+
+    XLSX.writeFile(workbook, `RABAS-Sales-Report-${filenameDate}.xlsx`);
+  };
 
 
   const handleExportPDF = () => {
@@ -940,6 +1048,13 @@ const SalesReports = () => {
               <Download className="w-3.5 h-3.5" />
               Export PDF
             </button>
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#333333] text-white text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Export Excel
+            </button>
           </div>
         </div>
       </div>
@@ -993,7 +1108,7 @@ const SalesReports = () => {
             /* Services Breakdown Table for ALL */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">Service</th>
                   <th className="px-5 py-3.5 text-center">Bookings</th>
                   <th className="px-5 py-3.5 text-center">Customers</th>
@@ -1024,7 +1139,7 @@ const SalesReports = () => {
             /* Car Rental Table */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">Vehicle</th>
                   <th className="px-5 py-3.5 text-center">Rentals</th>
                   <th className="px-5 py-3.5 text-center">Rental Days</th>
@@ -1071,7 +1186,7 @@ const SalesReports = () => {
             /* Tour Packages / TukTrip Table */
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#e2bd4f] bg-[#f5d061] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
+                <tr className="border-b border-[#d8c5b9] bg-[#f7f1ed] text-[10px] uppercase tracking-[0.15em] text-[#1a1a1a] font-bold">
                   <th className="px-5 py-3.5">
                     {appliedFilters.activeType === 'Tour Packages' ? 'Tour Package' : 'TukTrip Package'}
                   </th>
@@ -1138,6 +1253,13 @@ const SalesReports = () => {
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export PDF
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#333333] border border-[#1a1a1a] text-white font-semibold text-xs px-3 py-1.5 rounded-sm transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  Export Excel
                 </button>
                 <button
                   onClick={() => window.print()}
@@ -1220,7 +1342,7 @@ const SalesReports = () => {
                 <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                         <th className="p-3">Service</th>
                         <th className="p-3 text-center">Bookings</th>
                         <th className="p-3 text-center">Customers</th>
@@ -1258,7 +1380,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">Tour Package</th>
                           <th className="p-3 text-center">Bookings</th>
                           <th className="p-3 text-center">Tourists</th>
@@ -1313,7 +1435,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">TukTrip Package</th>
                           <th className="p-3 text-center">Bookings</th>
                           <th className="p-3 text-center">Tourists</th>
@@ -1368,7 +1490,7 @@ const SalesReports = () => {
                   <div className="border border-[#eae5db] rounded-sm overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-[#f5d061] border-b border-[#e2bd4f] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="bg-[#f7f1ed] border-b border-[#d8c5b9] text-[#1a1a1a] font-bold uppercase text-[10px] tracking-wider">
                           <th className="p-3">Vehicle</th>
                           <th className="p-3 text-center">Rentals</th>
                           <th className="p-3 text-center">Rental Days</th>
@@ -1425,6 +1547,13 @@ const SalesReports = () => {
               >
                 <Download className="w-3.5 h-3.5" />
                 Export PDF
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#333333] border border-[#1a1a1a] text-white font-semibold text-xs px-3.5 py-1.5 rounded-sm transition-colors cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Export Excel
               </button>
               <button
                 onClick={() => window.print()}

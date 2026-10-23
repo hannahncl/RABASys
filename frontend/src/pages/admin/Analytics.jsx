@@ -3,7 +3,7 @@ import { reportService } from '../../services/reportService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Compass, Star, MapPin, DollarSign } from 'lucide-react';
 
-const COLORS = ['#38bdf8', '#34d399', '#fbbf24', '#818cf8', '#f472b6', '#a78bfa'];
+const COLORS = ['#603524', '#8b6f61', '#b6a59a', '#4b5563', '#7c675d', '#c7b8ad'];
 
 const Analytics = () => {
   const [destData, setDestData] = useState([]);

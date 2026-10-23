@@ -6,7 +6,7 @@ const { logAudit } = require("../utils/auditLogger");
 // Only these known tables/columns can be used. This avoids dynamic SQL from request input.
 const resources = {
     accounts: { table: "account", id: "account_id", fields: ["first_name", "last_name", "email", "contact_number", "role", "account_status"] },
-    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image", "joiner_date", "joiner_slots", "joiner_booking_deadline"] },
+    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image", "images", "joiner_date", "joiner_slots", "joiner_booking_deadline"] },
     vehicles: { table: "vehicle", id: "vehicle_id", fields: ["media_id", "vehicle_name", "vehicle_type", "plate_number", "capacity", "daily_rate", "image", "availability_status", "fuel_type", "vehicle_brand", "transmission"] },
     guides: { table: "tour_guide", id: "guide_id", fields: ["account_id", "media_id", "sex", "birthdate", "years_of_experience", "description", "languages_spoken", "availability_status", "employment_status"] },
     media: { table: "media", id: "media_id", fields: ["file_path", "media_type", "uploaded_by", "title", "description"] },
@@ -64,6 +64,14 @@ function prepareResourcePayload(resource, input = {}) {
     if (Object.prototype.hasOwnProperty.call(payload, "image") && payload.image !== undefined && payload.image !== null) {
         payload.image = normalizeImageValue(payload.image);
     }
+    if (resource.table === "tour_package" && Object.prototype.hasOwnProperty.call(payload, "images")) {
+        const images = Array.isArray(payload.images)
+            ? payload.images
+            : typeof payload.images === "string"
+                ? (() => { try { return JSON.parse(payload.images); } catch { return [payload.images]; } })()
+                : [];
+        payload.images = JSON.stringify(images.filter((image) => typeof image === "string" && image.trim()).map((image) => image.trim()));
+    }
     return payload;
 }
 
@@ -72,11 +80,19 @@ function joinerScheduleError(payload, existing = {}) {
     if (packageType !== "joiner") return null;
     const tripDate = String(payload.joiner_date ?? existing.joiner_date ?? "").slice(0, 10);
     const deadline = String(payload.joiner_booking_deadline ?? existing.joiner_booking_deadline ?? "").slice(0, 10);
+    const slots = Number(payload.joiner_slots ?? existing.joiner_slots);
+    const capacity = Number(payload.max_capacity ?? existing.max_capacity);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(tripDate) || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
         return "Joiner trips need a trip date and a booking deadline.";
     }
     if (deadline > tripDate) {
         return "The booking deadline must be on or before the trip date.";
+    }
+    if (!Number.isInteger(slots) || slots < 1) {
+        return "Joiner slots must be a positive whole number.";
+    }
+    if (!Number.isInteger(capacity) || capacity < 1) {
+        return "Maximum capacity must be a positive whole number for Joiner trips.";
     }
     return null;
 }
@@ -125,23 +141,73 @@ function addCrud(router, path, resource) {
         } catch (e) { next(e); }
     });
     router.patch(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
+        let client;
         try {
             const payload = prepareResourcePayload(resource, req.body);
             const fields = selected(resource, payload);
             if (!fields.length) return res.status(400).json({ message: "No valid fields supplied." });
-            const { rows: existingRows } = await db.query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]);
+            if (resource.table === "tour_package") {
+                client = await db.connect();
+                await client.query("BEGIN");
+            }
+            const query = client ? client.query.bind(client) : db.query.bind(db);
+            const lockClause = client ? " FOR UPDATE" : "";
+            const { rows: existingRows } = await query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}${lockClause}`, [req.params.id]);
             const oldValues = existingRows[0];
-            if (!oldValues) return res.status(404).json({ message: "Record not found." });
+            if (!oldValues) {
+                if (client) await client.query("ROLLBACK");
+                return res.status(404).json({ message: "Record not found." });
+            }
             const scheduleError = resource.table === "tour_package" ? joinerScheduleError(payload, oldValues) : null;
-            if (scheduleError) return res.status(422).json({ message: scheduleError });
+            if (scheduleError) {
+                if (client) await client.query("ROLLBACK");
+                return res.status(422).json({ message: scheduleError });
+            }
+            if (resource.table === "tour_package" && String(oldValues.package_type || "").toLowerCase() === "joiner") {
+                const { rows: [reservations] } = await query(
+                    "SELECT COALESCE(SUM(number_of_persons), 0)::int AS reserved FROM booking WHERE package_id = $1 AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
+                    [req.params.id]
+                );
+                const reserved = Number(reservations.reserved);
+                const nextType = String(payload.package_type ?? oldValues.package_type).toLowerCase();
+                const nextDate = String(payload.joiner_date ?? oldValues.joiner_date ?? "").slice(0, 10);
+                const currentDate = String(oldValues.joiner_date ?? "").slice(0, 10);
+                if (reserved > 0 && (nextType !== "joiner" || nextDate !== currentDate)) {
+                    await client.query("ROLLBACK");
+                    return res.status(409).json({ message: "The Joiner departure date or package type cannot change while active bookings exist. Cancel or complete the bookings first." });
+                }
+                if (nextType === "joiner") {
+                    const nextSlots = Number(payload.joiner_slots ?? oldValues.joiner_slots);
+                    const nextCapacity = Number(payload.max_capacity ?? oldValues.max_capacity);
+                    if (reserved > Math.min(nextSlots, nextCapacity)) {
+                        await client.query("ROLLBACK");
+                        return res.status(409).json({ message: `The new Joiner capacity cannot be lower than the ${reserved} spots already reserved.` });
+                    }
+                }
+            }
             // SET col = $1, col2 = $2 … WHERE id = $N
             const setClauses = fields.map((f, i) => `${qi(f)} = $${i + 1}`).join(", ");
-            const result = await db.query(`UPDATE ${qi(resource.table)} SET ${setClauses} WHERE ${qi(resource.id)} = $${fields.length + 1}${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
-            if (!result.rowCount) return res.status(404).json({ message: "Record not found." });
-            const { rows } = await db.query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1`, [req.params.id]);
+            const result = await query(`UPDATE ${qi(resource.table)} SET ${setClauses} WHERE ${qi(resource.id)} = $${fields.length + 1}${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [...fields.map(f => payload[f]), req.params.id]);
+            if (!result.rowCount) {
+                if (client) await client.query("ROLLBACK");
+                return res.status(404).json({ message: "Record not found." });
+            }
+            const { rows } = await query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1`, [req.params.id]);
+            if (client) await client.query("COMMIT");
             await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: approvalAction(resource, req.body), tableName: resource.table, recordId: Number(req.params.id), oldValues, newValues: req.body, req });
             res.json(rows[0]);
-        } catch (e) { next(e); }
+        } catch (e) {
+            if (client) {
+                try {
+                    await client.query("ROLLBACK");
+                } catch (rollbackError) {
+                    console.error("Failed to roll back package update transaction:", rollbackError);
+                }
+            }
+            next(e);
+        } finally {
+            if (client) client.release();
+        }
     });
     router.delete(`/${path}/:id`, requireAuth, allowRoles("Admin"), async (req, res, next) => {
         try { const { rows: existingRows } = await db.query(`SELECT * FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1${resource.softDelete === false ? "" : " AND deleted_at IS NULL"}`, [req.params.id]); const oldValues = existingRows[0]; if (!oldValues) return res.status(404).json({ message: "Record not found." }); const sql = resource.softDelete === false ? `DELETE FROM ${qi(resource.table)} WHERE ${qi(resource.id)} = $1` : `UPDATE ${qi(resource.table)} SET deleted_at = NOW() WHERE ${qi(resource.id)} = $1 AND deleted_at IS NULL`; const result = await db.query(sql, [req.params.id]); if (!result.rowCount) return res.status(404).json({ message: "Record not found." }); await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "DELETE", tableName: resource.table, recordId: Number(req.params.id), oldValues, req }); res.status(204).end(); } catch (e) { next(e); }
@@ -155,7 +221,23 @@ router.get("/packages", async (req, res, next) => {
         const { rows } = await db.query(`
             SELECT p.*,
                 COALESCE((SELECT ROUND(AVG(r.rating), 1) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL), 0) AS rating,
-                (SELECT COUNT(*) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL) AS reviews_count
+                (SELECT COUNT(*) FROM review r WHERE r.package_id = p.package_id AND r.deleted_at IS NULL) AS reviews_count,
+                COALESCE((
+                    SELECT SUM(b.number_of_persons)::int
+                    FROM booking b
+                    WHERE b.package_id = p.package_id
+                      AND b.travel_date = p.joiner_date
+                      AND b.booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
+                      AND b.deleted_at IS NULL
+                ), 0) AS joiner_reserved_slots,
+                GREATEST(0, LEAST(COALESCE(p.joiner_slots, 0), COALESCE(NULLIF(p.max_capacity, 0), p.joiner_slots, 0)) - COALESCE((
+                    SELECT SUM(b.number_of_persons)::int
+                    FROM booking b
+                    WHERE b.package_id = p.package_id
+                      AND b.travel_date = p.joiner_date
+                      AND b.booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
+                      AND b.deleted_at IS NULL
+                ), 0)) AS joiner_remaining_slots
             FROM tour_package p
             WHERE p.deleted_at IS NULL
             ORDER BY p.package_id DESC
@@ -227,7 +309,7 @@ router.post("/vehicles", requireAuth, allowRoles("Admin"), async (req, res, next
         );
 
         const { rows } = await db.query("SELECT * FROM vehicle WHERE vehicle_id = $1", [inserted[0].vehicle_id]);
-        await logAudit({ accountId: req.user.accountId, action: "CREATE", tableName: "vehicle", recordId: inserted[0].vehicle_id, newValues: req.body });
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "vehicle", recordId: inserted[0].vehicle_id, newValues: req.body, req });
         res.status(201).json(rows[0]);
     } catch (error) {
         // pg unique violation error code

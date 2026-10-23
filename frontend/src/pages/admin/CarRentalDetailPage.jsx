@@ -52,7 +52,7 @@ const CarRentalDetailPage = () => {
         <p className="text-sm text-slate-400">Vehicle details not found.</p>
         <button
           onClick={() => navigate('/admin/car-rentals')}
-          className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-slate-100 transition-all cursor-pointer"
+          className="rounded-xl bg-[#1a1a1a] hover:bg-[#333333] px-5 py-2.5 text-sm font-bold text-white transition-all cursor-pointer"
         >
           Back to Car Rentals
         </button>
@@ -74,7 +74,7 @@ const CarRentalDetailPage = () => {
         </button>
         <button
           onClick={() => navigate(`/admin/car-rentals/edit/${vehicle.id}`)}
-          className="flex items-center gap-2.5 px-6 py-3 bg-slate-100 hover:bg-slate-100 text-slate-950 rounded-xl text-base font-bold transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-2.5 px-6 py-3 bg-[#1a1a1a] hover:bg-[#333333] text-white rounded-xl text-base font-bold transition-all cursor-pointer shadow-sm"
         >
           <Edit className="h-5 w-5" /> Edit Vehicle
         </button>

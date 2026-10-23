@@ -2,8 +2,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirmation } from '../contexts/ConfirmationContext';
-import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check, Phone, Mail } from 'lucide-react';
-import { notificationService } from '../services/api';
+import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check, Phone, Mail, Heart } from 'lucide-react';
+import { notificationService, wishlistService } from '../services/api';
 import FaqChatbot from '../components/ui/FaqChatbot';
 
 const MainLayout = () => {
@@ -13,6 +13,7 @@ const MainLayout = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,6 +46,20 @@ const MainLayout = () => {
       mounted = false;
       clearInterval(interval);
     };
+  }, [user]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadWishlistCount = async () => {
+      if (!user) { setWishlistCount(0); return; }
+      try {
+        const items = await wishlistService.getAll();
+        if (mounted) setWishlistCount(items.length);
+      } catch { if (mounted) setWishlistCount(0); }
+    };
+    loadWishlistCount();
+    window.addEventListener('rabas-wishlist-changed', loadWishlistCount);
+    return () => { mounted = false; window.removeEventListener('rabas-wishlist-changed', loadWishlistCount); };
   }, [user]);
 
   const unreadNotifications = notifications.filter(notification => !notification.is_read);
@@ -126,6 +141,15 @@ const MainLayout = () => {
             >
               <Bell className="h-[18px] w-[18px] text-[#603524]" />
             </button>
+            <Link
+              to="/wishlist"
+              className="relative flex items-center gap-1.5 rounded-full px-3 py-2 text-slate-600 transition-all hover:bg-[#603524]/5 hover:text-[#603524]"
+              title="View wishlist"
+              aria-label="View wishlist"
+            >
+              <Heart className="h-[18px] w-[18px] text-[#603524]" />
+              {wishlistCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#603524] px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
+            </Link>
 
             {user ? (
               <div className="relative">
@@ -201,6 +225,10 @@ const MainLayout = () => {
             >
               <Bell className="h-5 w-5 text-[#603524]" />
             </button>
+            <Link to="/wishlist" className="relative rounded-full p-2 text-slate-600 hover:bg-[#603524]/5 hover:text-[#603524]" title="Wishlist" aria-label="Wishlist">
+              <Heart className="h-5 w-5 text-[#603524]" />
+              {wishlistCount > 0 && <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#603524] px-1 text-[9px] font-bold text-white">{wishlistCount}</span>}
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-slate-600 hover:text-[#603524] focus:outline-none transition-colors p-1"

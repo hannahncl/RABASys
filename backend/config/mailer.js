@@ -1,4 +1,7 @@
 const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
+const zlib = require("zlib");
 
 function getMailer() {
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
@@ -40,175 +43,190 @@ async function sendEmail(email, subject, text, html, label, attachments = []) {
     }
 }
 
-const pdfText = (value) => String(value ?? "-")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "?");
+function pdfEscape(value) {
+    return String(value ?? "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/[\r\n]+/g, " ");
+}
 
-const pdfEscape = (value) => pdfText(value).replace(/[\\()]/g, "\\$&");
-
-const wrapPdfText = (value, maxLength = 86) => {
-    const words = pdfText(value).split(/\s+/);
+function wrapPdfLine(value, width = 88) {
+    const text = String(value ?? "");
+    if (!text) return [""];
+    const words = text.split(/\s+/);
     const lines = [];
-    let line = "";
+    let current = "";
     for (const word of words) {
-        if (!word) continue;
-        if ((line + (line ? " " : "") + word).length <= maxLength) {
-            line += (line ? " " : "") + word;
-        } else {
-            if (line) lines.push(line);
-            line = word;
+        if (!current) current = word;
+        else if (`${current} ${word}`.length <= width) current += ` ${word}`;
+        else { lines.push(current); current = word; }
+    }
+    if (current) lines.push(current);
+    return lines;
+}
+
+function readRgbPng(filePath) {
+    const png = fs.readFileSync(filePath);
+    if (png.toString("ascii", 1, 4) !== "PNG") return null;
+    let width = 0;
+    let height = 0;
+    let colorType = 0;
+    const idat = [];
+    let offset = 8;
+    while (offset < png.length) {
+        const length = png.readUInt32BE(offset);
+        const type = png.toString("ascii", offset + 4, offset + 8);
+        const data = png.subarray(offset + 8, offset + 8 + length);
+        if (type === "IHDR") {
+            width = data.readUInt32BE(0);
+            height = data.readUInt32BE(4);
+            colorType = data[9];
+            if (data[8] !== 8 || colorType !== 2) return null;
+        } else if (type === "IDAT") idat.push(data);
+        offset += 12 + length;
+        if (type === "IEND") break;
+    }
+    const decoded = zlib.inflateSync(Buffer.concat(idat));
+    const bytesPerPixel = 3;
+    const rowLength = width * bytesPerPixel;
+    const rows = Buffer.alloc(height * rowLength);
+    let sourceOffset = 0;
+    for (let row = 0; row < height; row++) {
+        const filter = decoded[sourceOffset++];
+        const currentStart = row * rowLength;
+        for (let column = 0; column < rowLength; column++) {
+            const raw = decoded[sourceOffset++];
+            const left = column >= bytesPerPixel ? rows[currentStart + column - bytesPerPixel] : 0;
+            const above = row > 0 ? rows[currentStart - rowLength + column] : 0;
+            const upperLeft = row > 0 && column >= bytesPerPixel ? rows[currentStart - rowLength + column - bytesPerPixel] : 0;
+            let value = raw;
+            if (filter === 1) value = (raw + left) & 255;
+            else if (filter === 2) value = (raw + above) & 255;
+            else if (filter === 3) value = (raw + Math.floor((left + above) / 2)) & 255;
+            else if (filter === 4) {
+                const p = left + above - upperLeft;
+                const pa = Math.abs(p - left);
+                const pb = Math.abs(p - above);
+                const pc = Math.abs(p - upperLeft);
+                value = (raw + (pa <= pb && pa <= pc ? left : pb <= pc ? above : upperLeft)) & 255;
+            }
+            rows[currentStart + column] = value;
         }
     }
-    if (line) lines.push(line);
-    return lines.length ? lines : ["-"];
-};
+    return { width, height, data: zlib.deflateSync(rows, { level: 9 }) };
+}
 
-function createItineraryPdf(booking, type, customDetails, priceBreakdown, status) {
-    const isRental = type === "rental";
-    const isCustomTrip = !isRental && Boolean(booking.customized_details);
-    const title = isRental ? "CAR RENTAL ITINERARY" : "TOUR ITINERARY";
-    const customerName = booking.customer_name || `${booking.first_name || ""} ${booking.last_name || ""}`.trim() || "-";
-    const sections = [
-        {
-            title: "CUSTOMER DETAILS",
-            rows: [
-                ["Name", customerName],
-                ["Email", booking.email || "-"],
-                ["Contact number", booking.contact_number || "-"],
-            ],
-        },
-        {
-            title: isRental ? "RENTAL DETAILS" : "TRIP DETAILS",
-            rows: isRental
-                ? [
-                    ["Vehicle", booking.vehicle_name],
-                    ["Plate number", booking.plate_number],
-                    ["Pickup date", booking.pickup_date],
-                    ["Return date", booking.return_date],
-                    ["Pickup location", booking.pickup_location],
-                    ["Payment method", booking.payment_method],
-                ]
-                : isCustomTrip
-                    ? [
-                        ["Destination", booking.destination || customDetails.destination],
-                        ["Travel date", booking.travel_date],
-                        ["Number of persons", booking.number_of_persons],
-                        ["Duration", customDetails.duration],
-                        ["Accommodation", customDetails.hotel],
-                        ["Preferred guide", customDetails.preferredGuideName || "No preference"],
-                        ["Activities", Array.isArray(customDetails.activities) ? customDetails.activities.join(", ") : "None"],
-                    ]
-                    : [
-                        ["Tour package", booking.package_name],
-                        ["Destination", booking.destination],
-                        ["Travel date", booking.travel_date],
-                        ["Number of persons", booking.number_of_persons],
-                    ],
-        },
-        {
-            title: "PRICE SUMMARY",
-            rows: [
-                ...priceBreakdown.map((line) => [
-                    line.description || "Item",
-                    `PHP ${Number(line.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
-                ]),
-                ["Total amount", `PHP ${Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
-                ...(isCustomTrip && !priceBreakdown.length ? [["Final pricing", "To be provided after business review."]] : []),
-            ],
-        },
-    ];
-
-    const items = [];
-    sections.forEach((section) => {
-        items.push({ type: "section", value: section.title });
-        section.rows.forEach(([label, value]) => items.push({ type: "row", label, value: value || "-" }));
-    });
-    items.push({ type: "note", value: "This document is an automated booking itinerary for your records." });
-
-    const getItemHeight = (item) => {
-        if (item.type === "section") return 24;
-        if (item.type === "note") return 32;
-        return Math.max(18, wrapPdfText(`${item.label}: ${item.value}`, 70).length * 14 + 4);
-    };
-
-    const pageGroups = [];
-    let currentPage = [];
-    let currentHeight = 0;
-    items.forEach((item) => {
-        const height = getItemHeight(item);
-        if (currentPage.length && currentHeight + height > 650) {
-            pageGroups.push(currentPage);
-            currentPage = [];
-            currentHeight = 0;
+function createSimplePdf(lines) {
+    const entries = lines.map((line) => {
+        if (line.startsWith("SECTION|")) return { type: "section", text: line.slice(8) };
+        if (line.startsWith("ITEM|")) return { type: "item", text: line.slice(5) };
+        if (line.startsWith("ROW|")) {
+            const separator = line.indexOf("|", 4);
+            return { type: "row", label: separator === -1 ? line.slice(4) : line.slice(4, separator), value: separator === -1 ? "" : line.slice(separator + 1) };
         }
-        currentPage.push(item);
-        currentHeight += height;
+        return { type: "row", label: "", value: line };
     });
-    if (currentPage.length) pageGroups.push(currentPage);
+    const pages = [];
+    let current = [];
+    let height = 700;
+    for (const entry of entries) {
+        const cost = entry.type === "section" ? 27 : Math.max(18, Math.ceil(wrapPdfLine(entry.value || entry.text, 64).length / 2) * 15);
+        if (height - cost < 54 && current.length) { pages.push(current); current = []; height = 700; }
+        current.push(entry);
+        height -= cost;
+    }
+    if (current.length || !pages.length) pages.push(current);
 
     const objects = [];
-    objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
-    objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-    objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
-    const pageRefs = [];
-    pageGroups.forEach((group, pageIndex) => {
-        const pageObject = 5 + pageIndex * 2;
-        const streamObject = pageObject + 1;
-        pageRefs.push(`${pageObject} 0 R`);
-        let y = 748;
-        const commands = ["0 g"];
-        commands.push("0 G 0.8 w 54 766 m 558 766 l S");
-        commands.push(`BT /F2 17 Tf 1 0 0 1 54 744 Tm (${pdfEscape("RABAS TRAVEL & TOURS SERVICES")}) Tj ET`);
-        commands.push(`BT /F2 11 Tf 1 0 0 1 54 725 Tm (${pdfEscape(title)}) Tj ET`);
-        commands.push(`BT /F1 9 Tf 1 0 0 1 395 744 Tm (${pdfEscape(`Reference: ${booking.booking_reference || "-"}`)}) Tj ET`);
-        commands.push(`BT /F1 9 Tf 1 0 0 1 395 725 Tm (${pdfEscape(`Status: ${status || "Pending"}`)}) Tj ET`);
-        y = 694;
-        group.forEach((item) => {
-            if (item.type === "section") {
-                commands.push("0.92 g 54 " + (y - 5) + " 504 17 re f 0 G 0 g");
-                commands.push(`BT /F2 9 Tf 1 0 0 1 64 ${y} Tm (${pdfEscape(item.value)}) Tj ET`);
-                y -= 24;
-                return;
-            }
-            if (item.type === "note") {
-                commands.push("0.6 g 54 " + (y - 8) + " 504 0.5 re f 0 G 0 g");
-                wrapPdfText(item.value, 92).forEach((line, index) => {
-                    commands.push(`BT /F1 8 Tf 1 0 0 1 54 ${y - 20 - index * 12} Tm (${pdfEscape(line)}) Tj ET`);
-                });
-                y -= 32;
-                return;
-            }
-            const wrapped = wrapPdfText(`${item.label}: ${item.value}`, 70);
-            wrapped.forEach((line, index) => {
-                const label = index === 0 ? `${item.label}:` : "";
-                const value = index === 0 ? String(item.value || "-") : line;
-                if (index === 0) {
-                    commands.push(`BT /F2 9 Tf 1 0 0 1 64 ${y} Tm (${pdfEscape(label)}) Tj ET`);
-                    wrapPdfText(value, 54).forEach((valueLine, valueIndex) => {
-                        commands.push(`BT /F1 9 Tf 1 0 0 1 190 ${y - valueIndex * 13} Tm (${pdfEscape(valueLine)}) Tj ET`);
-                    });
-                }
-            });
-            y -= Math.max(18, wrapPdfText(String(item.value || "-"), 54).length * 13 + 5);
-        });
-        const stream = commands.join("\n");
-        objects[pageObject] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${streamObject} 0 R >>`;
-        objects[streamObject] = `<< /Length ${Buffer.byteLength(stream, "ascii")} >>\nstream\n${stream}\nendstream`;
-    });
-    objects[2] = `<< /Type /Pages /Kids [${pageRefs.join(" ")}] /Count ${pageRefs.length} >>`;
+    const addObject = (body) => { objects.push(body); return objects.length; };
+    const catalogId = addObject("");
+    const pagesId = addObject("");
+    const fontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+    const boldFontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+    const logo = readRgbPng(path.resolve(__dirname, "../../frontend/public/RABAS LOGO.png"));
+    const logoId = logo ? addObject(`<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${logo.data.length} >>\nstream\n${logo.data.toString("binary")}\nendstream`) : null;
+    const pageIds = [];
 
+    for (const page of pages) {
+        const commands = [];
+        if (logoId) commands.push("q", "125 0 0 50 36 765 cm", "/Logo Do", "Q");
+        commands.push("BT", "/F2 17 Tf", "175 798 Td", "(RABAS TRAVEL & TOURS SERVICES) Tj", "/F2 11 Tf", "0 -21 Td", "(TOUR ITINERARY) Tj", "ET");
+        const reference = entries.find(entry => entry.type === "row" && entry.label === "Reference")?.value || "-";
+        const status = entries.find(entry => entry.type === "row" && entry.label === "Status")?.value || "-";
+        commands.push("BT", "/F1 9 Tf", "390 798 Td", `(${pdfEscape(`Reference: ${reference}`)}) Tj`, "0 -18 Td", `(${pdfEscape(`Status: ${status}`)}) Tj`, "ET");
+
+        let y = 728;
+        for (const entry of page) {
+            if (entry.type === "row" && (entry.label === "Reference" || entry.label === "Status")) continue;
+            if (entry.type === "section") {
+                commands.push("0.91 0.91 0.91 rg", `36 ${y - 5} 523 19 re f`, "0 0 0 rg", "BT", "/F2 9 Tf", `46 ${y} Td`, `(${pdfEscape(entry.text)}) Tj`, "ET");
+                y -= 27;
+                continue;
+            }
+            const linesForValue = wrapPdfLine(entry.value || entry.text, 64);
+            commands.push("BT", "/F2 9 Tf", `46 ${y} Td`, `(${pdfEscape(entry.label || (entry.type === "item" ? "" : "Details"))}) Tj`, "/F1 9 Tf", "185 0 Td", `(${pdfEscape(linesForValue[0] || "-")}) Tj`, "ET");
+            for (let index = 1; index < linesForValue.length; index++) {
+                y -= 13;
+                commands.push("BT", "/F1 9 Tf", `231 ${y} Td`, `(${pdfEscape(linesForValue[index])}) Tj`, "ET");
+            }
+            y -= 18;
+        }
+        commands.push("0.55 0.55 0.55 RG", "0.6 w", `36 48 m 559 48 l S`, "0 0 0 rg", "BT", "/F1 8 Tf", "36 32 Td", "(This document is an automated booking itinerary for your records.) Tj", "ET");
+        const stream = commands.join("\n");
+        const contentId = addObject(`<< /Length ${Buffer.byteLength(stream, "ascii")} >>\nstream\n${stream}\nendstream`);
+        const xObjects = logoId ? ` /XObject << /Logo ${logoId} 0 R >>` : "";
+        const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R /F2 ${boldFontId} 0 R >>${xObjects} >> /Contents ${contentId} 0 R >>`);
+        pageIds.push(pageId);
+    }
+
+    objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+    objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`;
     let pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
     const offsets = [0];
-    for (let i = 1; i < objects.length; i += 1) {
-        offsets[i] = Buffer.byteLength(pdf, "binary");
-        pdf += `${i} 0 obj\n${objects[i]}\nendobj\n`;
-    }
+    objects.forEach((body, index) => { offsets.push(Buffer.byteLength(pdf, "binary")); pdf += `${index + 1} 0 obj\n${body}\nendobj\n`; });
     const xrefOffset = Buffer.byteLength(pdf, "binary");
-    pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
-    for (let i = 1; i < objects.length; i += 1) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
-    pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    for (let index = 1; index < offsets.length; index++) pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
     return Buffer.from(pdf, "binary");
+}
+
+function formatReceiptDate(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function createBookingReceiptPdf(booking, type, details, itineraryLines = [], breakdownLines = []) {
+    const lines = [
+        `ROW|Reference|${booking.booking_reference || "-"}`,
+        `ROW|Status|${booking.booking_status || "Pending"}`,
+        "SECTION|CUSTOMER DETAILS",
+        `ROW|Name|${`${booking.first_name || ""} ${booking.last_name || ""}`.trim() || "-"}`,
+        `ROW|Email|${booking.email || "-"}`,
+        `ROW|Contact number|${booking.contact_number || "-"}`,
+        `SECTION|TRIP DETAILS`,
+        `ROW|Service|${type === "rental" ? "Car Rental" : type.startsWith("custom") ? "Customized Trip" : "Tour Package"}`,
+        ...details.map(([label, value]) => `ROW|${label}|${value || "-"}`),
+    ];
+    if (itineraryLines.length) lines.push("SECTION|ITINERARY", ...itineraryLines.map((line, index) => `ITEM|${index + 1}. ${line}`));
+    if (breakdownLines.length) lines.push("SECTION|PRICE SUMMARY", ...breakdownLines.map(line => `ROW|Item|${line}`));
+    lines.push(`ROW|Total amount|PHP ${Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`);
+    return createSimplePdf(lines);
+}
+
+function normalizeItineraryLines(value) {
+    if (!value) return [];
+    let parsed = value;
+    if (typeof parsed === "string") {
+        try { parsed = JSON.parse(parsed); } catch { return parsed.split(/\r?\n/).map(line => line.trim()).filter(Boolean); }
+    }
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((entry) => {
+        if (typeof entry === "string") return entry.trim();
+        if (!entry || typeof entry !== "object") return "";
+        const day = entry.day ? `Day ${entry.day}: ` : "";
+        const title = entry.title || "";
+        const description = entry.desc && entry.desc !== title ? ` — ${entry.desc}` : "";
+        return `${day}${title || entry.desc || ""}${description}`.trim();
+    }).filter(Boolean);
 }
 
 async function sendPasswordResetOtp(email, otp) {
@@ -254,6 +272,7 @@ async function sendBookingConfirmation(booking, type = "tour") {
         ? [
             ["Vehicle", booking.vehicle_name],
             ["Plate number", booking.plate_number],
+            ["Daily rate", `PHP ${Number(booking.daily_rate || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
             ["Pickup date", booking.pickup_date],
             ["Return date", booking.return_date],
             ["Pickup location", booking.pickup_location],
@@ -268,12 +287,22 @@ async function sendBookingConfirmation(booking, type = "tour") {
                 ["Accommodation", customDetails.hotel],
                 ["Preferred guide", customDetails.preferredGuideName || "No preference"],
                 ["Activities", Array.isArray(customDetails.activities) ? customDetails.activities.join(", ") : "None"],
+                ["Budget", customDetails.budget],
+                ["Travel style", customDetails.travelStyle],
+                ["Special requests", customDetails.specialRequests || customDetails.notes],
             ]
             : [
                 ["Tour package", booking.package_name],
+                ["Package type", booking.package_type],
                 ["Destination", booking.destination],
                 ["Travel date", booking.travel_date],
                 ["Number of persons", booking.number_of_persons],
+                ["Duration", booking.duration],
+                ["Meeting location", booking.meeting_location],
+                ["Inclusions", normalizeItineraryLines(booking.inclusion).join(", ") || (booking.inclusion || "-")],
+                ["Joiner trip date", booking.joiner_date],
+                ["Available slots", booking.joiner_slots],
+                ["Booking deadline", booking.joiner_booking_deadline],
             ];
     if (isCustomSamplePayment) {
         details.push(["Payment mode", `${booking.payment_method || "Sample Payment"} (simulation)`]);
@@ -322,19 +351,25 @@ async function sendBookingConfirmation(booking, type = "tour") {
     const status = isCustomTrip && !hasQuote ? "Under review" : booking.booking_status || "Pending";
     const html = `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>${escapeHtml(message)}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>Status:</strong> ${escapeHtml(status)}</p><table style="width:100%;border-collapse:collapse">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}${priceHtml}</div><p>${escapeHtml(followUp)}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`;
     const text = `Dear ${booking.first_name || "Customer"},\n\n${message}\n\nBooking reference: ${booking.booking_reference}\nStatus: ${status}\n${detailsText}${itineraryText}${breakdownText}\n\n${priceText}\n\n${followUp}\n\nRABAS Travel & Tours Services`;
-    const itineraryPdf = createItineraryPdf(booking, type, customDetails, priceBreakdown, status);
-    return sendEmail(
-        email,
-        `${title} - ${booking.booking_reference}`,
-        text,
-        html,
-        "Booking email",
-        [{
-            filename: `RABAS-Itinerary-${booking.booking_reference || "booking"}.pdf`,
-            content: itineraryPdf,
-            contentType: "application/pdf",
-        }],
-    );
+    const receiptDetails = [
+        ...details,
+        ["Booking date", formatReceiptDate(booking.booking_date)],
+        ["Payment method", booking.payment_method || "-"],
+        ["Payment status", booking.payment_status || "Pending"],
+        ["Payment reference", booking.payment_transaction_reference || "-"],
+        ["Total amount", `PHP ${total}`],
+    ];
+    const itineraryLines = isCustomTrip
+        ? (Array.isArray(customDetails.quoteItinerary) ? normalizeItineraryLines(customDetails.quoteItinerary) : String(customDetails.quoteItinerary || customDetails.itinerary || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean))
+        : normalizeItineraryLines(booking.itinerary);
+    const receiptBreakdown = priceBreakdown.map(line => `${line.description || "Item"}: PHP ${Number(line.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`);
+    const receiptPdf = createBookingReceiptPdf(booking, type, receiptDetails, itineraryLines, receiptBreakdown);
+    const receiptFilename = `RABAS-Booking-Receipt-${String(booking.booking_reference || "booking").replace(/[^a-z0-9_-]/gi, "-")}.pdf`;
+    return sendEmail(email, `${title} - ${booking.booking_reference}`, text, html, "Booking email", [{
+        filename: receiptFilename,
+        content: receiptPdf,
+        contentType: "application/pdf",
+    }]);
 }
 
 async function sendTripReminder(booking, type = "tour") {

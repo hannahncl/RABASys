@@ -28,6 +28,8 @@ import AboutUs from './pages/public/AboutUs';
 import Profile from './pages/public/Profile';
 import Review from './pages/public/Review';
 import RescheduleTrip from './pages/public/RescheduleTrip';
+import Wishlist from './pages/public/Wishlist';
+import SupportChat from './pages/public/SupportChat';
 
 // Pages - Auth
 import Login from './pages/auth/Login';
@@ -60,6 +62,7 @@ import AddServicePage from './pages/admin/AddServicePage';
 import ManageCustomizations from './pages/admin/ManageCustomizations';
 import ManageAccounts from './pages/admin/ManageAccounts';
 import AdminReviews from './pages/admin/Reviews';
+import Inquiries from './pages/admin/Inquiries';
 
 // Pages - Staff Dashboard
 import StaffDashboard from './pages/staff/Dashboard';
@@ -91,6 +94,8 @@ function App() {
                 }
               />
               <Route path="about" element={<AboutUs />} />
+              <Route path="wishlist" element={<Wishlist />} />
+              <Route path="support/chat" element={<SupportChat />} />
               
               <Route 
                 path="profile" 
@@ -156,6 +161,7 @@ function App() {
               <Route path="schedule" element={<AdminSchedule />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="reviews" element={<AdminReviews />} />
+            <Route path="inquiries" element={<Inquiries />} />
               <Route path="services" element={<ManageServices />} />
               <Route path="services/:category/:id" element={<ServiceDetailPage />} />
               <Route path="tour-packages" element={<ManageTourPackages />} />
@@ -194,6 +200,7 @@ function App() {
               <Route path="dashboard" element={<StaffDashboard />} />
               <Route path="my-tours" element={<MyTours />} />
               <Route path="calendar" element={<Calendar />} />
+              <Route path="inquiries" element={<Inquiries />} />
             </Route>
 
             {/* Fallback Redirect */}

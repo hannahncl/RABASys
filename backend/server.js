@@ -3,7 +3,7 @@ require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
 const app = require("./app");
 const db = require("./config/db");
-const { ensureSchema } = require("./config/ensureSchema");
+const { ensurePostgresSchema } = require("./config/ensurePostgresSchema");
 const { sendTripReminders } = require("./services/tripReminderService");
 
 const PORT = process.env.PORT || 5000;
@@ -21,7 +21,7 @@ async function startServer() {
             );
         }
         if (process.env.RUN_SCHEMA === "true") {
-            await ensureSchema();
+            await ensurePostgresSchema();
         }
         if (process.env.RUN_TRIP_REMINDERS !== "false") {
             // Check on startup and hourly; the reminder log prevents duplicate emails.

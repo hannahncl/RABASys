@@ -30,7 +30,7 @@ const EditCarRentalPage = () => {
         const item = await serviceService.getById(id, 'car');
         if (!item) {
           showNotification('Car rental not found.', 'error');
-          navigate('/admin/services');
+          navigate('/admin/car-rentals');
           return;
         }
 
@@ -48,7 +48,7 @@ const EditCarRentalPage = () => {
         });
       } catch {
         showNotification('Failed to load car rental details.', 'error');
-        navigate('/admin/services');
+        navigate('/admin/car-rentals');
       } finally {
         setLoading(false);
       }
@@ -94,7 +94,7 @@ const EditCarRentalPage = () => {
         transmission: formData.transmission,
       });
       showNotification('Car rental updated successfully', 'success');
-      navigate('/admin/services');
+      navigate('/admin/car-rentals');
     } catch (error) {
       showNotification(error.message || 'Failed to update car rental', 'error');
     }
@@ -111,10 +111,10 @@ const EditCarRentalPage = () => {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate('/admin/services')}
+        onClick={() => navigate('/admin/car-rentals')}
         className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Services
+        <ArrowLeft className="h-4 w-4" /> Back to Vehicles
       </button>
 
       <div className="bg-slate-900/30 border border-slate-850 backdrop-blur-md rounded-3xl p-8 space-y-6 transition-all duration-300">
@@ -197,6 +197,7 @@ const EditCarRentalPage = () => {
               <option value="Available" className="bg-slate-950 text-slate-200">Available</option>
               <option value="Unavailable" className="bg-slate-950 text-slate-200">Unavailable</option>
               <option value="Maintenance" className="bg-slate-950 text-slate-200">Under Maintenance</option>
+              <option value="Deactivated" className="bg-slate-950 text-slate-200">Deactivated</option>
             </select>
           </div>
           <div>
@@ -254,14 +255,14 @@ const EditCarRentalPage = () => {
 
         <div className="flex gap-3 justify-end pt-5 border-t border-slate-850/50">
           <button 
-            onClick={() => navigate('/admin/services')} 
+            onClick={() => navigate('/admin/car-rentals')} 
             className="px-5 py-2.5 text-slate-400 hover:text-slate-100 hover:bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer text-sm font-semibold transition-all flex items-center gap-1.5"
           >
             <X className="h-4 w-4" /> Cancel
           </button>
           <button 
             onClick={handleSave} 
-            className="px-6 py-2.5 text-slate-950 bg-slate-100 hover:bg-white rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5"
+            className="px-6 py-2.5 text-white bg-[#1a1a1a] hover:bg-[#333333] rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5 shadow-sm"
           >
             <Save className="h-4 w-4" /> Save Changes
           </button>

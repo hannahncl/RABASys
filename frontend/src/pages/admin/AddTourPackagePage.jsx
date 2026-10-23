@@ -33,6 +33,7 @@ const AddTourPackagePage = () => {
     meetingLocation: '',
     itinerary: '',
     image: '',
+    images: [],
     joinerDate: '',
     joinerSlots: '',
     joinerBookingDeadline: ''
@@ -44,19 +45,30 @@ const AddTourPackagePage = () => {
   };
 
   const handleImageSelection = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
     setIsCompressingImage(true);
     try {
-      const image = await compressPackageImage(file);
-      setFormData(prev => ({ ...prev, image }));
+      const selectedImages = await Promise.all(files.slice(0, 8).map(compressPackageImage));
+      setFormData(prev => ({
+        ...prev,
+        image: prev.images[0] || selectedImages[0] || '',
+        images: [...prev.images, ...selectedImages].slice(0, 8),
+      }));
     } catch (error) {
       e.target.value = '';
-      showNotification(error.message || 'Failed to process the image.', 'error');
+      showNotification(error.message || 'Failed to process the selected images.', 'error');
     } finally {
       setIsCompressingImage(false);
     }
+  };
+
+  const removeImage = (index) => {
+    setFormData(prev => {
+      const images = prev.images.filter((_, imageIndex) => imageIndex !== index);
+      return { ...prev, images, image: images[0] || '' };
+    });
   };
 
   const handleSave = async () => {
@@ -70,6 +82,14 @@ const AddTourPackagePage = () => {
     }
     if (packageType === 'joiner' && formData.joinerBookingDeadline > formData.joinerDate) {
       showNotification('The booking deadline must be on or before the trip date.', 'error');
+      return;
+    }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.joinerSlots)) || Number(formData.joinerSlots) < 1)) {
+      showNotification('Joiner slots must be a positive whole number.', 'error');
+      return;
+    }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.maximumCapacity)) || Number(formData.maximumCapacity) < 1)) {
+      showNotification('Maximum capacity must be a positive whole number for Joiner trips.', 'error');
       return;
     }
     if (!(await confirm(`Are you sure you want to create this ${packageTypeLabel}?`))) return;
@@ -108,7 +128,8 @@ const AddTourPackagePage = () => {
         joinerDate: packageType === 'joiner' ? formData.joinerDate : null,
         joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
         joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
-        image: formData.image || '/CAGSAWA.jpg',
+        image: formData.images[0] || formData.image || '/CAGSAWA.jpg',
+        images: formData.images.length ? formData.images : [formData.image || '/CAGSAWA.jpg'],
         tags: [formData.destination.trim(), 'Tour Package']
       };
 
@@ -258,15 +279,27 @@ const AddTourPackagePage = () => {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Package Image</label>
+            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Package Photos</label>
             <input 
               type="file" 
               accept="image/*" 
+              multiple
               onChange={handleImageSelection} 
               className="w-full bg-slate-900/20 border border-slate-800 hover:border-slate-750 transition-colors rounded-xl py-2.5 px-3.5 text-xs text-slate-350 file:mr-3.5 file:rounded-lg file:border-0 file:bg-slate-800/80 file:px-4 file:py-1.5 file:text-xs file:text-slate-200 file:font-semibold hover:file:bg-slate-800 cursor-pointer" 
             />
-            {formData.image && (
-              <img src={formData.image} alt="Preview" className="mt-4 h-48 w-full object-cover rounded-2xl border border-slate-800" />
+            <p className="mt-2 text-[10px] text-slate-500">Select up to 8 photos. The first photo will be used as the cover image.</p>
+            {formData.images.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {formData.images.map((image, index) => (
+                  <div key={`${image}-${index}`} className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
+                    <img src={image} alt={`Package preview ${index + 1}`} className="h-full w-full object-cover" />
+                    {index === 0 && <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-slate-800">Cover</span>}
+                    <button type="button" onClick={() => removeImage(index)} className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white opacity-0 transition group-hover:opacity-100" aria-label={`Remove photo ${index + 1}`}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -282,7 +315,7 @@ const AddTourPackagePage = () => {
           <button 
             disabled={isCompressingImage || isSubmitting} 
             onClick={handleSave} 
-            className="px-6 py-2.5 text-slate-950 bg-slate-100 hover:bg-white rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 text-white bg-[#1a1a1a] hover:bg-[#333333] rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
           >
             <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : isSubmitting ? 'Saving...' : 'Save Package'}
           </button>

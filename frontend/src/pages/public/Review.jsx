@@ -4,7 +4,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
-import { Star, ArrowLeft } from 'lucide-react';
+import { Star, ArrowLeft, ImagePlus, X } from 'lucide-react';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 
 const Review = () => {
   const { id } = useParams();
@@ -18,9 +19,24 @@ const Review = () => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [reviewImage, setReviewImage] = useState('');
+  const [imageError, setImageError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleReviewImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImageError('');
+    try {
+      setReviewImage(await compressPackageImage(file));
+    } catch (error) {
+      setReviewImage('');
+      setImageError(error.message || 'Unable to use this image.');
+    }
+    event.target.value = '';
+  };
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -62,6 +78,7 @@ const Review = () => {
       const payload = {
         rating,
         comment,
+        ...(reviewImage ? { image_url: reviewImage } : {}),
         ...(isCarRental
           ? { rental_booking_id: Number(booking.id) }
           : { booking_id: Number(booking.id) })
@@ -92,7 +109,7 @@ const Review = () => {
 
   return (
     <div className="min-h-screen bg-white pb-24 pt-10 font-sans text-[#1a1a1a]">
-      <div className="mx-auto max-w-xl px-4 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-12">
         <button 
           onClick={() => navigate('/profile')}
           className="mb-6 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b6255] transition-colors hover:text-[#2d2a24]"
@@ -216,6 +233,25 @@ const Review = () => {
                     placeholder="Share a short note..."
                   />
                   <p className="text-right text-[11px] text-[#8f8576]">{comment.length}/500</p>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#4a453b]">
+                    Photo <span className="font-medium normal-case tracking-normal text-[#8f8576]">(Optional)</span>
+                  </label>
+                  {reviewImage ? (
+                    <div className="relative w-fit overflow-hidden rounded border border-[#d6cfc2]">
+                      <img src={reviewImage} alt="Review preview" className="h-36 w-36 object-cover" />
+                      <button type="button" onClick={() => setReviewImage('')} className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-[#4a453b] shadow" aria-label="Remove review photo"><X className="h-4 w-4" /></button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded border border-dashed border-[#d6cfc2] px-4 py-4 text-xs font-semibold text-[#6b6255] transition-colors hover:border-[#b0a68e] hover:bg-[#fcfbf9]">
+                      <ImagePlus className="h-4 w-4" /> Add a photo
+                      <input type="file" accept="image/*" onChange={handleReviewImage} className="sr-only" />
+                    </label>
+                  )}
+                  {imageError && <p className="text-xs text-red-600">{imageError}</p>}
+                  <p className="text-[11px] text-[#8f8576]">You may upload one photo from your trip.</p>
                 </div>
 
                 <div className="flex gap-3 pt-1">

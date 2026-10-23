@@ -4,7 +4,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { useConfirmation } from '../contexts/ConfirmationContext';
 import { api, notificationService } from '../services/api';
 import { 
-  Compass, LayoutGrid, CalendarCheck, LogOut, Menu, X, Bell, Check 
+  Compass, LayoutGrid, CalendarCheck, MessageSquare, LogOut, Menu, X, Bell, Check
 } from 'lucide-react';
 
 const StaffLayout = () => {
@@ -95,6 +95,7 @@ const StaffLayout = () => {
     { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutGrid },
     { name: 'My Tours', path: '/staff/my-tours', icon: Compass },
     { name: 'Calendar', path: '/staff/calendar', icon: CalendarCheck },
+    { name: 'Customer Inquiries', path: '/staff/inquiries', icon: MessageSquare },
   ];
 
   const isActive = (path) => location.pathname === path;
