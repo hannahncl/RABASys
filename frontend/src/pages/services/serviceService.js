@@ -28,6 +28,10 @@ const packageFromApi = (item) => ({
   joinerDate: item.joiner_date || item.joinerDate || '',
   joinerSlots: item.joiner_slots ?? item.joinerSlots ?? '',
   joinerBookingDeadline: item.joiner_booking_deadline || item.joinerBookingDeadline || '',
+  joinerReservedSlots: Number(item.joiner_reserved_slots ?? item.joinerReservedSlots ?? 0),
+  joinerRemainingSlots: item.joiner_remaining_slots == null && item.joinerRemainingSlots == null
+    ? null
+    : Number(item.joiner_remaining_slots ?? item.joinerRemainingSlots),
   tags: item.tags || [],
   rating: Number(item.rating || 0),
   reviewsCount: Number(item.reviews_count || 0),

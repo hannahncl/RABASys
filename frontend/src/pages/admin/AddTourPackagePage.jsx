@@ -72,6 +72,14 @@ const AddTourPackagePage = () => {
       showNotification('The booking deadline must be on or before the trip date.', 'error');
       return;
     }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.joinerSlots)) || Number(formData.joinerSlots) < 1)) {
+      showNotification('Joiner slots must be a positive whole number.', 'error');
+      return;
+    }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.maximumCapacity)) || Number(formData.maximumCapacity) < 1)) {
+      showNotification('Maximum capacity must be a positive whole number for Joiner trips.', 'error');
+      return;
+    }
     if (!(await confirm(`Are you sure you want to create this ${packageTypeLabel}?`))) return;
 
     if (!user || normalizeFrontendRole(user.role) !== 'admin') {

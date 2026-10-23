@@ -20,7 +20,8 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'Pending Verification', label: 'Pending' },
   { key: 'Confirmed', label: 'Booked' },
-  { key: 'Rescheduled', label: 'Rescheduled' }
+  { key: 'Rescheduled', label: 'Rescheduled' },
+  { key: 'Cancelled', label: 'Cancelled' }
 ];
 
 const statusStyle = (status) => {
@@ -117,7 +118,7 @@ const Bookings = () => {
   }, [typeFilteredBookings, activeFilter, search]);
 
   const handleStatusUpdate = async (booking, status) => {
-    const actionLabel = 'confirm this booking';
+    const actionLabel = status === 'Cancelled' ? 'cancel this booking' : 'confirm this booking';
     if (!confirmation) {
       setConfirmation({ booking, status, actionLabel });
       return;
@@ -129,7 +130,7 @@ const Bookings = () => {
       const updated = await bookingService.updateStatus(booking.id, status, booking.type);
       setBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification('Booking confirmed as booked', 'success');
+      showNotification(status === 'Cancelled' ? 'Booking cancelled; its spots are available again.' : 'Booking confirmed as booked', 'success');
     } catch {
       showNotification('Failed to update booking status', 'error');
     } finally {
@@ -311,6 +312,19 @@ const Bookings = () => {
                               <span>Confirm</span>
                             </button>
                           )}
+                          {booking.type === 'Tour Packages'
+                            && String(booking.package_type || '').toLowerCase() === 'joiner'
+                            && ['Pending Verification', 'Pending', 'Confirmed', 'Rescheduled'].includes(booking.status) && (
+                              <button
+                                onClick={() => handleStatusUpdate(booking, 'Cancelled')}
+                                disabled={updatingId === booking.id}
+                                className="px-2.5 py-1.5 rounded-md border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+                                title="Cancel booking and release its reserved spots"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                <span>Cancel</span>
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>

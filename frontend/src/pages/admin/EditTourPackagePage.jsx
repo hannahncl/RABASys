@@ -104,6 +104,14 @@ const EditTourPackagePage = () => {
       showNotification('The booking deadline must be on or before the trip date.', 'error');
       return;
     }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.joinerSlots)) || Number(formData.joinerSlots) < 1)) {
+      showNotification('Joiner slots must be a positive whole number.', 'error');
+      return;
+    }
+    if (packageType === 'joiner' && (!Number.isInteger(Number(formData.maximumCapacity)) || Number(formData.maximumCapacity) < 1)) {
+      showNotification('Maximum capacity must be a positive whole number for Joiner trips.', 'error');
+      return;
+    }
     if (!(await confirm('Are you sure you want to save these tour package changes?'))) return;
 
     try {
@@ -135,8 +143,8 @@ const EditTourPackagePage = () => {
       await serviceService.update(id, payload);
       showNotification('Tour package updated successfully', 'success');
       navigate('/admin/tour-packages');
-    } catch {
-      showNotification('Failed to update tour package', 'error');
+    } catch (error) {
+      showNotification(error?.message || 'Failed to update tour package', 'error');
     }
   };
 
