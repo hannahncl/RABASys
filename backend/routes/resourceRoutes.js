@@ -6,7 +6,7 @@ const { logAudit } = require("../utils/auditLogger");
 // Only these known tables/columns can be used. This avoids dynamic SQL from request input.
 const resources = {
     accounts: { table: "account", id: "account_id", fields: ["first_name", "last_name", "email", "contact_number", "role", "account_status"] },
-    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image", "joiner_date", "joiner_slots", "joiner_booking_deadline"] },
+    packages: { table: "tour_package", id: "package_id", fields: ["package_name", "destination", "description", "price", "duration", "inclusion", "max_capacity", "meeting_location", "itinerary", "availability_status", "package_type", "image", "images", "joiner_date", "joiner_slots", "joiner_booking_deadline"] },
     vehicles: { table: "vehicle", id: "vehicle_id", fields: ["media_id", "vehicle_name", "vehicle_type", "plate_number", "capacity", "daily_rate", "image", "availability_status", "fuel_type", "vehicle_brand", "transmission"] },
     guides: { table: "tour_guide", id: "guide_id", fields: ["account_id", "media_id", "sex", "birthdate", "years_of_experience", "description", "languages_spoken", "availability_status", "employment_status"] },
     media: { table: "media", id: "media_id", fields: ["file_path", "media_type", "uploaded_by", "title", "description"] },
@@ -63,6 +63,14 @@ function prepareResourcePayload(resource, input = {}) {
     const payload = { ...input };
     if (Object.prototype.hasOwnProperty.call(payload, "image") && payload.image !== undefined && payload.image !== null) {
         payload.image = normalizeImageValue(payload.image);
+    }
+    if (resource.table === "tour_package" && Object.prototype.hasOwnProperty.call(payload, "images")) {
+        const images = Array.isArray(payload.images)
+            ? payload.images
+            : typeof payload.images === "string"
+                ? (() => { try { return JSON.parse(payload.images); } catch { return [payload.images]; } })()
+                : [];
+        payload.images = JSON.stringify(images.filter((image) => typeof image === "string" && image.trim()).map((image) => image.trim()));
     }
     return payload;
 }

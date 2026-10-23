@@ -13,6 +13,7 @@ const PackageDetail = () => {
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joinerAvailability, setJoinerAvailability] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
@@ -27,6 +28,7 @@ const PackageDetail = () => {
         const data = await packageService.getById(id);
         if (!active) return;
         setPkg(data || null);
+        setSelectedImageIndex(0);
         setJoinerAvailability(null);
         if (data) {
           loadReviewsForPackage(id);
@@ -199,6 +201,8 @@ const PackageDetail = () => {
   }
 
   const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
+  const packageImages = (Array.isArray(pkg.images) && pkg.images.length ? pkg.images : [pkg.image || '/CAGSAWA.jpg']).filter(Boolean);
+  const selectedImage = packageImages[selectedImageIndex] || packageImages[0] || '/CAGSAWA.jpg';
   const formatJoinerDate = (date) => date
     ? new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'Schedule not set';
@@ -236,7 +240,7 @@ const PackageDetail = () => {
               style={{ borderRadius: '4px' }}
             >
               <img
-                src={pkg.image || '/CAGSAWA.jpg'}
+                src={selectedImage}
                 alt={pkg.title}
                 className="absolute inset-0 h-full w-full object-contain"
                 onError={(e) => {
@@ -244,6 +248,21 @@ const PackageDetail = () => {
                 }}
               />
             </div>
+            {packageImages.length > 1 && (
+              <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-5">
+                {packageImages.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`relative aspect-[4/3] overflow-hidden rounded border transition ${selectedImageIndex === index ? 'border-[#6b6255] ring-2 ring-[#6b6255]/20' : 'border-[#eae5db] opacity-70 hover:opacity-100'}`}
+                    aria-label={`View package photo ${index + 1}`}
+                  >
+                    <img src={image} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.src = '/CAGSAWA.jpg'; }} />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Tabs Navigation - Minimalist */}
             <div

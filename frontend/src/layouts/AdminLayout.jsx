@@ -87,6 +87,7 @@ const AdminLayout = () => {
       { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
       { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
       { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
+      { name: 'Inquiries', path: '/admin/inquiries', icon: MessageSquare },
     ] },
     { name: 'Services', items: [
       { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
@@ -125,11 +126,11 @@ const AdminLayout = () => {
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40 shadow-xs'
+                    ? 'bg-[#f7f1ed] text-[#603524] font-semibold border border-[#e0cfc4] shadow-xs'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
                 }`}
               >
-                <Icon aria-hidden="true" className={`h-5 w-5 shrink-0 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
+                <Icon aria-hidden="true" className={`h-5 w-5 shrink-0 ${active ? 'text-[#603524]' : 'text-stone-500'}`} />
                 <span>{item.name}</span>
               </Link>
             </li>
@@ -147,7 +148,7 @@ const AdminLayout = () => {
         <div className="pt-8 pb-6 px-6 flex items-center justify-center">
           <div className="flex items-center justify-center">
             <img 
-              src="/RABAS LOGO.png" 
+              src="/RABAS LOGO.png"
               alt="RABAS Travel and Tours Services" 
               className="h-12 w-auto object-contain mx-auto" 
             />
@@ -184,7 +185,7 @@ const AdminLayout = () => {
 
             <div className="mb-6 pt-2 flex justify-center">
               <img 
-                src="/RABAS LOGO.png" 
+                src="/RABAS LOGO.png"
                 alt="RABAS Travel and Tours Services" 
                 className="h-12 w-auto object-contain mx-auto" 
               />
@@ -241,7 +242,7 @@ const AdminLayout = () => {
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/50">
                     <h3 className="text-sm font-semibold text-slate-200">Notifications</h3>
                     {notifications.some(n => !n.is_read) && (
-                      <button onClick={handleMarkAllAsRead} className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer">
+                      <button onClick={handleMarkAllAsRead} className="text-[11px] text-[#c9a38d] hover:text-[#e4cdbd] font-medium cursor-pointer">
                         Mark all as read
                       </button>
                     )}
@@ -269,7 +270,7 @@ const AdminLayout = () => {
                                 e.stopPropagation();
                                 handleMarkAsRead(notif.notification_id);
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-cyan-400 transition-all shrink-0 cursor-pointer"
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-[#c9a38d] transition-all shrink-0 cursor-pointer"
                               title="Mark as read without navigating"
                             >
                               <Check className="h-3.5 w-3.5" />
@@ -286,9 +287,9 @@ const AdminLayout = () => {
             <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-slate-200">{user?.name}</p>
-                <p className="text-xs text-cyan-400 uppercase tracking-wider font-semibold">Administrator</p>
+                <p className="text-xs text-[#603524] uppercase tracking-wider font-semibold">Administrator</p>
               </div>
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold font-display">
+              <div className="h-9 w-9 rounded-xl bg-[#f7f1ed] border border-[#e0cfc4] flex items-center justify-center text-[#603524] font-bold font-display">
                 A
               </div>
             </div>

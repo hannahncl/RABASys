@@ -12,8 +12,8 @@ async function startServer() {
     try {
         await db.query("SELECT 1");
         await ensurePostgresSchema();
-        // Keep the booking table compatible with custom-trip requests.
-        // This is safe to run repeatedly and supports existing Supabase databases.
+        // Keep the custom-trip payload column present on existing Supabase databases.
+        // ensurePostgresSchema also makes the legacy package_id column nullable.
         await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB NULL");
         await db.query("ALTER TABLE account ADD COLUMN IF NOT EXISTS profile_picture TEXT NULL");
         if (process.env.RUN_TRIP_REMINDERS !== "false") {

@@ -5,6 +5,13 @@ const parseJson = (value, fallback) => {
   try { return JSON.parse(value); } catch { return fallback; }
 };
 
+const normalizeImages = (value, fallbackImage = '') => {
+  const parsed = Array.isArray(value) ? value : parseJson(value, []);
+  const images = parsed.filter((image) => typeof image === 'string' && image.trim()).map((image) => image.trim());
+  if (images.length) return images;
+  return fallbackImage ? [fallbackImage] : [];
+};
+
 const normalizePackageType = (item = {}) => {
   const rawType = item.package_type || item.packageType || item.category || item.type || 'tour';
   const normalized = String(rawType).toLowerCase().replace(/\s+/g, '_');
@@ -24,7 +31,8 @@ const packageFromApi = (item) => ({
   inclusions: parseJson(item.inclusion, item.inclusion ? item.inclusion.split(',').map(x => x.trim()).filter(Boolean) : []),
   itinerary: parseJson(item.itinerary, item.itinerary || []),
   meetingLocation: item.meeting_location,
-  image: item.image || '/CAGSAWA.jpg',
+  images: normalizeImages(item.images, item.image),
+  image: normalizeImages(item.images, item.image)[0] || '/CAGSAWA.jpg',
   joinerDate: item.joiner_date || item.joinerDate || '',
   joinerSlots: item.joiner_slots ?? item.joinerSlots ?? '',
   joinerBookingDeadline: item.joiner_booking_deadline || item.joinerBookingDeadline || '',
@@ -67,7 +75,8 @@ const packagePayload = (item) => ({
   itinerary: JSON.stringify(item.itinerary || []),
   availability_status: item.availabilityStatus || item.availability_status || 'Available',
   package_type: normalizePackageType(item),
-  image: item.image || null,
+  image: item.image || item.images?.[0] || null,
+  images: JSON.stringify(normalizeImages(item.images, item.image)),
   // These columns were added for joiner packages. Leave them out of ordinary
   // tour inserts so a database that has not applied the joiner migration can
   // still create exclusive and tuktrip packages.

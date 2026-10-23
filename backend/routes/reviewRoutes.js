@@ -15,6 +15,7 @@ const reviewSelect = `
         r.rental_booking_id,
         r.rating,
         r.comment,
+        r.image_url,
         r.created_at,
         r.updated_at,
         a.first_name,
@@ -71,11 +72,15 @@ router.get("/", async (req, res, next) => {
 
 router.post("/", requireAuth, async (req, res, next) => {
     try {
-        const { booking_id, rental_booking_id, rating, comment } = req.body;
+        const { booking_id, rental_booking_id, rating, comment, image_url } = req.body;
         const numericRating = Number(rating);
+        const reviewImage = image_url ? String(image_url) : null;
 
         if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
             return res.status(422).json({ message: "Rating must be between 1 and 5." });
+        }
+        if (reviewImage && (!reviewImage.startsWith("data:image/") || reviewImage.length > 60000)) {
+            return res.status(422).json({ message: "The review photo must be a valid image smaller than 60 KB." });
         }
 
         let isRental = false;
@@ -134,8 +139,8 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
 
             const { rows: inserted } = await db.query(
-                "INSERT INTO review (account_id, vehicle_id, rental_booking_id, rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING review_id",
-                [req.user.accountId, matchedRentalBooking.vehicle_id, matchedRentalBooking.rental_booking_id, numericRating, comment || null]
+                "INSERT INTO review (account_id, vehicle_id, rental_booking_id, rating, comment, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING review_id",
+                [req.user.accountId, matchedRentalBooking.vehicle_id, matchedRentalBooking.rental_booking_id, numericRating, comment || null, reviewImage]
             );
 
             const { rows } = await db.query(`${reviewSelect} WHERE r.review_id = $1`, [inserted[0].review_id]);
@@ -159,8 +164,8 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
 
             const { rows: inserted } = await db.query(
-                "INSERT INTO review (account_id, package_id, booking_id, rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING review_id",
-                [req.user.accountId, matchedTourBooking.package_id, matchedTourBooking.booking_id, numericRating, comment || null]
+                "INSERT INTO review (account_id, package_id, booking_id, rating, comment, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING review_id",
+                [req.user.accountId, matchedTourBooking.package_id, matchedTourBooking.booking_id, numericRating, comment || null, reviewImage]
             );
 
             const { rows } = await db.query(`${reviewSelect} WHERE r.review_id = $1`, [inserted[0].review_id]);

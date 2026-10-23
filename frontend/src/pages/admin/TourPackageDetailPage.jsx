@@ -44,6 +44,7 @@ const TourPackageDetailPage = () => {
   const navigate = useNavigate();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     const loadPackage = async () => {
@@ -54,6 +55,7 @@ const TourPackageDetailPage = () => {
         // general "tour" listing filter).
         const found = await serviceService.getById(id);
         setPkg(found || null);
+        setSelectedImageIndex(0);
       } catch {
         setPkg(null);
       } finally {
@@ -65,6 +67,8 @@ const TourPackageDetailPage = () => {
 
   const itinerary = useMemo(() => parseDetailList(pkg?.itinerary), [pkg]);
   const inclusions = useMemo(() => parseDetailList(pkg?.inclusions), [pkg]);
+  const packageImages = (Array.isArray(pkg?.images) && pkg.images.length ? pkg.images : [pkg?.image || '/CAGSAWA.jpg']).filter(Boolean);
+  const selectedImage = packageImages[selectedImageIndex] || packageImages[0] || '/CAGSAWA.jpg';
 
   if (loading) {
     return (
@@ -80,7 +84,7 @@ const TourPackageDetailPage = () => {
         <p className="text-sm text-slate-400">Tour package details not found.</p>
         <button
           onClick={() => navigate('/admin/tour-packages')}
-          className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-white transition-all cursor-pointer"
+          className="rounded-xl bg-[#1a1a1a] hover:bg-[#333333] px-5 py-2.5 text-sm font-bold text-white transition-all cursor-pointer"
         >
           Back to Tour Packages
         </button>
@@ -102,7 +106,7 @@ const TourPackageDetailPage = () => {
         </button>
         <button
           onClick={() => navigate(`/admin/tour-packages/edit/${pkg.id}`)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-white text-slate-950 rounded-xl text-sm font-bold transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] hover:bg-[#333333] text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-sm"
         >
           <Edit className="h-4 w-4" /> Edit Package
         </button>
@@ -116,9 +120,9 @@ const TourPackageDetailPage = () => {
           
           {/* Package Image */}
           <div className="relative min-h-[220px] md:min-h-[260px] bg-slate-900/60 rounded-2xl p-4 flex items-center justify-center border border-slate-850/40 overflow-hidden">
-            {pkg.image && pkg.image !== '/CAGSAWA.jpg' ? (
+            {selectedImage && selectedImage !== '/CAGSAWA.jpg' ? (
               <img
-                src={pkg.image}
+                src={selectedImage}
                 alt={title}
                 className="w-full h-full max-h-[280px] object-contain rounded-xl"
               />
@@ -129,6 +133,21 @@ const TourPackageDetailPage = () => {
               </div>
             )}
           </div>
+          {packageImages.length > 1 && (
+            <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+              {packageImages.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`relative aspect-[4/3] overflow-hidden rounded-xl border transition ${selectedImageIndex === index ? 'border-slate-300 ring-2 ring-white/10' : 'border-slate-850/60 opacity-70 hover:opacity-100'}`}
+                  aria-label={`View package photo ${index + 1}`}
+                >
+                  <img src={image} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.src = '/CAGSAWA.jpg'; }} />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Title & Price under picture */}
           <div>

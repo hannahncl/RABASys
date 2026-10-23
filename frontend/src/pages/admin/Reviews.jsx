@@ -68,7 +68,7 @@ const Reviews = () => {
           <p className="text-xs text-slate-400 mt-1">View and manage feedback from tour and rental customers.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-[#6b6255]">
-          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          <Star className="h-4 w-4" style={{ fill: '#f59e0b', color: '#f59e0b' }} />
           {reviews.length} total reviews
         </div>
       </div>
@@ -138,6 +138,7 @@ const Reviews = () => {
                       <span className="text-sm font-semibold text-[#1a1a1a]">{review.service_name || 'Service'}</span>
                     </div>
                     <p className="text-xs text-[#4a453b] leading-relaxed">{review.comment || 'No written comment provided.'}</p>
+                    {review.image_url && <img src={review.image_url} alt="Customer review" className="h-24 w-24 rounded object-cover" />}
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                       <span className="font-semibold text-slate-700">{review.customer_name || 'Anonymous Customer'}</span>
                       <span>•</span>
@@ -146,7 +147,18 @@ const Reviews = () => {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="flex items-center gap-2 bg-[#faf9f6] px-2.5 py-1.5 rounded-md border border-[#eae5db]">
-                      <div className="flex gap-0.5">{[1, 2, 3, 4, 5].map((star) => <Star key={star} className={`h-3.5 w-3.5 ${star <= Number(review.rating) ? 'fill-amber-400 text-amber-400' : 'fill-[#e0dbd0] text-[#d6cfc2]'}`} />)}</div>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className="h-3.5 w-3.5"
+                            style={{
+                              fill: star <= Number(review.rating) ? '#f59e0b' : '#e0dbd0',
+                              color: star <= Number(review.rating) ? '#f59e0b' : '#d6cfc2'
+                            }}
+                          />
+                        ))}
+                      </div>
                       <span className="text-xs font-bold text-[#1a1a1a]">{review.rating}/5</span>
                     </div>
                     <button onClick={() => handleDelete(review.review_id)} disabled={deletingId === review.review_id} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50" title="Delete review">

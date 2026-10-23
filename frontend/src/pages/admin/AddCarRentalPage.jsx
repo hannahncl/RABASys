@@ -258,7 +258,7 @@ const AddCarRentalPage = () => {
           <button 
             onClick={handleSave} 
             disabled={isCompressingImage || isSubmitting} 
-            className="px-6 py-2.5 text-slate-950 bg-slate-100 hover:bg-white rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 text-white bg-[#1a1a1a] hover:bg-[#333333] rounded-xl cursor-pointer text-sm font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
           >
             <Save className="h-4 w-4" /> {isCompressingImage ? 'Processing Image...' : isSubmitting ? 'Saving...' : 'Save Vehicle'}
           </button>

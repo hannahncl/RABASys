@@ -9,6 +9,7 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const rentalBookingRoutes = require("./routes/rentalBookingRoutes");
 const tourGuideRoutes = require("./routes/tourGuideRoutes");
+const wishlistRoutes = require("./routes/wishlistRoutes");
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.get("/", (req, res) => {
 });
 
 const notificationRoutes = require("./routes/notificationRoutes");
+const inquiryRoutes = require("./routes/inquiryRoutes");
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
@@ -48,6 +50,8 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/rental-bookings", rentalBookingRoutes);
 app.use("/api/tour-guides", tourGuideRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/inquiries", inquiryRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", resourceRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));

@@ -3,6 +3,7 @@ import { customizationService } from '../../services/customizationService';
 import { bookingService } from '../../services/bookingService';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { compressPackageImage } from '../../utils/compressPackageImage';
 import {
   Building2,
   CheckCircle2,
@@ -99,6 +100,7 @@ const ManageCustomizations = () => {
   const [activeDestination, setActiveDestination] = useState('');
   const [editingDestination, setEditingDestination] = useState(null);
   const [destinationForm, setDestinationForm] = useState(emptyDestinationForm);
+  const [isCompressingDestinationImage, setIsCompressingDestinationImage] = useState(false);
   const [editingTourId, setEditingTourId] = useState(null);
   const [tourForm, setTourForm] = useState(emptyTourForm);
   const [editingHotelId, setEditingHotelId] = useState(null);
@@ -189,6 +191,22 @@ const ManageCustomizations = () => {
     setEditingDestination(name);
     setDestinationForm(toDestinationForm(name, data.destinations[name]));
     resetInlineForms();
+  };
+
+  const handleDestinationImageSelection = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingDestinationImage(true);
+    try {
+      const image = await compressPackageImage(file);
+      setDestinationForm(prev => ({ ...prev, image }));
+    } catch (error) {
+      event.target.value = '';
+      showNotification(error.message || 'Failed to process the destination image.', 'error');
+    } finally {
+      setIsCompressingDestinationImage(false);
+    }
   };
 
   const handleSaveDestination = async () => {
@@ -555,14 +573,16 @@ const ManageCustomizations = () => {
                     <input value={destinationForm.category} onChange={e => setDestinationForm(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-sm text-[#1a1a1a] outline-none focus:border-[#b0a68e]" />
                   </label>
                   <label className="space-y-1">
-                    <span className="block text-[10px] uppercase text-[#6b6255] font-bold">Image URL</span>
-                    <input value={destinationForm.image} onChange={e => setDestinationForm(prev => ({ ...prev, image: e.target.value }))} className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-sm text-[#1a1a1a] outline-none focus:border-[#b0a68e]" />
+                    <span className="block text-[10px] uppercase text-[#6b6255] font-bold">Destination Image</span>
+                    <input type="file" accept="image/*" onChange={handleDestinationImageSelection} className="w-full bg-white border border-[#d6cfc2] rounded p-2 text-xs text-[#4a453b] outline-none focus:border-[#b0a68e] file:mr-2 file:rounded file:border-0 file:bg-[#f7f4ef] file:px-2 file:py-1 file:text-[10px] file:font-semibold file:text-[#603524]" />
+                    <span className="block text-[10px] text-[#8a8275]">Choose an image from your computer.</span>
+                    {destinationForm.image && <img src={destinationForm.image} alt="Destination preview" className="mt-2 h-24 w-full rounded object-cover border border-[#e0dbd0]" />}
                   </label>
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2">
                   <button onClick={() => setEditingDestination(null)} className="px-4 py-2 rounded bg-white border border-[#e0dbd0] text-[#4a453b] text-xs font-semibold uppercase tracking-[0.1em] cursor-pointer">Cancel</button>
-                  <button onClick={handleSaveDestination} className="px-4 py-2 rounded bg-[#2d2a24] text-[#f7f4ef] text-xs font-semibold uppercase tracking-[0.1em] flex items-center gap-2 cursor-pointer">
+                  <button disabled={isCompressingDestinationImage} onClick={handleSaveDestination} className="px-4 py-2 rounded bg-[#2d2a24] text-[#f7f4ef] text-xs font-semibold uppercase tracking-[0.1em] flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                     <Save className="h-4 w-4" /> Save
                   </button>
                 </div>

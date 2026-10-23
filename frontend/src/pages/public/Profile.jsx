@@ -146,6 +146,7 @@ const Profile = () => {
             review: userRev ? {
               rating: userRev.rating,
               comment: userRev.comment,
+              imageUrl: userRev.image_url,
               createdAt: userRev.created_at,
             } : null
           };
@@ -1022,6 +1023,9 @@ const Profile = () => {
                     <p className="border-l-2 border-[#d6cfc2] pl-3 text-xs italic text-[#4a453b]">
                       "{viewingBooking.review.comment}"
                     </p>
+                  )}
+                  {viewingBooking.review.imageUrl && (
+                    <img src={viewingBooking.review.imageUrl} alt="Your review" className="h-32 w-32 rounded object-cover" />
                   )}
                   <p className="text-[10px] text-[#8f8576]">
                     Reviewed on {new Date(viewingBooking.review.createdAt).toLocaleDateString('en-US', {

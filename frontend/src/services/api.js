@@ -57,3 +57,31 @@ export const notificationService = {
   markAsRead: (id) => api(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllAsRead: () => api('/notifications/read-all', { method: 'PATCH' }),
 };
+
+export const wishlistService = {
+  getAll: () => api('/wishlist'),
+  add: (itemType, itemId) => api('/wishlist', {
+    method: 'POST',
+    body: JSON.stringify({ itemType, itemId }),
+  }),
+  remove: (itemType, itemId) => api(`/wishlist/${encodeURIComponent(itemType)}/${encodeURIComponent(itemId)}`, {
+    method: 'DELETE',
+  }),
+};
+
+export const inquiryService = {
+  getAll: () => api('/inquiries'),
+  getById: (id) => api(`/inquiries/${id}`),
+  create: (subject, message) => api('/inquiries', {
+    method: 'POST',
+    body: JSON.stringify({ subject, message }),
+  }),
+  sendMessage: (id, message) => api(`/inquiries/${id}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  }),
+  updateStatus: (id, status) => api(`/inquiries/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  }),
+};
