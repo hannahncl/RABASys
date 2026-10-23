@@ -11,10 +11,15 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
     try {
         await db.query("SELECT 1");
-        // Keep the booking table compatible with custom-trip requests.
-        // This is safe to run repeatedly and supports existing Supabase databases.
-        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB NULL");
-        await db.query("ALTER TABLE account ADD COLUMN IF NOT EXISTS profile_picture TEXT NULL");
+        if (process.env.RUN_MIGRATIONS === "true") {
+            await db.query(
+                "ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB"
+            );
+
+            await db.query(
+                "ALTER TABLE account ADD COLUMN IF NOT EXISTS profile_picture TEXT"
+            );
+        }
         if (process.env.RUN_SCHEMA === "true") {
             await ensureSchema();
         }
@@ -26,13 +31,13 @@ async function startServer() {
             }, 60 * 60 * 1000);
         }
 
-        console.log("✅ Connected to MySQL Database");
+        console.log("✅ Connected to Supabase PostgreSQL Database");
 
         app.listen(PORT, () => {
             console.log(`🚀 Server is running on http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error("❌ Failed to connect to MySQL");
+        console.error("❌ Failed to connect to Supabase PostgreSQL");
         console.error(error.message);
     }
 }

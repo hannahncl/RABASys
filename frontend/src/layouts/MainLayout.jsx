@@ -340,13 +340,8 @@ const MainLayout = () => {
             <div className="space-y-4">
               <span className="inline-flex items-center gap-2 text-[#603524] font-display font-bold text-xl tracking-wide">
                 RABAS TRAVEL & TOURS SERVICES
-<<<<<<< HEAD:src/layouts/MainLayout.jsx
               </span>
               <p className="text-slate-400 text-sm max-w-sm leading-relaxed">
-=======
-              </Link>
-              <p className="max-w-sm text-sm leading-relaxed text-[#6b6255]">
->>>>>>> b479bc2659a36606ed7a0f47ff189cad3d0c2920:frontend/src/layouts/MainLayout.jsx
                 Rabas Travel and Tours provides premium local and domestic tour packages across the Philippines. We support local guides, prioritize eco-tourism, and deliver unforgettable experiences.
               </p>
             </div>
@@ -375,7 +370,6 @@ const MainLayout = () => {
               </ul>
             </div>
 
-<<<<<<< HEAD:src/layouts/MainLayout.jsx
             <div className="min-w-0">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-[#603524] mb-4">Contact</h4>
               <ul className="space-y-3 text-sm text-slate-400">
@@ -387,14 +381,6 @@ const MainLayout = () => {
                   <Mail aria-hidden="true" className="h-5 w-5 shrink-0" />
                   <span className="break-all">bicolanangrabas2021@gmail.com</span>
                 </li>
-=======
-            <div>
-              <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#60402f]">Support & Contact</h4>
-              <ul className="space-y-2 text-sm text-[#6b6255]">
-                <li>Email: support@rabastravel.com</li>
-                <li>Phone: +63 917 123 4567</li>
-                <li>Address: Bicol, Philippines</li>
->>>>>>> b479bc2659a36606ed7a0f47ff189cad3d0c2920:frontend/src/layouts/MainLayout.jsx
               </ul>
             </div>
           </div>
