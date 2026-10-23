@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import {
   Camera, MapPin, X, ArrowLeft,
   Image as ImageIcon, Send, RefreshCw, Search,
-  Link2, VideoOff, Heart,
+  Link2, VideoOff, Heart, Trash2,
   Sparkles, Flame, Plus, Grid, List,
   Navigation, Compass, Crosshair, LocateFixed, Locate,
   Play, Pause, RotateCcw, Car, Footprints
@@ -14,6 +14,7 @@ import mapGalleryService from '../../services/mapGalleryService';
 import { packageService } from '../../services/serviceService';
 import { useNotification } from '../../hooks/useNotification';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { api } from '../../services/api';
 import FavoriteButton from '../../components/ui/FavoriteButton';
 
@@ -190,6 +191,7 @@ const MapEventsController = ({ onMapClick }) => {
 
 const ExploreMap = () => {
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmation();
   const { user } = useContext(AuthContext);
 
   const [spots, setSpots] = useState([]);
@@ -635,7 +637,7 @@ const ExploreMap = () => {
 
     try {
       const activeSpotId = selectedSpot ? selectedSpot.id : targetSpotId;
-      const newUpload = await mapGalleryService.uploadPhoto(activeSpotId, touristName, caption, finalImageUrl);
+      const newUpload = await mapGalleryService.uploadPhoto(activeSpotId, touristName, caption, finalImageUrl, undefined, user);
 
       setUploads(prev => [newUpload, ...prev]);
 
@@ -662,6 +664,24 @@ const ExploreMap = () => {
     if (updated) {
       setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
     }
+  };
+
+  const handleDeleteUpload = async (event, upload) => {
+    event.stopPropagation();
+    if (!(await confirm('Remove this photo from Explore Map? This cannot be undone.'))) return;
+    const deleted = await mapGalleryService.deleteMyUpload(upload.id, user);
+    if (!deleted) {
+      showNotification('This photo could not be removed.', 'error');
+      return;
+    }
+    setUploads(current => current.filter(item => item.id !== upload.id));
+    showNotification('Photo removed from Explore Map.', 'success');
+  };
+
+  const canManageUpload = (upload) => {
+    if (upload.ownerId) return String(upload.ownerId) === String(user?.id || '');
+    if (upload.ownerEmail) return upload.ownerEmail.toLowerCase() === String(user?.email || '').toLowerCase();
+    return Boolean(user);
   };
 
   const openStoryViewer = (index = 0) => {
@@ -701,9 +721,11 @@ const ExploreMap = () => {
 
   // Filtered uploads for gallery
   const galleryUploads = uploads.filter(up => {
-    if (galleryFilterValue === 'All') return true;
     const spot = spots.find(s => s.id === up.spotId);
-    return spot?.name.split(',')[0] === galleryFilterValue;
+    const matchesDestination = galleryFilterValue === 'All' || spot?.name.split(',')[0] === galleryFilterValue;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [up.caption, up.touristName, spot?.name].some(value => String(value || '').toLowerCase().includes(query));
+    return matchesDestination && matchesSearch;
   });
 
   // Calculate live navigation metrics
@@ -721,15 +743,17 @@ const ExploreMap = () => {
 
   return (
     <div style={{ background: '#ffffff', minHeight: '100vh', paddingBottom: '7rem', paddingTop: '2.5rem', fontFamily: "'Inter', 'Outfit', Georgia, serif" }}>
+      <style>{`
+        @keyframes explore-gallery-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .explore-gallery-card { animation: explore-gallery-enter .42s cubic-bezier(.2,.7,.2,1) both; }
+        @media (prefers-reduced-motion: reduce) { .explore-gallery-card { animation: none !important; } }
+      `}</style>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
 
         {/* ── Page Header ── */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #d6cfc2', paddingBottom: '1.5rem', marginBottom: '2rem', gap: '1rem' }}>
           <div>
-            <h1
-              className="text-lg font-semibold"
-              style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
-            >
+            <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">
               EXPLORE MAP &amp; TOURIST GALLERY
             </h1>
           </div>
@@ -761,7 +785,7 @@ const ExploreMap = () => {
                   {selectedSpot ? `${selectedSpot.name.split(',')[0]} Photos` : 'Photo Gallery'}
                 </h2>
                 <p style={{ fontSize: '0.7rem', color: '#6b6255', marginTop: '0.125rem' }}>
-                  {galleryUploads.length} photo{galleryUploads.length !== 1 ? 's' : ''} found
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: galleryUploads.length ? '#2f9d74' : '#b0a68e', boxShadow: galleryUploads.length ? '0 0 0 3px rgba(47,157,116,.12)' : 'none' }} />{galleryUploads.length} photo{galleryUploads.length !== 1 ? 's' : ''} found</span>
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -791,7 +815,7 @@ const ExploreMap = () => {
                 <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
                 <input
                   type="text"
-                  placeholder="Search destinations..."
+                  placeholder="Search photos, captions, or destinations..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   style={{ width: '100%', paddingLeft: '2.5rem', paddingRight: '1rem', paddingTop: '0.625rem', paddingBottom: '0.625rem', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#1a1a1a', fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }}
@@ -800,23 +824,20 @@ const ExploreMap = () => {
                 />
               </div>
 
-              {/* Destination filter chips */}
-              <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', paddingBottom: '0.25rem', flexWrap: 'nowrap' }}>
-                {galleryDestinationOptions.map(opt => (
-                  <button
-                    key={opt}
-                    onClick={() => setGalleryFilterValue(opt)}
-                    style={{
-                      flexShrink: 0, padding: '0.375rem 0.875rem', borderRadius: '2px', fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s',
-                      border: galleryFilterValue === opt ? '1px solid #b0a68e' : '1px solid #e0dbd0',
-                      background: galleryFilterValue === opt ? 'rgba(196,185,154,0.15)' : 'rgba(255,255,255,0.7)',
-                      color: galleryFilterValue === opt ? '#2d2a24' : '#45403a',
-                    }}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              {/* Destination dropdown */}
+              <label style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem', color: '#6b6255', fontSize: '0.7rem', fontWeight: 600 }}>
+                <select
+                  value={galleryFilterValue}
+                  onChange={e => setGalleryFilterValue(e.target.value)}
+                  aria-label="Filter photos by destination"
+                  style={{ minWidth: '12rem', maxWidth: '100%', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#2d2a24', padding: '0.6rem 2rem 0.6rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#b0a68e'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.12)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#d6cfc2'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {galleryDestinationOptions.map(destination => <option key={destination} value={destination}>{destination === 'All' ? 'All destinations' : destination}</option>)}
+                </select>
+              </label>
+
             </div>
 
             {/* Gallery Grid/List content wrapper */}
@@ -835,20 +856,23 @@ const ExploreMap = () => {
                 </div>
               ) : galleryView === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
-                  {galleryUploads.map(up => {
+                  {galleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
                     const uploadsIdx = uploads.findIndex(u => u.id === up.id);
                     return (
                       <div
                         key={up.id}
                         onClick={() => openStoryViewer(uploadsIdx >= 0 ? uploadsIdx : 0)}
-                        className="group"
-                        style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', transition: 'box-shadow 0.3s, transform 0.5s' }}
-                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        className="group explore-gallery-card"
+                        style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', transition: 'box-shadow 0.3s, transform 0.35s, border-color 0.3s', animationDelay: `${Math.min(index * 45, 360)}ms` }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 14px 34px rgba(45,42,36,0.14)'; e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = '#c4b99a'; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e0dbd0'; }}
                       >
-                        <div style={{ height: '220px', overflow: 'hidden', background: '#ebe7df' }}>
+                        <div style={{ height: '220px', overflow: 'hidden', background: '#ebe7df', position: 'relative' }}>
                           <img src={up.imageUrl} alt={up.caption} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.7s' }} className="group-hover:scale-105" />
+                          <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/45 via-transparent to-transparent pb-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <span className="rounded-full border border-white/40 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#2d2a24] shadow-sm">View story</span>
+                          </div>
                         </div>
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4rem', background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)', pointerEvents: 'none' }} />
 
@@ -857,7 +881,7 @@ const ExploreMap = () => {
                           <p style={{ fontSize: '0.7rem', fontWeight: 500, color: '#2d2a24', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {up.caption}
                           </p>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginTop: '0.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
                             <span style={{ fontSize: '0.625rem', color: '#6b6255', fontWeight: 500 }}>{up.touristName}</span>
                             <button
                               onClick={e => handleLike(e, up.id)}
@@ -865,6 +889,11 @@ const ExploreMap = () => {
                             >
                               <Heart style={{ width: '0.7rem', height: '0.7rem', fill: up.isLiked ? '#3d3a34' : 'none' }} />{up.likesCount || 0}
                             </button>
+                            {canManageUpload(up) && (
+                              <button onClick={e => handleDeleteUpload(e, up)} title="Remove photo" aria-label="Remove photo from Explore Map" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.5rem', height: '1.5rem', border: 'none', borderRadius: '4px', background: 'transparent', color: '#8f8576', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#fff1ef'; e.currentTarget.style.color = '#bd4538'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8f8576'; }}>
+                                <Trash2 style={{ width: '0.75rem', height: '0.75rem' }} />
+                              </button>
+                            )}
                           </div>
                           <div style={{ height: '1px', background: '#eae5db', margin: '0.125rem 0' }} />
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -882,17 +911,17 @@ const ExploreMap = () => {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {galleryUploads.map(up => {
+                  {galleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
                     const uploadsIdx = uploads.findIndex(u => u.id === up.id);
                     return (
                       <div
                         key={up.id}
                         onClick={() => openStoryViewer(uploadsIdx >= 0 ? uploadsIdx : 0)}
-                        style={{ display: 'flex', gap: '0.875rem', background: '#ffffff', border: '1px solid #e0dbd0', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.3s, transform 0.3s', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
-                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.07)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                        className="group"
+                        style={{ display: 'flex', gap: '0.875rem', background: '#ffffff', border: '1px solid #e0dbd0', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.3s, transform 0.3s, border-color 0.3s', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', animationDelay: `${Math.min(index * 45, 360)}ms` }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 10px 28px rgba(45,42,36,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#c4b99a'; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e0dbd0'; }}
+                        className="group explore-gallery-card"
                       >
                         <div style={{ position: 'relative', width: '7rem', height: '6rem', flexShrink: 0, overflow: 'hidden', background: '#ebe7df' }}>
                           <img src={up.imageUrl} alt={up.caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} className="group-hover:scale-105" />
@@ -914,6 +943,11 @@ const ExploreMap = () => {
                             >
                               <Heart style={{ width: '0.7rem', height: '0.7rem', fill: up.isLiked ? '#3d3a34' : 'none' }} />{up.likesCount || 0}
                             </button>
+                            {canManageUpload(up) && (
+                              <button onClick={e => handleDeleteUpload(e, up)} title="Remove photo" aria-label="Remove photo from Explore Map" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.5rem', height: '1.5rem', border: 'none', borderRadius: '4px', background: 'transparent', color: '#8f8576', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#fff1ef'; e.currentTarget.style.color = '#bd4538'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8f8576'; }}>
+                                <Trash2 style={{ width: '0.75rem', height: '0.75rem' }} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -3,6 +3,15 @@ import { api } from '../../services/api';
 
 const SPOTS_STORAGE_KEY = 'rabas_map_spots';
 const UPLOADS_STORAGE_KEY = 'rabas_map_uploads';
+const ownsUpload = (upload, owner = {}) => {
+  const ownerId = owner.id ? String(owner.id) : '';
+  const ownerEmail = String(owner.email || '').trim().toLowerCase();
+  const ownerName = String(owner.name || '').trim().toLowerCase();
+  if (ownerId && upload.ownerId) return String(upload.ownerId) === ownerId;
+  if (ownerEmail && upload.ownerEmail) return String(upload.ownerEmail).toLowerCase() === ownerEmail;
+  if (upload.ownerId || upload.ownerEmail) return false;
+  return Boolean(ownerName);
+};
 
 const INITIAL_SPOTS = [
   {
@@ -144,8 +153,12 @@ if (!storedSpots.length || storedSpots.some(s => !validIds.has(s.id))) {
   localStorage.setItem(SPOTS_STORAGE_KEY, JSON.stringify(INITIAL_SPOTS));
 }
 
-if (!localStorage.getItem(UPLOADS_STORAGE_KEY)) {
-  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(INITIAL_UPLOADS));
+const storedUploads = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY) || '[]');
+const userUploadsOnly = storedUploads.filter((upload) => !String(upload.id || '').startsWith('bu_'));
+if (storedUploads.length !== userUploadsOnly.length) {
+  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(userUploadsOnly));
+} else if (!localStorage.getItem(UPLOADS_STORAGE_KEY)) {
+  localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify([]));
 }
 
 export const mapGalleryService = {
@@ -169,7 +182,7 @@ export const mapGalleryService = {
     return JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY)) || INITIAL_UPLOADS;
   },
 
-  uploadPhoto: async (spotId, touristName, caption, imageUrl, avatar) => {
+  uploadPhoto: async (spotId, touristName, caption, imageUrl, avatar, owner = {}) => {
     const bookings = await api('/bookings/mine');
     if (!Array.isArray(bookings) || bookings.length === 0) {
       throw new Error('Book a tour package before sharing photos.');
@@ -184,6 +197,8 @@ export const mapGalleryService = {
       id: `story_${Math.random().toString(36).substr(2, 9)}`,
       spotId: spotId || 'spot-mayon',
       touristName: touristName || 'Tourist Traveler',
+      ownerId: owner.id ? String(owner.id) : '',
+      ownerEmail: String(owner.email || '').trim().toLowerCase(),
       avatar: defaultAvatar,
       caption: caption || 'Real-time story from Bicol!',
       imageUrl: imageUrl || 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800',
@@ -196,6 +211,36 @@ export const mapGalleryService = {
     all.unshift(newUpload);
     localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(all));
     return newUpload;
+  },
+
+  getMyUploads: async (owner = {}) => {
+    const all = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY)) || [];
+    return all
+      .filter((upload) => ownsUpload(upload, owner))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  },
+
+  updateMyUploadCaption: async (uploadId, caption, owner = {}) => {
+    const cleanCaption = String(caption || '').trim();
+    if (!cleanCaption) throw new Error('Caption cannot be empty.');
+    if (cleanCaption.length > 500) throw new Error('Caption must be 500 characters or fewer.');
+    const all = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY)) || [];
+    const upload = all.find((item) => item.id === uploadId);
+    if (!upload || !ownsUpload(upload, owner)) return null;
+    upload.caption = cleanCaption;
+    localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(all));
+    return upload;
+  },
+
+  deleteMyUpload: async (uploadId, owner = {}) => {
+    const all = JSON.parse(localStorage.getItem(UPLOADS_STORAGE_KEY)) || [];
+    const upload = all.find((item) => item.id === uploadId);
+    if (!upload) return false;
+
+    if (!ownsUpload(upload, owner)) return false;
+
+    localStorage.setItem(UPLOADS_STORAGE_KEY, JSON.stringify(all.filter((item) => item.id !== uploadId)));
+    return true;
   },
 
   clearSamplePhotos: async () => {

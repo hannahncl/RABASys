@@ -79,20 +79,65 @@ const AdminLayout = () => {
     navigate('/login');
   };
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutGrid },
-    { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
-    { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
-    { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
-    { name: 'Sales Report', path: '/admin/sales', icon: BarChart3 },
-    { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
-    { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
-    { name: 'Customizations', path: '/admin/customizations', icon: Settings },
-    { name: 'Accounts', path: '/admin/accounts', icon: Users },
+  const menuGroups = [
+    { name: 'Overview', items: [
+      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutGrid },
+    ] },
+    { name: 'Operations', items: [
+      { name: 'Calendar', path: '/admin/schedule', icon: CalendarDays },
+      { name: 'Bookings', path: '/admin/bookings', icon: ClipboardList },
+      { name: 'Reviews', path: '/admin/reviews', icon: MessageSquare },
+    ] },
+    { name: 'Services', items: [
+      { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
+      { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
+    ] },
+    { name: 'Analytics', items: [
+      { name: 'Sales Reports', path: '/admin/sales', icon: BarChart3 },
+    ] },
+    { name: 'System Management', items: [
+      { name: 'Customization', path: '/admin/customizations', icon: Settings },
+      { name: 'Accounts', path: '/admin/accounts', icon: Users },
+    ] },
   ];
 
   const isActive = (path) => location.pathname === path;
+  const menuItems = menuGroups.flatMap((group) => group.items);
   const currentPageTitle = menuItems.find((item) => item.path === location.pathname)?.name || 'Dashboard';
+
+  const renderNavigationGroups = (onNavigate) => menuGroups.map((group, index) => (
+    <section key={group.name} aria-labelledby={`admin-nav-${group.name.toLowerCase().replaceAll(' ', '-')}`}>
+      <h2
+        id={`admin-nav-${group.name.toLowerCase().replaceAll(' ', '-')}`}
+        className={`px-4 ${index === 0 ? 'pt-2' : 'pt-5'} pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400`}
+      >
+        {group.name}
+      </h2>
+      <ul className="space-y-1">
+        {group.items.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.path);
+          return (
+            <li key={item.path}>
+              <Link
+                to={item.path}
+                onClick={onNavigate}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                }`}
+              >
+                <Icon aria-hidden="true" className={`h-5 w-5 shrink-0 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
+                <span>{item.name}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  ));
 
   return (
     <div className="h-screen flex overflow-hidden bg-slate-950 text-slate-100 font-sans">
@@ -110,25 +155,8 @@ const AdminLayout = () => {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                }`}
-              >
-                <Icon className={`h-5 w-5 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav aria-label="Admin navigation" className="flex-1 px-4 py-2 overflow-y-auto">
+          {renderNavigationGroups()}
         </nav>
 
         {/* Logout */}
@@ -162,26 +190,8 @@ const AdminLayout = () => {
               />
             </div>
 
-            <nav className="flex-grow space-y-1.5 overflow-y-auto">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-[#fef9ec] text-[#d97706] font-semibold border border-[#fef08a]/40'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 ${active ? 'text-[#d97706]' : 'text-stone-500'}`} />
-                    {item.name}
-                  </Link>
-                );
-              })}
+            <nav aria-label="Admin navigation" className="flex-grow overflow-y-auto">
+              {renderNavigationGroups(() => setSidebarOpen(false))}
             </nav>
 
             <button
@@ -206,7 +216,9 @@ const AdminLayout = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
+            {!['Dashboard', 'Car Rentals', 'Tour Packages', 'Sales Reports', 'Bookings'].includes(currentPageTitle) && (
+              <h2 className="hidden md:block text-lg font-semibold uppercase tracking-wider text-slate-200">{currentPageTitle}</h2>
+            )}
           </div>
 
           <div className="flex items-center gap-6">

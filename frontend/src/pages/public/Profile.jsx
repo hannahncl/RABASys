@@ -7,21 +7,10 @@ import { api } from '../../services/api';
 import {
   User, Mail, Phone, MapPin, Calendar, CreditCard, CheckCircle2,
   AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,
-  Loader2, ArrowRight, History, XCircle, RefreshCw, Star
+  Loader2, ArrowRight, History, XCircle, RefreshCw, Star, Camera, Trash2, Heart, Pencil
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-/* ────────────────────────────────
-   Pre-set avatars tourist can pick
-──────────────────────────────── */
-const AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-];
+import mapGalleryService from '../services/mapGalleryService';
 
 /* ────────────────────────────────
    Status badge helper
@@ -91,7 +80,16 @@ const Profile = () => {
   const [email, setEmail]                 = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress]             = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState('');
+  const [myPhotos, setMyPhotos] = useState([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [deletingPhotoId, setDeletingPhotoId] = useState(null);
+  const [editingPhotoId, setEditingPhotoId] = useState(null);
+  const [photoCaptionDraft, setPhotoCaptionDraft] = useState('');
+  const [savingCaptionId, setSavingCaptionId] = useState(null);
+  const [profileView, setProfileView] = useState('overview');
 
   // ── Load account & bookings on mount ──
   useEffect(() => {
@@ -104,6 +102,7 @@ const Profile = () => {
           const account = {
             id: String(match.id), name: match.name, email: match.email,
             phone: match.contactNumber, contactNumber: match.contactNumber,
+            profilePicture: match.profilePicture || '',
           };
           setAccountRecord(account);
           const parts = (match.name || user.name || '').split(' ');
@@ -112,7 +111,7 @@ const Profile = () => {
           setEmail(match.email || user.email || '');
           setContactNumber(match.contactNumber || user.contactNumber || '');
           setAddress(match.address || user.address || '');
-          setSelectedAvatar(match.avatar || AVATARS[0]);
+          setProfilePicture(match.profilePicture || user.profilePicture || '');
         } else {
           // Fall back to session
           const parts = (user.name || '').split(' ');
@@ -162,6 +161,81 @@ const Profile = () => {
     loadProfile();
     loadBookings();
   }, [user]);
+
+  useEffect(() => {
+    if (!profilePictureFile) {
+      setProfilePicturePreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(profilePictureFile);
+    setProfilePicturePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [profilePictureFile]);
+
+  const handleProfilePictureChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      showNotification('Choose a JPEG, PNG, WebP, or GIF image.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('Profile pictures must be 5 MB or smaller.', 'error');
+      return;
+    }
+    setProfilePictureFile(file);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    setLoadingPhotos(true);
+    mapGalleryService.getMyUploads(user)
+      .then(photos => { if (isMounted) setMyPhotos(photos); })
+      .catch(error => console.error('Could not load your shared photos:', error))
+      .finally(() => { if (isMounted) setLoadingPhotos(false); });
+    return () => { isMounted = false; };
+  }, [user]);
+
+  const handleDeletePhoto = async (photo) => {
+    if (!(await confirm('Delete this photo from Explore Map? This cannot be undone.'))) return;
+    setDeletingPhotoId(photo.id);
+    try {
+      const deleted = await mapGalleryService.deleteMyUpload(photo.id, user);
+      if (!deleted) throw new Error('This photo could not be deleted from your account.');
+      setMyPhotos(photos => photos.filter(item => item.id !== photo.id));
+      showNotification('Photo deleted from Explore Map.', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Could not delete this photo.', 'error');
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
+  const handleSavePhotoCaption = async (photo) => {
+    setSavingCaptionId(photo.id);
+    try {
+      const updated = await mapGalleryService.updateMyUploadCaption(photo.id, photoCaptionDraft, user);
+      if (!updated) throw new Error('This photo could not be updated from your account.');
+      setMyPhotos(photos => photos.map(item => item.id === photo.id ? { ...item, caption: updated.caption } : item));
+      setEditingPhotoId(null);
+      showNotification('Photo caption updated.', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Could not update this caption.', 'error');
+    } finally {
+      setSavingCaptionId(null);
+    }
+  };
+
+  const handleLikePhoto = async (photo) => {
+    const updated = await mapGalleryService.likeUpload(photo.id);
+    if (updated) {
+      setMyPhotos(photos => photos.map(item => item.id === photo.id
+        ? { ...item, isLiked: updated.isLiked, likesCount: updated.likesCount }
+        : item));
+    }
+  };
 
   // ── Filter bookings by tab ──
   const tabs = ['All', 'Pending Verification', 'Quote Sent', 'Confirmed', 'Rescheduled', 'To Review'];
@@ -220,6 +294,15 @@ const Profile = () => {
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
     try {
+      let savedProfilePicture = profilePicture;
+      if (profilePictureFile) {
+        const formData = new FormData();
+        formData.append('profilePicture', profilePictureFile);
+        const pictureResult = await api('/auth/me/profile-picture', { method: 'POST', body: formData });
+        savedProfilePicture = pictureResult.user.profilePicture;
+        setProfilePicture(savedProfilePicture);
+        setProfilePictureFile(null);
+      }
       if (accountRecord) {
         const { user: updated } = await api('/auth/me', {
           method: 'PATCH',
@@ -232,16 +315,19 @@ const Profile = () => {
           email: updated.email,
           phone: updated.contactNumber,
           contactNumber: updated.contactNumber,
+          profilePicture: updated.profilePicture || savedProfilePicture,
         }));
       }
       updateUserSession({
         name: fullName,
         email: email.trim(),
         contactNumber: contactNumber.trim(),
+        profilePicture: savedProfilePicture,
       });
       setEditing(false);
     } catch (e) {
       console.error(e);
+      showNotification(e.message || 'Could not save your profile changes.', 'error');
     } finally {
       setSaving(false);
     }
@@ -253,7 +339,8 @@ const Profile = () => {
     setLastName(parts.slice(1).join(' ') || '');
     setEmail(accountRecord?.email || user?.email || '');
     setContactNumber(accountRecord?.phone || user?.contactNumber || '');
-    setSelectedAvatar(accountRecord?.avatar || AVATARS[0]);
+    setProfilePicture(accountRecord?.profilePicture || user?.profilePicture || '');
+    setProfilePictureFile(null);
     setEditing(false);
   };
 
@@ -272,20 +359,31 @@ const Profile = () => {
           <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">My Account</h1>
         </div>
 
+        <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-100">
+          <button type="button" onClick={() => setProfileView('overview')} className={`border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'overview' ? 'border-yellow-400 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            Account &amp; Trips
+          </button>
+          <button type="button" onClick={() => setProfileView('photos')} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'photos' ? 'border-yellow-400 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            <Camera className="h-3.5 w-3.5" /> My Shared Photos <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{myPhotos.length}</span>
+          </button>
+        </div>
+
+        {profileView === 'overview' ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ════════════════════════════════
               LEFT — Profile Card
           ════════════════════════════════ */}
-          <div className="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+          <div className="lg:col-span-4">
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
 
             <div className="flex flex-col items-center text-center pb-5 border-b border-slate-100">
-              <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-yellow-200 ring-offset-2">
-                <img
-                  src={selectedAvatar}
-                  alt={user?.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-yellow-50 ring-2 ring-yellow-200 ring-offset-2">
+                {(profilePicturePreview || profilePicture || user?.profilePicture) ? (
+                  <img src={profilePicturePreview || profilePicture || user?.profilePicture} alt={user?.name || 'Profile'} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-9 w-9 text-yellow-600" />
+                )}
               </div>
               <h2 className="text-lg font-semibold text-slate-800 mt-3 leading-tight">
                 {user?.name}
@@ -314,27 +412,14 @@ const Profile = () => {
               /* ── EDIT MODE — matches Register.jsx fields ── */
               <form onSubmit={handleSave} className="space-y-4 pt-5">
 
-                {/* Avatar Picker */}
                 <div>
-                  <label className="block text-xs text-slate-400 mb-2">
-                    Choose Avatar
+                  <label htmlFor="profile-picture-upload" className="mb-2 block text-xs text-slate-500">Profile photo</label>
+                  <label htmlFor="profile-picture-upload" className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-yellow-300 bg-yellow-50 px-4 py-3 text-xs font-medium text-yellow-800 transition hover:bg-yellow-100">
+                    <Camera className="h-4 w-4" />
+                    {profilePictureFile ? 'Choose a different photo' : 'Choose photo from device'}
                   </label>
-                  <div className="grid grid-cols-6 gap-2">
-                    {AVATARS.map((av, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        onClick={() => setSelectedAvatar(av)}
-                        className={`aspect-square rounded-full overflow-hidden border-2 cursor-pointer transition-all ${
-                          selectedAvatar === av
-                            ? 'border-yellow-400 scale-105'
-                            : 'border-transparent opacity-40 hover:opacity-80'
-                        }`}
-                      >
-                        <img src={av} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
+                  <input id="profile-picture-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleProfilePictureChange} className="sr-only" />
+                  <p className="mt-1.5 text-[10px] text-slate-400">JPEG, PNG, WebP, or GIF. Maximum 5 MB.</p>
                 </div>
 
                 {/* First & Last Name */}
@@ -400,6 +485,8 @@ const Profile = () => {
                 </div>
               </form>
             )}
+          </div>
+
           </div>
 
           {/* ════════════════════════════════
@@ -634,7 +721,7 @@ const Profile = () => {
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
                                 </button>
-                                {booking.status !== 'Completed' && (
+                                {booking.status !== 'Completed' && String(booking.package_type || booking.packageType || '').toLowerCase() !== 'joiner' && (
                                   <Link
                                     to={`/reschedule/${booking.id}`}
                                     className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-700 hover:text-yellow-800 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
@@ -693,6 +780,58 @@ const Profile = () => {
             </div>
           </div>
         </div>
+        ) : (
+          <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="flex items-center gap-2 text-base font-semibold text-slate-700"><Camera className="h-4 w-4 text-yellow-500" /> My Shared Photos</h2>
+                <p className="mt-1 text-xs text-slate-400">Review, edit, or remove photos you posted to Explore Map.</p>
+              </div>
+              <span className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-700">{myPhotos.length} photo{myPhotos.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="p-5 sm:p-6">
+              {loadingPhotos ? (
+                <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400"><Loader2 className="h-5 w-5 animate-spin text-yellow-500" />Loading your photos...</div>
+              ) : myPhotos.length === 0 ? (
+                <div className="py-16 text-center"><Camera className="mx-auto mb-3 h-8 w-8 text-slate-300" /><p className="text-sm text-slate-500">You haven’t shared any photos yet.</p><p className="mt-1 text-xs text-slate-400">Your Explore Map posts will appear here.</p></div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {myPhotos.map(photo => (
+                    <article key={photo.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:shadow-md">
+                      <img src={photo.imageUrl} alt={photo.caption || 'Your shared Explore Map photo'} className="aspect-[4/3] w-full object-cover" />
+                      <div className="p-4">
+                        {editingPhotoId === photo.id ? (
+                          <div>
+                            <textarea value={photoCaptionDraft} onChange={event => setPhotoCaptionDraft(event.target.value)} maxLength={500} rows={4} aria-label="Edit photo caption" className="w-full resize-y rounded-lg border border-slate-200 p-3 text-sm leading-5 text-slate-700 outline-none focus:border-yellow-400" />
+                            <div className="mt-2 flex items-center justify-between">
+                              <span className="text-[10px] text-slate-400">{photoCaptionDraft.length}/500</span>
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => setEditingPhotoId(null)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-500 hover:bg-slate-50"><X className="h-3.5 w-3.5" />Cancel</button>
+                                <button type="button" onClick={() => handleSavePhotoCaption(photo)} disabled={savingCaptionId === photo.id || !photoCaptionDraft.trim()} className="inline-flex items-center gap-1 rounded-lg bg-yellow-400 px-2.5 py-1.5 text-xs font-medium text-slate-900 hover:bg-yellow-500 disabled:opacity-40">{savingCaptionId === photo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}Save</button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex min-h-14 items-start justify-between gap-2">
+                            <p className="whitespace-pre-wrap break-words text-sm leading-5 text-slate-700">{photo.caption}</p>
+                            <button type="button" onClick={() => { setEditingPhotoId(photo.id); setPhotoCaptionDraft(photo.caption || ''); }} aria-label="Edit photo caption" title="Edit caption" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-yellow-50 hover:text-yellow-700"><Pencil className="h-4 w-4" /></button>
+                          </div>
+                        )}
+                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                          <span className="text-xs text-slate-400">{photo.date ? new Date(photo.date).toLocaleDateString() : ''}</span>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => handleLikePhoto(photo)} aria-label={`${photo.isLiked ? 'Unlike' : 'Like'} photo, ${photo.likesCount || 0} likes`} title="Like photo" className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition hover:bg-rose-50 ${photo.isLiked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}><Heart className={`h-4 w-4 ${photo.isLiked ? 'fill-current' : ''}`} />{photo.likesCount || 0}</button>
+                            <button type="button" onClick={() => handleDeletePhoto(photo)} disabled={deletingPhotoId === photo.id} aria-label="Delete shared photo" title="Delete photo" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50">{deletingPhotoId === photo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* ════════════════════════════════

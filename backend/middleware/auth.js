@@ -37,11 +37,11 @@ async function requireAuth(req, res, next) {
             return res.status(401).json({ message: "Authentication token is invalid or expired." });
         }
 
-        const [rows] = await db.execute(
+        const { rows } = await db.query(
             `SELECT s.session_id, s.account_id, s.expires_at, s.revoked_at, s.logout_time, s.last_activity,
                     a.role, a.account_status
              FROM session_log s JOIN account a ON a.account_id = s.account_id
-             WHERE s.session_id = ? AND s.account_id = ? AND s.session_token_hash = ?
+             WHERE s.session_id = $1 AND s.account_id = $2 AND s.session_token_hash = $3
                AND s.revoked_at IS NULL AND s.logout_time IS NULL AND s.expires_at > NOW()
                AND a.deleted_at IS NULL AND a.account_status = 'Active'`,
             [payload.sessionId, payload.accountId, hashToken(token)]
@@ -51,8 +51,8 @@ async function requireAuth(req, res, next) {
             return res.status(401).json({ message: "Your session has expired or been revoked. Please log in again." });
         }
 
-        await db.execute(
-            "UPDATE session_log SET last_activity = NOW(), expires_at = DATE_ADD(NOW(), INTERVAL ? SECOND) WHERE session_id = ?",
+        await db.query(
+            "UPDATE session_log SET last_activity = NOW(), expires_at = NOW() + ($1 * INTERVAL '1 second') WHERE session_id = $2",
             [sessionTtlSeconds(), rows[0].session_id]
         );
 

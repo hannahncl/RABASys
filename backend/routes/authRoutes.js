@@ -2,6 +2,9 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const { OAuth2Client } = require("google-auth-library");
 const db = require("../config/db");
@@ -11,7 +14,7 @@ const { logAudit } = require("../utils/auditLogger");
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, created_at, updated_at";
+const accountFields = "account_id, first_name, last_name, email, contact_number, role, account_status, two_factor_enabled, google_id, profile_picture, created_at, updated_at";
 const accountSelect = `
     SELECT 
         a.account_id, a.first_name, a.last_name, a.email, a.contact_number, 
@@ -79,6 +82,28 @@ const logAuditEvent = async (accountId, action, detail = "", req = null) => {
     }
 };
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const profilePicturesDirectory = path.join(__dirname, "..", "uploads", "profile-pictures");
+fs.mkdirSync(profilePicturesDirectory, { recursive: true });
+const profileImageExtensions = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
+const profilePictureUpload = multer({
+    storage: multer.diskStorage({
+        destination: profilePicturesDirectory,
+        filename: (req, file, callback) => callback(null, `${req.user.accountId}-${crypto.randomUUID()}${profileImageExtensions[file.mimetype]}`),
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, callback) => {
+        if (!profileImageExtensions[file.mimetype]) return callback(new Error("Choose a JPEG, PNG, WebP, or GIF image."));
+        callback(null, true);
+    },
+}).single("profilePicture");
+const handleProfilePictureUpload = (req, res, next) => profilePictureUpload(req, res, (error) => {
+    if (!error) return next();
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "Profile pictures must be 5 MB or smaller." });
+    }
+    if (error.message.startsWith("Choose a JPEG")) return res.status(422).json({ message: error.message });
+    next(error);
+});
 const parseTtlMilliseconds = () => {
     const value = process.env.JWT_EXPIRES_IN || "8h";
     const match = value.match(/^(\d+)([smhd])$/i);
@@ -102,12 +127,12 @@ const requestMetadata = (req) => {
 };
 const createSession = async (account, token, req) => {
     const { ipAddress, userAgent } = requestMetadata(req);
-    const [result] = await db.execute(
-        "INSERT INTO session_log (account_id, login_time, last_activity, session_token_hash, expires_at, revoked_at, ip_address, user_agent) VALUES (?, NOW(), NOW(), ?, DATE_ADD(NOW(), INTERVAL ? SECOND), NULL, ?, ?)",
+    // Single INSERT ... RETURNING eliminates the need for a second SELECT.
+    const { rows } = await db.query(
+        "INSERT INTO session_log (account_id, login_time, last_activity, session_token_hash, expires_at, revoked_at, ip_address, user_agent) VALUES ($1, NOW(), NOW(), $2, NOW() + ($3 * INTERVAL '1 second'), NULL, $4, $5) RETURNING session_id, expires_at",
         [account.account_id, hashToken(token), sessionTtlSeconds(), ipAddress, userAgent]
     );
-    const [rows] = await db.execute("SELECT expires_at FROM session_log WHERE session_id = ?", [result.insertId]);
-    return { sessionId: result.insertId, expiresAt: rows[0].expires_at };
+    return { sessionId: rows[0].session_id, expiresAt: rows[0].expires_at };
 };
 const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const resetAttempts = new Map();
@@ -125,16 +150,16 @@ router.post("/register", [
         const email = sanitizeEmail(req.body.email);
         const password = sanitizeText(req.body.password);
         const contactNumber = sanitizeText(req.body.contactNumber);
-        const [result] = await db.execute(
-            "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES (?, ?, ?, ?, ?, 'Customer')",
+        const { rows: inserted } = await db.query(
+            "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES ($1, $2, $3, $4, $5, 'Customer') RETURNING account_id",
             [firstName, lastName, email, await bcrypt.hash(password, 12), contactNumber]
         );
-        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [result.insertId]);
+        const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1`, [inserted[0].account_id]);
         const account = rows[0];
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
-        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await db.query("UPDATE session_log SET session_token_hash = $1 WHERE session_id = $2", [hashToken(refreshedToken), session.sessionId]);
         await logAudit({ accountId: account.account_id, sessionId: session.sessionId, action: "REGISTER", tableName: "account", recordId: account.account_id, newValues: req.body, req });
         res.status(201).json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: new Date(session.expiresAt).toISOString() });
     } catch (error) { next(error); }
@@ -146,8 +171,8 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         const password = sanitizeText(req.body.password);
         const normalizedEmail = normalizeEmail(identifier);
         const normalizedPhone = identifier.replace(/\D/g, '');
-        const [rows] = await db.execute(
-            `${accountSelectWithPassword} WHERE a.deleted_at IS NULL AND (a.email = ? OR REPLACE(REPLACE(REPLACE(a.contact_number, ' ', ''), '-', ''), '+', '') = ?)`,
+        const { rows } = await db.query(
+            `SELECT ${accountFields}, password_hash FROM account WHERE deleted_at IS NULL AND (email = $1 OR REPLACE(REPLACE(REPLACE(contact_number, ' ', ''), '-', ''), '+', '') = $2)`,
             [normalizedEmail, normalizedPhone]
         );
         const account = rows[0];
@@ -159,7 +184,7 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         if (account.password_hash === req.body.password) {
             try {
                 const newHash = await bcrypt.hash(req.body.password, 12);
-                await db.execute("UPDATE account SET password_hash = ? WHERE account_id = ?", [newHash, account.account_id]);
+                await db.query("UPDATE account SET password_hash = $1 WHERE account_id = $2", [newHash, account.account_id]);
                 account.password_hash = newHash;
             } catch (err) {
                 console.warn("[auth] Failed to auto-hash plaintext password:", err.message);
@@ -169,29 +194,29 @@ router.post("/login", [body("identifier").trim().isLength({ min: 1, max: 120 }).
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
-        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await db.query("UPDATE session_log SET session_token_hash = $1 WHERE session_id = $2", [hashToken(refreshedToken), session.sessionId]);
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: session.expiresAt.toISOString() });
     } catch (error) { next(error); }
 });
 
 router.post("/verify-login-otp", [body("email").isEmail().normalizeEmail(), body("otp").isString().matches(/^\d{6}$/)], validate, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`${accountSelectWithPassword} WHERE a.email = ? AND a.deleted_at IS NULL`, [req.body.email.toLowerCase()]);
+        const { rows } = await db.query(`SELECT ${accountFields}, password_hash FROM account WHERE email = $1 AND deleted_at IS NULL`, [req.body.email.toLowerCase()]);
         const account = rows[0];
         if (!account || !isActiveAccount(account)) return res.status(401).json({ message: "Invalid account." });
 
-        const [otpRows] = await db.execute(`SELECT login_otp_id, otp_hash FROM login_otp WHERE account_id = ? AND used_at IS NULL AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`, [account.account_id]);
+        const { rows: otpRows } = await db.query(`SELECT login_otp_id, otp_hash FROM login_otp WHERE account_id = $1 AND used_at IS NULL AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`, [account.account_id]);
         const loginOtp = otpRows[0];
         const enteredHash = hashOtp(req.body.otp);
         if (!loginOtp || !crypto.timingSafeEqual(Buffer.from(loginOtp.otp_hash), Buffer.from(enteredHash))) {
             return res.status(400).json({ message: "The verification code is invalid or has expired." });
         }
 
-        await db.execute("UPDATE login_otp SET used_at = NOW() WHERE login_otp_id = ?", [loginOtp.login_otp_id]);
+        await db.query("UPDATE login_otp SET used_at = NOW() WHERE login_otp_id = $1", [loginOtp.login_otp_id]);
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
-        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await db.query("UPDATE session_log SET session_token_hash = $1 WHERE session_id = $2", [hashToken(refreshedToken), session.sessionId]);
         await logAudit({ accountId: account.account_id, sessionId: session.sessionId, action: "LOGIN", tableName: "account", recordId: account.account_id, req });
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: new Date(session.expiresAt).toISOString() });
     } catch (error) { next(error); }
@@ -201,13 +226,13 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
     try {
         const email = req.body.email.toLowerCase();
         if (!requestAllowed(`${req.ip}:${email}`)) return res.status(429).json({ message: "Too many reset requests. Please wait 15 minutes and try again." });
-        const [rows] = await db.execute("SELECT account_id, email FROM account WHERE email = ? AND account_status = 'Active' AND deleted_at IS NULL", [email]);
+        const { rows } = await db.query("SELECT account_id, email FROM account WHERE email = $1 AND account_status = 'Active' AND deleted_at IS NULL", [email]);
         const account = rows[0];
         if (!account) return res.json({ message: "If that email is registered, a reset code has been sent." });
         const otp = crypto.randomInt(100000, 1000000).toString();
-        await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE account_id = ? AND used_at IS NULL", [account.account_id]);
-        const [resetResult] = await db.execute("INSERT INTO password_reset_otp (account_id, otp_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [account.account_id, hashOtp(otp)]);
-        await logAudit({ accountId: account.account_id, action: "PASSWORD_RESET_REQUESTED", tableName: "password_reset_otp", recordId: resetResult.insertId, req });
+        await db.query("UPDATE password_reset_otp SET used_at = NOW() WHERE account_id = $1 AND used_at IS NULL", [account.account_id]);
+        const { rows: rr } = await db.query("INSERT INTO password_reset_otp (account_id, otp_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL '10 minutes') RETURNING reset_id", [account.account_id, hashOtp(otp)]);
+        await logAudit({ accountId: account.account_id, action: "PASSWORD_RESET_REQUESTED", tableName: "password_reset_otp", recordId: rr[0].reset_id, req });
         const emailSent = await sendPasswordResetOtp(account.email, otp);
         if (!emailSent) {
             console.warn(`[auth] Password reset email was not sent for ${account.email}. OTP was stored and can still be verified.`);
@@ -219,9 +244,9 @@ router.post("/forgot-password", [body("email").isEmail().normalizeEmail()], vali
 
 router.post("/verify-reset-otp", [body("email").isEmail().normalizeEmail(), body("otp").isString().matches(/^\d{6}$/)], validate, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`SELECT pr.reset_id, pr.account_id, pr.otp_hash, pr.attempts FROM password_reset_otp pr JOIN account a ON a.account_id = pr.account_id WHERE a.email = ? AND pr.used_at IS NULL AND pr.expires_at > NOW() ORDER BY pr.created_at DESC LIMIT 1`, [req.body.email.toLowerCase()]);
+        const { rows } = await db.query(`SELECT pr.reset_id, pr.account_id, pr.otp_hash, pr.attempts FROM password_reset_otp pr JOIN account a ON a.account_id = pr.account_id WHERE a.email = $1 AND pr.used_at IS NULL AND pr.expires_at > NOW() ORDER BY pr.created_at DESC LIMIT 1`, [req.body.email.toLowerCase()]);
         const reset = rows[0]; const enteredHash = hashOtp(req.body.otp);
-        if (!reset || reset.attempts >= 5 || !crypto.timingSafeEqual(Buffer.from(reset.otp_hash), Buffer.from(enteredHash))) { if (reset) await db.execute("UPDATE password_reset_otp SET attempts = attempts + 1 WHERE reset_id = ?", [reset.reset_id]); return res.status(400).json({ message: "The code is invalid or has expired." }); }
+        if (!reset || reset.attempts >= 5 || !crypto.timingSafeEqual(Buffer.from(reset.otp_hash), Buffer.from(enteredHash))) { if (reset) await db.query("UPDATE password_reset_otp SET attempts = attempts + 1 WHERE reset_id = $1", [reset.reset_id]); return res.status(400).json({ message: "The code is invalid or has expired." }); }
         await logAudit({ accountId: reset.account_id, action: "VERIFY_OTP", tableName: "password_reset_otp", recordId: reset.reset_id, newValues: { verified: true }, req });
         const resetToken = jwt.sign({ resetId: reset.reset_id, accountId: reset.account_id, purpose: "password-reset" }, getSecret(), { expiresIn: "10m" });
         res.json({ resetToken });
@@ -232,10 +257,10 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
     try {
         let payload; try { payload = jwt.verify(req.body.resetToken, getSecret()); } catch { return res.status(400).json({ message: "Your reset session is invalid or has expired." }); }
         if (payload.purpose !== "password-reset") return res.status(400).json({ message: "Invalid reset session." });
-        const [result] = await db.execute("UPDATE password_reset_otp SET used_at = NOW() WHERE reset_id = ? AND account_id = ? AND used_at IS NULL AND expires_at > NOW()", [payload.resetId, payload.accountId]);
-        if (!result.affectedRows) return res.status(400).json({ message: "This reset code has already been used or expired." });
-        await db.execute("UPDATE account SET password_hash = ? WHERE account_id = ?", [await bcrypt.hash(req.body.newPassword, 12), payload.accountId]);
-        await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE account_id = ? AND revoked_at IS NULL AND logout_time IS NULL", [payload.accountId]);
+        const result = await db.query("UPDATE password_reset_otp SET used_at = NOW() WHERE reset_id = $1 AND account_id = $2 AND used_at IS NULL AND expires_at > NOW()", [payload.resetId, payload.accountId]);
+        if (!result.rowCount) return res.status(400).json({ message: "This reset code has already been used or expired." });
+        await db.query("UPDATE account SET password_hash = $1 WHERE account_id = $2", [await bcrypt.hash(req.body.newPassword, 12), payload.accountId]);
+        await db.query("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE account_id = $1 AND revoked_at IS NULL AND logout_time IS NULL", [payload.accountId]);
         await logAudit({ accountId: payload.accountId, action: "PASSWORD_RESET", tableName: "account", recordId: payload.accountId, newValues: { passwordChanged: true, sessionsRevoked: true }, req });
         res.json({ message: "Password updated. You can now log in." });
     } catch (error) { next(error); }
@@ -243,7 +268,7 @@ router.post("/reset-password", [body("resetToken").isString().notEmpty(), body("
 
 router.post("/logout", requireAuth, async (req, res, next) => {
     try {
-        await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = ? AND account_id = ?", [req.user.sessionId, req.user.accountId]);
+        await db.query("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = $1 AND account_id = $2", [req.user.sessionId, req.user.accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "LOGOUT", tableName: "session_log", recordId: req.user.sessionId, req });
         res.json({ message: "Signed out successfully." });
     } catch (error) { next(error); }
@@ -251,18 +276,39 @@ router.post("/logout", requireAuth, async (req, res, next) => {
 
 router.get("/me", requireAuth, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ? AND a.deleted_at IS NULL`, [req.user.accountId]);
+        const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1 AND deleted_at IS NULL`, [req.user.accountId]);
         if (!rows[0]) return res.status(404).json({ message: "Account not found." });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
 });
 
+router.post("/me/profile-picture", requireAuth, handleProfilePictureUpload, async (req, res, next) => {
+    if (!req.file) return res.status(400).json({ message: "Choose a profile picture to upload." });
+    const picturePath = `/uploads/profile-pictures/${req.file.filename}`;
+    try {
+        const { rows: before } = await db.query("SELECT profile_picture FROM account WHERE account_id = $1", [req.user.accountId]);
+        await db.query("UPDATE account SET profile_picture = $1 WHERE account_id = $2", [picturePath, req.user.accountId]);
+        const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1 AND deleted_at IS NULL`, [req.user.accountId]);
+        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_PROFILE_PICTURE", tableName: "account", recordId: req.user.accountId, req });
+
+        const previousPath = before[0]?.profile_picture;
+        if (previousPath?.startsWith("/uploads/profile-pictures/")) {
+            const oldFile = path.join(profilePicturesDirectory, path.basename(previousPath));
+            fs.promises.unlink(oldFile).catch(() => {});
+        }
+        res.json({ user: publicAccount(rows[0]) });
+    } catch (error) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+        next(error);
+    }
+});
+
 router.get("/sessions", requireAuth, async (req, res, next) => {
     try {
-        const [rows] = await db.execute(
+        const { rows } = await db.query(
             `SELECT session_id, login_time, last_activity, expires_at, ip_address, user_agent,
-                    session_id = ? AS current
-             FROM session_log WHERE account_id = ? AND revoked_at IS NULL AND logout_time IS NULL AND expires_at > NOW()
+                    (session_id = $1) AS current
+             FROM session_log WHERE account_id = $2 AND revoked_at IS NULL AND logout_time IS NULL AND expires_at > NOW()
              ORDER BY last_activity DESC`,
             [req.user.sessionId, req.user.accountId]
         );
@@ -274,11 +320,11 @@ router.delete("/sessions/:sessionId", requireAuth, async (req, res, next) => {
     try {
         const sessionId = Number(req.params.sessionId);
         if (!Number.isInteger(sessionId) || sessionId < 1) return res.status(422).json({ message: "Invalid session ID." });
-        const [result] = await db.execute(
-            "UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = ? AND account_id = ? AND revoked_at IS NULL AND logout_time IS NULL",
+        const result = await db.query(
+            "UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE session_id = $1 AND account_id = $2 AND revoked_at IS NULL AND logout_time IS NULL",
             [sessionId, req.user.accountId]
         );
-        if (!result.affectedRows) return res.status(404).json({ message: "Active session not found." });
+        if (!result.rowCount) return res.status(404).json({ message: "Active session not found." });
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "SESSION_REVOKED", tableName: "session_log", recordId: sessionId, req });
         res.status(204).end();
     } catch (error) { next(error); }
@@ -286,7 +332,7 @@ router.delete("/sessions/:sessionId", requireAuth, async (req, res, next) => {
 
 router.post("/logout-all", requireAuth, async (req, res, next) => {
     try {
-        await db.execute("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE account_id = ? AND revoked_at IS NULL AND logout_time IS NULL", [req.user.accountId]);
+        await db.query("UPDATE session_log SET revoked_at = NOW(), logout_time = NOW(), expires_at = NOW() WHERE account_id = $1 AND revoked_at IS NULL AND logout_time IS NULL", [req.user.accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "LOGOUT_ALL", tableName: "session_log", recordId: req.user.accountId, req });
         res.json({ message: "All sessions have been signed out." });
     } catch (error) { next(error); }
@@ -301,9 +347,12 @@ router.patch("/me", requireAuth, [
         const fields = { firstName: "first_name", lastName: "last_name", email: "email", contactNumber: "contact_number", twoFactorEnabled: "two_factor_enabled" };
         const supplied = Object.entries(fields).filter(([key]) => Object.prototype.hasOwnProperty.call(req.body, key));
         if (!supplied.length) return res.status(400).json({ message: "No editable fields supplied." });
-        const [before] = await db.execute(`SELECT ${accountFields} FROM account WHERE account_id = ?`, [req.user.accountId]);
-        await db.execute(`UPDATE account SET ${supplied.map(([, column]) => `${column} = ?`).join(", ")} WHERE account_id = ?`, [...supplied.map(([key]) => req.body[key]), req.user.accountId]);
-        const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [req.user.accountId]);
+        const { rows: before } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1`, [req.user.accountId]);
+        // Build $1, $2, … for SET columns; last placeholder is for the WHERE account_id.
+        const setClauses = supplied.map(([, column], i) => `${column} = $${i + 1}`).join(", ");
+        const values = [...supplied.map(([key]) => req.body[key]), req.user.accountId];
+        await db.query(`UPDATE account SET ${setClauses} WHERE account_id = $${supplied.length + 1}`, values);
+        const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1`, [req.user.accountId]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_PROFILE", tableName: "account", recordId: req.user.accountId, oldValues: before[0], newValues: rows[0], req });
         res.json({ user: publicAccount(rows[0]), session: { sessionId: req.session.session_id, expiresAt: req.session.expiresAt } });
     } catch (error) { next(error); }
@@ -330,8 +379,8 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
         let account;
 
         // 2. Look up by google_id first (fastest match for returning Google users)
-        const [byGoogleId] = await db.execute(
-            `${accountSelect} WHERE a.google_id = ? AND a.deleted_at IS NULL`,
+        const { rows: byGoogleId } = await db.query(
+            `SELECT ${accountFields} FROM account WHERE google_id = $1 AND deleted_at IS NULL`,
             [googleId]
         );
 
@@ -339,15 +388,15 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
             account = byGoogleId[0];
         } else {
             // 3. Fall back to email match (links existing manual account to Google)
-            const [byEmail] = await db.execute(
-                `${accountSelect} WHERE a.email = ? AND a.deleted_at IS NULL`,
+            const { rows: byEmail } = await db.query(
+                `SELECT ${accountFields} FROM account WHERE email = $1 AND deleted_at IS NULL`,
                 [googleEmail]
             );
 
             if (byEmail.length > 0) {
                 account = byEmail[0];
                 // Link the Google ID to this existing account
-                await db.execute("UPDATE account SET google_id = ? WHERE account_id = ?", [googleId, account.account_id]);
+                await db.query("UPDATE account SET google_id = $1 WHERE account_id = $2", [googleId, account.account_id]);
             }
         }
 
@@ -357,11 +406,11 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
             }
         } else {
             // 4. Create a new account with Google identity (no password needed)
-            const [result] = await db.execute(
-                "INSERT INTO account (first_name, last_name, email, google_id, role) VALUES (?, ?, ?, ?, 'Customer')",
+            const { rows: inserted } = await db.query(
+                "INSERT INTO account (first_name, last_name, email, google_id, role) VALUES ($1, $2, $3, $4, 'Customer') RETURNING account_id",
                 [firstName, lastName || "", googleEmail, googleId]
             );
-            const [rows] = await db.execute(`${accountSelect} WHERE a.account_id = ?`, [result.insertId]);
+            const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1`, [inserted[0].account_id]);
             account = rows[0];
             await logAudit({ accountId: account.account_id, action: "REGISTER_GOOGLE", tableName: "account", recordId: account.account_id, newValues: { email: googleEmail, googleId, provider: "google" }, req });
         }
@@ -370,7 +419,7 @@ router.post("/google", [body("credential").isString().notEmpty()], validate, asy
         const signedToken = tokenFor(account, 0);
         const session = await createSession(account, signedToken, req);
         const refreshedToken = tokenFor(account, session.sessionId);
-        await db.execute("UPDATE session_log SET session_token_hash = ? WHERE session_id = ?", [hashToken(refreshedToken), session.sessionId]);
+        await db.query("UPDATE session_log SET session_token_hash = $1 WHERE session_id = $2", [hashToken(refreshedToken), session.sessionId]);
         await logAudit({ accountId: account.account_id, sessionId: session.sessionId, action: "LOGIN_GOOGLE", tableName: "account", recordId: account.account_id, req });
 
         res.json({ token: refreshedToken, user: publicAccount(account), sessionId: session.sessionId, expiresAt: new Date(session.expiresAt).toISOString() });
