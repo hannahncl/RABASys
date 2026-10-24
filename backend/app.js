@@ -9,6 +9,8 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const rentalBookingRoutes = require("./routes/rentalBookingRoutes");
 const tourGuideRoutes = require("./routes/tourGuideRoutes");
+const wishlistRoutes = require("./routes/wishlistRoutes");
+const mapStoryRoutes = require("./routes/mapStoryRoutes");
 
 const app = express();
 
@@ -40,6 +42,7 @@ app.get("/", (req, res) => {
 });
 
 const notificationRoutes = require("./routes/notificationRoutes");
+const inquiryRoutes = require("./routes/inquiryRoutes");
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
@@ -48,6 +51,9 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/rental-bookings", rentalBookingRoutes);
 app.use("/api/tour-guides", tourGuideRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/inquiries", inquiryRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/map-stories", mapStoryRoutes);
 app.use("/api", resourceRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
@@ -56,8 +62,14 @@ app.use((error, req, res, next) => {
     if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
         return res.status(400).json({ message: "Invalid JSON body." });
     }
-    if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A record with that unique value already exists." });
-    if (error.code === "ER_NO_REFERENCED_ROW_2") return res.status(422).json({ message: "A referenced record does not exist." });
+    if (Number(error.status) === 413) {
+        return res.status(413).json({ message: "The uploaded request is too large." });
+    }
+    if ([400, 404, 409, 422].includes(Number(error.status))) {
+        return res.status(Number(error.status)).json({ message: error.message });
+    }
+    if (error.code === "23505") return res.status(409).json({ message: "A record with that unique value already exists." });
+    if (error.code === "23503") return res.status(422).json({ message: "A referenced record does not exist." });
     res.status(500).json({ message: "An unexpected server error occurred." });
 });
 
