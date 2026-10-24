@@ -45,6 +45,57 @@ const inputFocusHandlers = {
   },
 };
 
+const SelectionPage = ({ title, description, onBack, actionLabel, onAction, children }) => (
+  <div className="min-h-screen bg-white px-4 py-10 sm:px-8 sm:py-14" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
+    <div className="mx-auto max-w-6xl">
+      <button type="button" onClick={onBack} className="mb-8 text-sm font-semibold text-[#6b6255] hover:text-[#1a1715]">← Back to trip customization</button>
+      <div className="bg-white p-0 sm:p-2">
+        <div className="mb-7 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h1 className="text-2xl font-semibold" style={{ color: colors.textPrimary }}>{title}</h1>
+            <p className="mt-2 text-sm" style={{ color: colors.textMuted }}>{description}</p>
+          </div>
+          {actionLabel && <button type="button" onClick={onAction} className="bg-[#1a1715] px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white">{actionLabel}</button>}
+        </div>
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+const OptionPickerModal = ({ title, description, onClose, children }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
+    <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-md bg-white p-5 shadow-2xl sm:p-6" style={{ border: `1px solid ${colors.border}` }} onMouseDown={event => event.stopPropagation()}>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-semibold" style={{ color: colors.textPrimary }}>{title}</h3>
+          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>{description}</p>
+        </div>
+        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label={`Close ${title}`}>×</button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+const OptionCard = ({ item, selected, price, multiSelect = false, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`group overflow-hidden rounded-md border text-left transition-all hover:-translate-y-0.5 hover:border-[#8a7f70] hover:bg-[#f7f4ef] hover:shadow-md ${selected ? 'border-[#1a1715] bg-[#f7f4ef] ring-1 ring-[#1a1715]' : 'border-[#d6cfc2]'}`}
+  >
+    {item.image ? <img src={item.image} alt={item.name} className="h-36 w-full object-cover" /> : <div className="h-24 w-full bg-[#f7f4ef]" />}
+    <span className="block p-4">
+      <span className="flex items-start justify-between gap-3">
+        <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{item.name}</span>
+        {multiSelect && <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selected ? '✓' : ''}</span>}
+      </span>
+      <span className="mt-1 block text-[11px] font-semibold" style={{ color: colors.accentDark }}>{price}</span>
+      {item.details && <span className="mt-2 block text-[11px] leading-relaxed" style={{ color: colors.textMuted }}>{item.details}</span>}
+    </span>
+  </button>
+);
+
 const getWeatherEmoji = (description = '') => {
   const condition = description.toLowerCase();
   if (condition.includes('rain') || condition.includes('shower') || condition.includes('drizzle')) return '🌧️';
@@ -228,6 +279,9 @@ const CustomPlanner = () => {
   const [tourGuides, setTourGuides] = useState([]);
   const [preferredGuideId, setPreferredGuideId] = useState('');
   const [showGuidePicker, setShowGuidePicker] = useState(false);
+  const [showAccommodationPicker, setShowAccommodationPicker] = useState(false);
+  const [showActivityPicker, setShowActivityPicker] = useState(false);
+  const [selectionPage, setSelectionPage] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [requestReference, setRequestReference] = useState('');
@@ -394,6 +448,61 @@ const CustomPlanner = () => {
     }
   };
 
+  if (selectionPage === 'accommodation') {
+    return (
+      <SelectionPage
+        title="Choose an accommodation"
+        description="Select an accommodation to include in your custom trip request."
+        onBack={() => setSelectionPage(null)}
+      >
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {currentHotels.map(hotel => (
+            <OptionCard
+              key={hotel.id}
+              item={hotel}
+              selected={selectedHotel?.id === hotel.id}
+              price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+              onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setSelectionPage(null); }}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => { setSelectedHotel({ id: '__other__', name: 'Other', pricePerGuest: 0 }); setOtherAccommodationPreference(''); setSelectionPage(null); }}
+            className={`rounded-md border p-6 text-center transition-all hover:bg-[#f7f4ef] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
+          >
+            <span className="text-base font-semibold" style={{ color: colors.textPrimary }}>Other preference</span>
+            <span className="mt-2 block text-sm" style={{ color: colors.textMuted }}>Tell the tour team what type of stay you prefer.</span>
+          </button>
+        </div>
+      </SelectionPage>
+    );
+  }
+
+  if (selectionPage === 'activities') {
+    return (
+      <SelectionPage
+        title="Choose activities"
+        description="Select one or more activities to include in your custom trip request."
+        onBack={() => setSelectionPage(null)}
+        actionLabel="Done"
+        onAction={() => setSelectionPage(null)}
+      >
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {(currentDest?.activities || []).map(activity => (
+            <OptionCard
+              key={activity.id}
+              item={activity}
+              selected={selectedActivities.includes(activity.id)}
+              price={`PHP ${Number(activity.price || 0).toLocaleString()}`}
+              multiSelect
+              onClick={() => handleActivityToggle(activity.id)}
+            />
+          ))}
+        </div>
+      </SelectionPage>
+    );
+  }
+
   const SectionLabel = ({ children }) => (
     <h3
       className="text-[11px] font-semibold mb-4"
@@ -409,7 +518,7 @@ const CustomPlanner = () => {
 
   return (
     <div className="min-h-screen pb-24 pt-10" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="mb-6">
           <h1
@@ -421,10 +530,10 @@ const CustomPlanner = () => {
         </div>
 
         {/* Main Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
 
           {/* LEFT SIDE: Form Fields & Steps */}
-          <div className="lg:col-span-7 flex flex-col gap-10">
+          <div className="lg:col-span-8 flex flex-col gap-10">
 
             {/* Trip Parameters */}
             <div>
@@ -607,28 +716,16 @@ const CustomPlanner = () => {
               {/* 2. Accommodation */}
               <div id="section-accommodation">
                 <SectionLabel>2. Select Accommodation</SectionLabel>
-                <select
+                <button
                   id="select-accommodation"
-                  value={selectedHotel?.id || ''}
-                  onChange={e => {
-                    const value = e.target.value;
-                    setSelectedHotel(value === '__other__'
-                      ? { id: '__other__', name: 'Other', pricePerGuest: 0 }
-                      : currentHotels.find(hotel => String(hotel.id) === value) || null);
-                    setOtherAccommodationPreference('');
-                  }}
-                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                  type="button"
+                  onClick={() => setSelectionPage('accommodation')}
+                  className="flex w-full items-center justify-between py-3 px-4 text-left text-[14px] transition-all hover:border-[#1a1715]"
                   style={{ ...inputStyle, cursor: 'pointer' }}
-                  {...inputFocusHandlers}
                 >
-                  <option value="">Select Accommodation</option>
-                  {currentHotels.map(hotel => (
-                    <option key={hotel.id} value={hotel.id}>
-                      {hotel.name}
-                    </option>
-                  ))}
-                  <option value="__other__">Other</option>
-                </select>
+                  <span>{selectedHotel?.name || 'Select Accommodation'}</span>
+                  <span className="text-[18px] leading-none" style={{ color: colors.textMuted }}>⌄</span>
+                </button>
                 {selectedHotel?.id === '__other__' && (
                   <input
                     type="text"
@@ -641,41 +738,48 @@ const CustomPlanner = () => {
                     {...inputFocusHandlers}
                   />
                 )}
+
+                {showAccommodationPicker && (
+                  <OptionPickerModal
+                    title="Choose an accommodation"
+                    description="Select an accommodation to include in your custom trip request."
+                    onClose={() => setShowAccommodationPicker(false)}
+                  >
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {currentHotels.map(hotel => (
+                        <OptionCard
+                          key={hotel.id}
+                          item={hotel}
+                          selected={selectedHotel?.id === hotel.id}
+                          price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+                          onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
+                        />
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedHotel({ id: '__other__', name: 'Other', pricePerGuest: 0 }); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
+                        className={`rounded-md border p-5 text-center transition-all hover:bg-[#f7f4ef] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
+                      >
+                        <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Other preference</span>
+                        <span className="mt-2 block text-[11px]" style={{ color: colors.textMuted }}>Tell the tour team what type of stay you prefer.</span>
+                      </button>
+                    </div>
+                  </OptionPickerModal>
+                )}
               </div>
 
               {/* 3. Choose Custom Activities */}
               <div id="section-activities">
                 <SectionLabel>3. Choose Custom Activities</SectionLabel>
-                <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: colors.textMuted }}>
-                  <span>Select any activities</span>
-                  <span>{selectedActivities.length} selected</span>
-                </div>
-                <div
-                  className="max-h-60 overflow-y-auto divide-y"
-                  style={{ borderTop: `1px solid ${colors.borderLight}`, borderBottom: `1px solid ${colors.borderLight}`, borderColor: colors.borderLight }}
+                <button
+                  type="button"
+                  onClick={() => setSelectionPage('activities')}
+                  className="flex w-full items-center justify-between py-3 px-4 text-left text-[14px] transition-all hover:border-[#1a1715]"
+                  style={{ ...inputStyle, cursor: 'pointer' }}
                 >
-                  {(currentDest?.activities || []).map(act => (
-                    <label
-                      key={act.id}
-                      title={act.details || undefined}
-                      className="flex items-center gap-3 py-3 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedActivities.includes(act.id)}
-                        onChange={() => handleActivityToggle(act.id)}
-                        className="h-4 w-4 shrink-0 cursor-pointer"
-                        style={{ accentColor: colors.accentDark }}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: colors.textPrimary }}>
-                        {act.name}
-                      </span>
-                    </label>
-                  ))}
-                  {!currentDest?.activities?.length && (
-                    <p className="py-3 text-[12px]" style={{ color: colors.textMuted }}>No activities available for this destination.</p>
-                  )}
-                </div>
+                  <span>{selectedActivities.length ? `${selectedActivities.length} activit${selectedActivities.length === 1 ? 'y' : 'ies'} selected` : 'Select activities'}</span>
+                  <span className="text-[18px] leading-none" style={{ color: colors.textMuted }}>⌄</span>
+                </button>
                 <textarea
                   value={otherActivityPreference}
                   onChange={e => setOtherActivityPreference(e.target.value)}
@@ -686,6 +790,28 @@ const CustomPlanner = () => {
                   style={{ ...inputStyle, resize: 'vertical' }}
                   {...inputFocusHandlers}
                 />
+                {showActivityPicker && (
+                  <OptionPickerModal
+                    title="Choose activities"
+                    description="Select one or more activities to include in your custom trip request."
+                    onClose={() => setShowActivityPicker(false)}
+                  >
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {(currentDest?.activities || []).map(act => (
+                        <OptionCard
+                          key={act.id}
+                          item={act}
+                          selected={selectedActivities.includes(act.id)}
+                          price={`PHP ${Number(act.price || 0).toLocaleString()}`}
+                          multiSelect
+                          onClick={() => handleActivityToggle(act.id)}
+                        />
+                      ))}
+                    </div>
+                    {!currentDest?.activities?.length && <p className="py-3 text-[12px]" style={{ color: colors.textMuted }}>No activities available for this destination.</p>}
+                    <button type="button" onClick={() => setShowActivityPicker(false)} className="mt-5 w-full bg-[#1a1715] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white">Done</button>
+                  </OptionPickerModal>
+                )}
               </div>
 
               {/* 4. Select a Tour Guide */}
@@ -798,7 +924,7 @@ const CustomPlanner = () => {
           </div>
 
           {/* RIGHT SIDE: Selection Summary */}
-          <div className="lg:col-span-5 flex flex-col gap-5">
+          <div className="lg:col-span-4 flex flex-col gap-5">
             <div
               className="p-6"
               style={{

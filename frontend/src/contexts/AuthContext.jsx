@@ -127,14 +127,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (firstName, lastName, email, password, contactNumber) => {
+  const register = async (firstName, lastName, email, password) => {
     setLoading(true);
     try {
       return {
         success: true,
         user: saveSession(await api('/auth/register', {
           method: 'POST',
-          body: JSON.stringify({ firstName, lastName, email, password, contactNumber }),
+          body: JSON.stringify({ firstName, lastName, email, password }),
         })),
       };
     } catch (error) {

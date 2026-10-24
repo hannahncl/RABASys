@@ -10,6 +10,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const rentalBookingRoutes = require("./routes/rentalBookingRoutes");
 const tourGuideRoutes = require("./routes/tourGuideRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
+const customizationRoutes = require("./routes/customizationRoutes");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/tour-guides", tourGuideRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/customization-options", customizationRoutes);
 app.use("/api", resourceRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));

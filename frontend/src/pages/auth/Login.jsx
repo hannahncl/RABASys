@@ -1,8 +1,9 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmailOrPhone, validateRequired } from '../../utils/validation';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 
 const Login = () => {
   const { login, googleLogin, user } = useContext(AuthContext);
@@ -15,7 +16,6 @@ const Login = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const googleBtnRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -26,51 +26,13 @@ const Login = () => {
     else navigate(from, { replace: true });
   }, [user, navigate, location]);
 
-  // Initialize Google Sign-In button
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') return;
-
-    const initGoogle = () => {
-      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response) => {
-          setLoading(true);
-          setError('');
-          const result = await googleLogin(response.credential);
-          if (!result.success) {
-            setError(result.error || 'Google sign-in failed.');
-          }
-          setLoading(false);
-        },
-      });
-
-      const btnWidth = Math.min(Math.max(googleBtnRef.current?.offsetWidth || 360, 200), 400);
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        shape: 'rectangular',
-        width: btnWidth,
-      });
-    };
-
-    // GSI script may still be loading
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(interval);
-          initGoogle();
-        }
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, []);
+  const handleGoogleCredential = async (credential) => {
+    setLoading(true);
+    setError('');
+    const result = await googleLogin(credential);
+    if (!result.success) setError(result.error || 'Google sign-in failed.');
+    setLoading(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -194,7 +156,7 @@ const Login = () => {
           </div>
 
           {/* ── Google Sign-In Button (rendered by Google GSI) ── */}
-          <div ref={googleBtnRef} className="w-full flex justify-center" />
+          <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
         </form>
     </div>
   );
