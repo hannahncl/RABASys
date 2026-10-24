@@ -211,9 +211,23 @@ const Booking = () => {
 
   const handleProceedToPayment = (e) => {
     e.preventDefault();
-    if (isJoiner && (!joinerAvailability?.bookingOpen || totalGuests > joinerAvailability.remainingSlots)) {
-      showNotification('This Joiner departure is closed or no longer has enough spots. Please check another trip.', 'warning');
-      return;
+    if (isJoiner) {
+      if (!joinerAvailability) {
+        showNotification('Joiner availability is still loading. Please wait a moment and try again.', 'warning');
+        return;
+      }
+      if (joinerAvailability.scheduleValid === false) {
+        showNotification('This departure cannot be booked because its deadline must be at least 3 days before departure. Please contact the tour operator.', 'warning');
+        return;
+      }
+      if (!joinerAvailability.bookingOpen) {
+        showNotification('Booking for this departure is closed. Check the booking deadline or choose another departure.', 'warning');
+        return;
+      }
+      if (totalGuests > joinerAvailability.remainingSlots) {
+        showNotification(`Only ${joinerAvailability.remainingSlots} spot${joinerAvailability.remainingSlots === 1 ? '' : 's'} remain for this departure.`, 'warning');
+        return;
+      }
     }
     if (!firstName || !lastName || !email || !phone || !tourDate || totalGuests === 0) {
       showNotification('Please fill in all booking fields.', 'warning');
@@ -277,7 +291,9 @@ const Booking = () => {
       };
 
       await bookingService.create(bookingData);
-      showNotification('Booking successfully submitted! A confirmation email has been dispatched.', 'success');
+      showNotification(isJoiner
+        ? 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.'
+        : 'Booking successfully submitted! A confirmation email has been dispatched.', 'success');
       navigate('/');
     } catch (error) {
       showNotification(error.message || 'Failed to save booking. Please try again.', 'error');
@@ -451,9 +467,9 @@ const Booking = () => {
                             <p className="text-sm font-semibold text-[#2d2a24]">
                               {tourDate ? new Date(`${tourDate}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Departure date not set'}
                             </p>
-                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your booking will be sent to the operator for confirmation.</p>
-                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The operator needs to correct this departure schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked. Please refresh.'}</p>
-                            {joinerAvailability?.scheduleValid !== false && pkg.joinerBookingDeadline && <p className="mt-2 text-[11px] text-[#6b6255]">Booking closes {new Date(`${String(pkg.joinerBookingDeadline).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}.</p>}
+                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your spots are reserved automatically when you submit your booking.</p>
+                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked. Please refresh.'}</p>
+                            {joinerAvailability?.scheduleValid !== false && (joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline) && <p className="mt-2 text-[11px] text-[#6b6255]">Booking closes {new Date(`${String(joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}, at least 3 days before departure.</p>}
                           </div>
                         </div>
                       </div>

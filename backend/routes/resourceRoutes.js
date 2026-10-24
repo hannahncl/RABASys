@@ -2,6 +2,7 @@ const express = require("express");
 const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
+const { isJoinerDeadlineValid } = require("../utils/joinerSchedule");
 
 // Only these known tables/columns can be used. This avoids dynamic SQL from request input.
 const resources = {
@@ -85,8 +86,8 @@ function joinerScheduleError(payload, existing = {}) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(tripDate) || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
         return "Joiner trips need a trip date and a booking deadline.";
     }
-    if (deadline > tripDate) {
-        return "The booking deadline must be on or before the trip date.";
+    if (!isJoinerDeadlineValid(tripDate, deadline)) {
+        return "The booking deadline must be at least 3 days before the trip date.";
     }
     if (!Number.isInteger(slots) || slots < 1) {
         return "Joiner slots must be a positive whole number.";

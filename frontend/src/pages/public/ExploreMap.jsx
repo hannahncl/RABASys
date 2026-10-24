@@ -382,9 +382,6 @@ const ExploreMap = () => {
       }
 
       setSpots(destinationSpots);
-
-      const allStoryUploads = await mapGalleryService.getAllUploads();
-      setUploads(allStoryUploads);
     };
     initData();
   }, []);
@@ -392,17 +389,22 @@ const ExploreMap = () => {
   // When spot changes
   useEffect(() => {
     const loadSpotUploads = async () => {
-      if (selectedSpot) {
-        const spotPhotos = await mapGalleryService.getUploads(selectedSpot.id);
-        setUploads(spotPhotos);
-        setTargetSpotId(selectedSpot.id);
-      } else {
-        const all = await mapGalleryService.getAllUploads();
-        setUploads(all);
+      try {
+        if (selectedSpot) {
+          const spotPhotos = await mapGalleryService.getUploads(selectedSpot.id);
+          setUploads(spotPhotos);
+          setTargetSpotId(selectedSpot.id);
+        } else {
+          const all = await mapGalleryService.getAllUploads();
+          setUploads(all);
+        }
+      } catch (error) {
+        console.error('Could not load Explore Map photos:', error);
+        showNotification('Explore Map photos could not be loaded. Please try again.', 'error');
       }
     };
     loadSpotUploads();
-  }, [selectedSpot]);
+  }, [selectedSpot, showNotification]);
 
   // Auto-progress timer for Story Viewer
   useEffect(() => {
@@ -651,8 +653,8 @@ const ExploreMap = () => {
       setDeviceFilePreview('');
       setUploadModalOpen(false);
       setUploadTab('file');
-    } catch {
-      setUploadError('Failed to upload photo. Please try again.');
+    } catch (error) {
+      setUploadError(error.message || 'Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -660,9 +662,17 @@ const ExploreMap = () => {
 
   const handleLike = async (e, uploadId) => {
     e.stopPropagation();
-    const updated = await mapGalleryService.likeUpload(uploadId);
-    if (updated) {
-      setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
+    if (!user) {
+      showNotification('Log in to like Explore Map photos.', 'warning');
+      return;
+    }
+    try {
+      const updated = await mapGalleryService.likeUpload(uploadId);
+      if (updated) {
+        setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
+      }
+    } catch (error) {
+      showNotification(error.message || 'Could not update your like.', 'error');
     }
   };
 

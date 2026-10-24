@@ -3,7 +3,12 @@ require("dotenv").config({
     path: path.resolve(__dirname, "..", ".env")
 });
 
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
+
+// PostgreSQL DATE columns are calendar dates, not instants. Returning them as
+// strings prevents node-postgres from converting midnight to a local Date and
+// serializing it as the previous UTC day in API responses.
+types.setTypeParser(1082, (value) => value);
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
