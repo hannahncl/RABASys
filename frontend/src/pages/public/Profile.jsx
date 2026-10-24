@@ -230,11 +230,15 @@ const Profile = () => {
   };
 
   const handleLikePhoto = async (photo) => {
-    const updated = await mapGalleryService.likeUpload(photo.id);
-    if (updated) {
-      setMyPhotos(photos => photos.map(item => item.id === photo.id
-        ? { ...item, isLiked: updated.isLiked, likesCount: updated.likesCount }
-        : item));
+    try {
+      const updated = await mapGalleryService.likeUpload(photo.id);
+      if (updated) {
+        setMyPhotos(photos => photos.map(item => item.id === photo.id
+          ? { ...item, isLiked: updated.isLiked, likesCount: updated.likesCount }
+          : item));
+      }
+    } catch (error) {
+      showNotification(error.message || 'Could not update your like.', 'error');
     }
   };
 
