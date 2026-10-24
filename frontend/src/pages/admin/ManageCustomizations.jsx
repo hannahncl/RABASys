@@ -37,13 +37,15 @@ const emptyDestinationForm = {
 const emptyTourForm = {
   name: '',
   price: '',
-  details: ''
+  details: '',
+  image: ''
 };
 
 const emptyHotelForm = {
   name: '',
   pricePerGuest: '',
-  details: ''
+  details: '',
+  image: ''
 };
 
 const toDestinationForm = (name, details) => ({
@@ -105,6 +107,7 @@ const ManageCustomizations = () => {
   const [tourForm, setTourForm] = useState(emptyTourForm);
   const [editingHotelId, setEditingHotelId] = useState(null);
   const [hotelForm, setHotelForm] = useState(emptyHotelForm);
+  const [isCompressingOptionImage, setIsCompressingOptionImage] = useState(false);
   const { showNotification } = useNotification();
   const { confirm } = useConfirmation();
 
@@ -284,8 +287,30 @@ const ManageCustomizations = () => {
     setTourForm({
       name: tour.name,
       price: tour.price ?? '',
-      details: tour.details || ''
+      details: tour.details || '',
+      image: tour.image || ''
     });
+  };
+
+  const handleOptionImageSelection = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingOptionImage(true);
+    try {
+      const image = await compressPackageImage(file);
+      setFormForActiveOption(prev => ({ ...prev, image }));
+    } catch (error) {
+      event.target.value = '';
+      showNotification(error.message || 'Failed to process the image.', 'error');
+    } finally {
+      setIsCompressingOptionImage(false);
+    }
+  };
+
+  const setFormForActiveOption = (updater) => {
+    if (editingTourId !== null) setTourForm(updater);
+    else setHotelForm(updater);
   };
 
   const handleSaveTour = async () => {
@@ -299,7 +324,8 @@ const ManageCustomizations = () => {
       id: editingTourId === 'new' ? `tour_${Date.now()}` : editingTourId,
       name: tourForm.name.trim(),
       price: Number(tourForm.price) || 0,
-      details: tourForm.details
+      details: tourForm.details,
+      image: tourForm.image || ''
     };
 
     const activities = editingTourId === 'new'
@@ -345,7 +371,8 @@ const ManageCustomizations = () => {
     setHotelForm({
       name: hotel.name,
       pricePerGuest: hotel.pricePerGuest ?? '',
-      details: hotel.details || ''
+      details: hotel.details || '',
+      image: hotel.image || ''
     });
   };
 
@@ -360,7 +387,8 @@ const ManageCustomizations = () => {
       id: editingHotelId === 'new' ? `hotel_${Date.now()}` : editingHotelId,
       name: hotelForm.name.trim(),
       pricePerGuest: Number(hotelForm.pricePerGuest) || 0,
-      details: hotelForm.details
+      details: hotelForm.details,
+      image: hotelForm.image || ''
     };
 
     const hotelsForDestination = editingHotelId === 'new'
@@ -633,19 +661,20 @@ const ManageCustomizations = () => {
                     </div>
 
                     {editingTourId === 'new' && (
-                      <EditorForm form={tourForm} setForm={setTourForm} priceKey="price" onSave={handleSaveTour} onCancel={() => setEditingTourId(null)} />
+                      <EditorForm form={tourForm} setForm={setTourForm} priceKey="price" onSave={handleSaveTour} onCancel={() => setEditingTourId(null)} onImageSelection={handleOptionImageSelection} isCompressingImage={isCompressingOptionImage} />
                     )}
 
                     <div className="space-y-3">
                       {activeTours.map(tour => (
                         editingTourId === tour.id ? (
-                          <EditorForm key={tour.id} form={tourForm} setForm={setTourForm} priceKey="price" onSave={handleSaveTour} onCancel={() => setEditingTourId(null)} />
+                          <EditorForm key={tour.id} form={tourForm} setForm={setTourForm} priceKey="price" onSave={handleSaveTour} onCancel={() => setEditingTourId(null)} onImageSelection={handleOptionImageSelection} isCompressingImage={isCompressingOptionImage} />
                         ) : (
                           <ManageRow
                             key={tour.id}
                             icon={Compass}
                             title={tour.name}
                             subtitle={tour.details}
+                            image={tour.image}
                             price={`PHP ${Number(tour.price || 0).toLocaleString()}`}
                             onEdit={() => handleEditTour(tour)}
                             onDelete={() => handleDeleteTour(tour.id)}
@@ -667,19 +696,20 @@ const ManageCustomizations = () => {
                     </div>
 
                     {editingHotelId === 'new' && (
-                      <EditorForm form={hotelForm} setForm={setHotelForm} priceKey="pricePerGuest" priceLabel="Price / Guest" onSave={handleSaveHotel} onCancel={() => setEditingHotelId(null)} />
+                      <EditorForm form={hotelForm} setForm={setHotelForm} priceKey="pricePerGuest" priceLabel="Price / Guest" onSave={handleSaveHotel} onCancel={() => setEditingHotelId(null)} onImageSelection={handleOptionImageSelection} isCompressingImage={isCompressingOptionImage} />
                     )}
 
                     <div className="space-y-3">
                       {activeHotels.map(hotel => (
                         editingHotelId === hotel.id ? (
-                          <EditorForm key={hotel.id} form={hotelForm} setForm={setHotelForm} priceKey="pricePerGuest" priceLabel="Price / Guest" onSave={handleSaveHotel} onCancel={() => setEditingHotelId(null)} />
+                          <EditorForm key={hotel.id} form={hotelForm} setForm={setHotelForm} priceKey="pricePerGuest" priceLabel="Price / Guest" onSave={handleSaveHotel} onCancel={() => setEditingHotelId(null)} onImageSelection={handleOptionImageSelection} isCompressingImage={isCompressingOptionImage} />
                         ) : (
                           <ManageRow
                             key={hotel.id}
                             icon={Building2}
                             title={hotel.name}
                             subtitle={hotel.details}
+                            image={hotel.image}
                             price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / Guest`}
                             onEdit={() => handleEditHotel(hotel)}
                             onDelete={() => handleDeleteHotel(hotel.id)}
@@ -900,7 +930,7 @@ const DetailLine = ({ label, value, mono, strong }) => (
   </div>
 );
 
-const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onCancel }) => (
+const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onCancel, onImageSelection, isCompressingImage }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1715]/40 p-4 backdrop-blur-[2px]" onMouseDown={onCancel}>
     <div className="w-full max-w-lg border border-[#e0dbd0] bg-white p-6 shadow-2xl" onMouseDown={event => event.stopPropagation()}>
       <div className="mb-5 flex items-center justify-between border-b border-[#eae5db] pb-3">
@@ -943,6 +973,19 @@ const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onC
             className="w-full resize-none border border-[#d6cfc2] bg-white p-3 text-sm text-[#1a1a1a] outline-none focus:border-[#8a7f70]"
           />
         </label>
+        <label className="block">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#6b6255]">Image</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onImageSelection}
+            className="w-full border border-[#d6cfc2] bg-white p-2.5 text-xs text-[#1a1a1a] file:mr-3 file:border-0 file:bg-[#f7f4ef] file:px-3 file:py-1.5 file:text-xs file:font-semibold"
+          />
+          {isCompressingImage && <p className="mt-1 text-[11px] text-[#8a8275]">Processing image...</p>}
+          {form.image && (
+            <img src={form.image} alt="Selected option" className="mt-3 h-32 w-full rounded object-cover" />
+          )}
+        </label>
       </div>
 
       <div className="mt-6 flex justify-end gap-2 border-t border-[#eae5db] pt-4">
@@ -957,9 +1000,10 @@ const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onC
   </div>
 );
 
-const ManageRow = ({ icon: Icon, title, subtitle, price, onEdit, onDelete }) => (
+const ManageRow = ({ icon: Icon, title, subtitle, price, image, onEdit, onDelete }) => (
   <div className="bg-[#fcfbf9] border border-[#e0dbd0] rounded p-4">
     <div className="flex items-start justify-between gap-3">
+      {image ? <img src={image} alt="" className="h-16 w-20 shrink-0 rounded object-cover" /> : null}
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-[#c49b27] shrink-0" />

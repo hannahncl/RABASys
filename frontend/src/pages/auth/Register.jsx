@@ -1,8 +1,9 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import { sanitizeInput, validateEmail, validateName, validatePassword, validatePhone } from '../../utils/validation';
+import { sanitizeInput, validateEmail, validateName, validatePassword } from '../../utils/validation';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 
 const Register = () => {
   const { register, googleLogin } = useContext(AuthContext);
@@ -10,7 +11,6 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [contactNumber, setContactNumber] = useState('');
 
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -19,60 +19,20 @@ const Register = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const googleBtnRef = useRef(null);
   const from = location.state?.from?.pathname || '/';
 
-  // Initialize Google Sign-In button
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') return;
-
-    const initGoogle = () => {
-      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response) => {
-          setLoading(true);
-          setError('');
-          const result = await googleLogin(response.credential);
-          if (result.requiresTwoFactor) {
-            navigate('/login', { state: location.state });
-            return;
-          }
-          if (result.success) {
-            navigate(from, { replace: true });
-          } else {
-            setError(result.error || 'Google sign-up failed.');
-          }
-          setLoading(false);
-        },
-      });
-
-      const btnWidth = Math.min(Math.max(googleBtnRef.current?.offsetWidth || 360, 200), 400);
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'signup_with',
-        shape: 'rectangular',
-        width: btnWidth,
-      });
-    };
-
-    // GSI script may still be loading
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(interval);
-          initGoogle();
-        }
-      }, 200);
-      return () => clearInterval(interval);
+  const handleGoogleCredential = async (credential) => {
+    setLoading(true);
+    setError('');
+    const result = await googleLogin(credential);
+    if (result.requiresTwoFactor) {
+      navigate('/login', { state: location.state });
+      return;
     }
-  }, []);
+    if (result.success) navigate(from, { replace: true });
+    else setError(result.error || 'Google sign-up failed.');
+    setLoading(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,14 +41,11 @@ const Register = () => {
     const cleanedPassword = sanitizeInput(password);
     const cleanedFirstName = sanitizeInput(firstName);
     const cleanedLastName = sanitizeInput(lastName);
-    const cleanedContactNumber = sanitizeInput(contactNumber);
-
     const nextErrors = {
       email: validateEmail(cleanedEmail),
       password: validatePassword(cleanedPassword),
       firstName: validateName(cleanedFirstName, 'First name'),
       lastName: validateName(cleanedLastName, 'Last name'),
-      contactNumber: validatePhone(cleanedContactNumber),
     };
     setFieldErrors(nextErrors);
 
@@ -101,7 +58,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(cleanedFirstName, cleanedLastName, cleanedEmail, cleanedPassword, cleanedContactNumber);
+      const result = await register(cleanedFirstName, cleanedLastName, cleanedEmail, cleanedPassword);
       if (result.success) {
         navigate(from, { replace: true });
       } else {
@@ -200,25 +157,6 @@ const Register = () => {
             </div>
           </div>
 
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4a453b]">Contact Number</label>
-            <input
-              type="tel"
-              autoComplete="tel"
-              inputMode="numeric"
-              value={contactNumber}
-              onChange={(e) => {
-                const nextValue = e.target.value.replace(/\D/g, '').slice(0, 11);
-                setContactNumber(nextValue);
-                if (fieldErrors.contactNumber) setFieldErrors(prev => ({ ...prev, contactNumber: '' }));
-              }}
-              maxLength={11}
-              className={`w-full rounded border px-3 py-2.5 text-sm font-medium text-[#1a1a1a] placeholder-[#b0a68e] transition-all outline-none ${fieldErrors.contactNumber ? 'border-rose-300 bg-rose-50/50' : 'border-[#d6cfc2] bg-white focus:border-[#b0a68e] focus:ring-2 focus:ring-[#b0a68e]/15'}`}
-              placeholder="e.g. 09171234567"
-            />
-            {fieldErrors.contactNumber && <p className="mt-1.5 text-xs text-rose-600 font-medium">{fieldErrors.contactNumber}</p>}
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -235,7 +173,7 @@ const Register = () => {
           </div>
 
           {/* ── Google Sign-Up Button (rendered by Google GSI) ── */}
-          <div ref={googleBtnRef} className="w-full flex justify-center" />
+          <GoogleSignInButton onCredential={handleGoogleCredential} disabled={loading} />
         </form>
     </div>
   );

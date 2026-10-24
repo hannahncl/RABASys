@@ -10,6 +10,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const rentalBookingRoutes = require("./routes/rentalBookingRoutes");
 const tourGuideRoutes = require("./routes/tourGuideRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
+const customizationRoutes = require("./routes/customizationRoutes");
 const mapStoryRoutes = require("./routes/mapStoryRoutes");
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/tour-guides", tourGuideRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/customization-options", customizationRoutes);
 app.use("/api/map-stories", mapStoryRoutes);
 app.use("/api", resourceRoutes);
 

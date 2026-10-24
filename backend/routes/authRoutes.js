@@ -142,17 +142,15 @@ router.post("/register", [
     body("lastName").trim().isLength({ min: 1, max: 100 }).matches(/^[A-Za-z\s.'-]+$/),
     body("email").isEmail().normalizeEmail(),
     body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/),
-    body("contactNumber").trim().isLength({ min: 10, max: 15 }).matches(/^[0-9+\-()\s]+$/)
 ], validate, async (req, res, next) => {
     try {
         const firstName = sanitizeText(req.body.firstName);
         const lastName = sanitizeText(req.body.lastName);
         const email = sanitizeEmail(req.body.email);
         const password = sanitizeText(req.body.password);
-        const contactNumber = sanitizeText(req.body.contactNumber);
         const { rows: inserted } = await db.query(
             "INSERT INTO account (first_name, last_name, email, password_hash, contact_number, role) VALUES ($1, $2, $3, $4, $5, 'Customer') RETURNING account_id",
-            [firstName, lastName, email, await bcrypt.hash(password, 12), contactNumber]
+            [firstName, lastName, email, await bcrypt.hash(password, 12), null]
         );
         const { rows } = await db.query(`SELECT ${accountFields} FROM account WHERE account_id = $1`, [inserted[0].account_id]);
         const account = rows[0];
