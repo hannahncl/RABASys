@@ -10,20 +10,16 @@ const { Pool, types } = require("pg");
 // serializing it as the previous UTC day in API responses.
 types.setTypeParser(1082, (value) => value);
 
+// Apply the timezone before the pool hands a new connection to application queries.
+// Supabase's pooler can ignore startup options, and these columns are timestamp without time zone.
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
+    },
+    onConnect: async (client) => {
+        await client.query("SET TIME ZONE 'Asia/Manila'");
     }
-});
-
-// Supabase's pooler can ignore startup options and leave sessions in UTC.
-// These columns are timestamp without time zone, so set each physical DB
-// connection explicitly before it is used for application queries.
-pool.on("connect", (client) => {
-    client.query("SET TIME ZONE 'Asia/Manila'").catch((error) => {
-        console.error("Failed to set database timezone:", error.message);
-    });
 });
 
 module.exports = pool;
