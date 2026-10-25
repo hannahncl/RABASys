@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { bookingService } from '../../services/bookingService';
 import { CheckCircle2, DollarSign, Download, FileSpreadsheet, FileText, Loader, Printer, ReceiptText, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 
 const normalizeStatus = (status = '') => String(status || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -424,7 +421,8 @@ const SalesReports = () => {
   const confirmedCount = filteredBookings.filter((booking) => isRecognizedSale(booking.status)).length;
 
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
     const generatedAt = new Date();
     const filenameDate = generatedAt.toISOString().slice(0, 10);
     const serviceLabel = appliedFilters.activeType === 'ALL' ? 'All Services' : appliedFilters.activeType;
@@ -531,7 +529,11 @@ const SalesReports = () => {
   };
 
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
     const doc = new jsPDF();
     const currentDate = new Date();
     const formattedGenDate = currentDate.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
@@ -1578,6 +1580,5 @@ const SalesReports = () => {
 
 
 export default SalesReports;
-
 
 

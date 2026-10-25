@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Providers
@@ -9,65 +9,63 @@ import { ConfirmationProvider } from './contexts/ConfirmationContext';
 // Route Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
 
-// Layouts
-import MainLayout from './layouts/MainLayout';
-import AuthLayout from './layouts/AuthLayout';
-import AdminLayout from './layouts/AdminLayout';
-import StaffLayout from './layouts/StaffLayout';
-
 // Pages - Public
-import Home from './pages/public/Home';
-import Packages from './pages/public/Packages';
-import PackageDetail from './pages/public/PackageDetail';
-import Gallery from './pages/public/Gallery';
-import CustomPlanner from './pages/public/CustomPlanner';
-import ExploreMap from './pages/public/ExploreMap';
-import CarRentals from './pages/public/CarRentals';
-import CarBooking from './pages/public/CarBooking';
-import AboutUs from './pages/public/AboutUs';
-import Profile from './pages/public/Profile';
-import Review from './pages/public/Review';
-import RescheduleTrip from './pages/public/RescheduleTrip';
-import Wishlist from './pages/public/Wishlist';
-import SupportChat from './pages/public/SupportChat';
+const MainLayout = lazy(() => import('./layouts/MainLayout'));
+const AuthLayout = lazy(() => import('./layouts/AuthLayout'));
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const StaffLayout = lazy(() => import('./layouts/StaffLayout'));
+const Home = lazy(() => import('./pages/public/Home'));
+const Packages = lazy(() => import('./pages/public/Packages'));
+const PackageDetail = lazy(() => import('./pages/public/PackageDetail'));
+const CustomPlanner = lazy(() => import('./pages/public/CustomPlanner'));
+const ExploreMap = lazy(() => import('./pages/public/ExploreMap'));
+const CarRentals = lazy(() => import('./pages/public/CarRentals'));
+const CarBooking = lazy(() => import('./pages/public/CarBooking'));
+const AboutUs = lazy(() => import('./pages/public/AboutUs'));
+const Profile = lazy(() => import('./pages/public/Profile'));
+const Review = lazy(() => import('./pages/public/Review'));
+const RescheduleTrip = lazy(() => import('./pages/public/RescheduleTrip'));
+const Wishlist = lazy(() => import('./pages/public/Wishlist'));
+const SupportChat = lazy(() => import('./pages/public/SupportChat'));
+const Booking = lazy(() => import('./pages/public/Booking'));
 
 // Pages - Auth
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import EmailVerification from './pages/auth/EmailVerification';
-import ChangePassword from './pages/auth/ChangePassword';
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const EmailVerification = lazy(() => import('./pages/auth/EmailVerification'));
+const ChangePassword = lazy(() => import('./pages/auth/ChangePassword'));
 
 // Pages - Admin Dashboard
-import AdminDashboard from './pages/admin/Dashboard';
-import SalesReports from './pages/admin/SalesReports';
-import ExpenseReports from './pages/admin/ExpenseReports';
-import AdminAnalytics from './pages/admin/Analytics';
-import AdminSchedule from './pages/admin/Schedule';
-import AdminBookings from './pages/admin/Bookings';
-import ManageServices from './pages/admin/ManageServices';
-import ServiceDetailPage from './pages/admin/ServiceDetailPage';
-import ManageTourPackages from './pages/admin/ManageTourPackages';
-import ManageTuktripPackages from './pages/admin/ManageTuktripPackages';
-import ManageCarRentals from './pages/admin/ManageCarRentals';
-import AddTourPackagePage from './pages/admin/AddTourPackagePage';
-import AddTuktripPage from './pages/admin/AddTuktripPage';
-import AddCarRentalPage from './pages/admin/AddCarRentalPage';
-import EditTourPackagePage from './pages/admin/EditTourPackagePage';
-import EditTuktripPage from './pages/admin/EditTuktripPage';
-import EditCarRentalPage from './pages/admin/EditCarRentalPage';
-import CarRentalDetailPage from './pages/admin/CarRentalDetailPage';
-import TourPackageDetailPage from './pages/admin/TourPackageDetailPage';
-import AddServicePage from './pages/admin/AddServicePage';
-import ManageCustomizations from './pages/admin/ManageCustomizations';
-import ManageAccounts from './pages/admin/ManageAccounts';
-import AdminReviews from './pages/admin/Reviews';
-import Inquiries from './pages/admin/Inquiries';
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const SalesReports = lazy(() => import('./pages/admin/SalesReports'));
+const ExpenseReports = lazy(() => import('./pages/admin/ExpenseReports'));
+const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
+const AdminSchedule = lazy(() => import('./pages/admin/Schedule'));
+const AdminBookings = lazy(() => import('./pages/admin/Bookings'));
+const ManageServices = lazy(() => import('./pages/admin/ManageServices'));
+const ServiceDetailPage = lazy(() => import('./pages/admin/ServiceDetailPage'));
+const ManageTourPackages = lazy(() => import('./pages/admin/ManageTourPackages'));
+const ManageTuktripPackages = lazy(() => import('./pages/admin/ManageTuktripPackages'));
+const ManageCarRentals = lazy(() => import('./pages/admin/ManageCarRentals'));
+const AddTourPackagePage = lazy(() => import('./pages/admin/AddTourPackagePage'));
+const AddTuktripPage = lazy(() => import('./pages/admin/AddTuktripPage'));
+const AddCarRentalPage = lazy(() => import('./pages/admin/AddCarRentalPage'));
+const EditTourPackagePage = lazy(() => import('./pages/admin/EditTourPackagePage'));
+const EditTuktripPage = lazy(() => import('./pages/admin/EditTuktripPage'));
+const EditCarRentalPage = lazy(() => import('./pages/admin/EditCarRentalPage'));
+const CarRentalDetailPage = lazy(() => import('./pages/admin/CarRentalDetailPage'));
+const TourPackageDetailPage = lazy(() => import('./pages/admin/TourPackageDetailPage'));
+const AddServicePage = lazy(() => import('./pages/admin/AddServicePage'));
+const ManageCustomizations = lazy(() => import('./pages/admin/ManageCustomizations'));
+const ManageAccounts = lazy(() => import('./pages/admin/ManageAccounts'));
+const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
+const Inquiries = lazy(() => import('./pages/admin/Inquiries'));
 
 // Pages - Staff Dashboard
-import StaffDashboard from './pages/staff/Dashboard';
-import MyTours from './pages/staff/MyTours';
-import Calendar from './pages/staff/Calendar';
+const StaffDashboard = lazy(() => import('./pages/staff/Dashboard'));
+const MyTours = lazy(() => import('./pages/staff/MyTours'));
+const Calendar = lazy(() => import('./pages/staff/Calendar'));
 
 function App() {
   return (
@@ -75,6 +73,7 @@ function App() {
       <NotificationProvider>
         <ConfirmationProvider>
           <BrowserRouter>
+          <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-600">Loading...</div>}>
           <Routes>
             {/* Public Tourist Journeys */}
             <Route path="/" element={<MainLayout />}>
@@ -206,14 +205,12 @@ function App() {
             {/* Fallback Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
           </BrowserRouter>
         </ConfirmationProvider>
       </NotificationProvider>
     </AuthProvider>
   );
 }
-
-// Inline import helper since Booking is in same folder scope
-import Booking from './pages/public/Booking';
 
 export default App;

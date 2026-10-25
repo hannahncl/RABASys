@@ -47,15 +47,30 @@ const inputFocusHandlers = {
 
 const SelectionPage = ({ title, description, onBack, actionLabel, onAction, children }) => (
   <div className="min-h-screen bg-white px-4 py-10 sm:px-8 sm:py-14" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
-    <div className="mx-auto max-w-6xl">
-      <button type="button" onClick={onBack} className="mb-8 text-sm font-semibold text-[#6b6255] hover:text-[#1a1715]">← Back to trip customization</button>
+    <div className="mx-auto max-w-5xl">
       <div className="bg-white p-0 sm:p-2">
-        <div className="mb-7 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-[#6b6255] transition-colors hover:text-[#1a1715]"
+        >
+          <span aria-hidden="true">←</span>
+          Back
+        </button>
+        <div className="mb-7 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold" style={{ color: colors.textPrimary }}>{title}</h1>
             <p className="mt-2 text-sm" style={{ color: colors.textMuted }}>{description}</p>
           </div>
-          {actionLabel && <button type="button" onClick={onAction} className="bg-[#1a1715] px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white">{actionLabel}</button>}
+          {actionLabel && (
+            <button
+              type="button"
+              onClick={onAction}
+              className="mt-1 shrink-0 rounded-md bg-[#1a1715] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-[#332e2a]"
+            >
+              {actionLabel}
+            </button>
+          )}
         </div>
         {children}
       </div>
@@ -78,20 +93,108 @@ const OptionPickerModal = ({ title, description, onClose, children }) => (
   </div>
 );
 
-const OptionCard = ({ item, selected, price, multiSelect = false, onClick }) => (
+const AccommodationPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="accommodation-preference-title"
+      className="w-full max-w-md rounded-lg border border-[#d6cfc2] bg-white p-5 shadow-2xl sm:p-6"
+      onMouseDown={event => event.stopPropagation()}
+    >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="accommodation-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Tell us about your preferred stay</h3>
+          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>We’ll pass your request to our team. Your preferred stay may not be available.</p>
+        </div>
+        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close accommodation preference">×</button>
+      </div>
+      <label htmlFor="other-accommodation-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What are you looking for?</label>
+      <textarea
+        id="other-accommodation-preference"
+        autoFocus
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        placeholder="For example, a beachfront stay or a family room"
+        rows={4}
+        className="w-full resize-y rounded-md border border-[#d6cfc2] px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
+      />
+      <div className="mt-5 flex justify-end gap-3">
+        <button type="button" onClick={onClose} className="rounded-md border border-[#d6cfc2] px-4 py-2.5 text-sm font-medium text-[#4a453b] hover:bg-[#fcfbf9]">Cancel</button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!value.trim()}
+          className="rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#332e2a] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Save preference
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const ActivityPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="activity-preference-title"
+      className="w-full max-w-md rounded-lg border border-[#d6cfc2] bg-white p-5 shadow-2xl sm:p-6"
+      onMouseDown={event => event.stopPropagation()}
+    >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="activity-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Request a different activity</h3>
+          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>Tell us what you’d like to do. Our team will review your request.</p>
+        </div>
+        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close activity request">×</button>
+      </div>
+      <label htmlFor="other-activity-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What activity would you like?</label>
+      <textarea
+        id="other-activity-preference"
+        autoFocus
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        placeholder="For example, a cooking class or a guided nature walk"
+        rows={4}
+        className="w-full resize-y rounded-md border border-[#d6cfc2] px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
+      />
+      <div className="mt-5 flex justify-end gap-3">
+        <button type="button" onClick={onClose} className="rounded-md border border-[#d6cfc2] px-4 py-2.5 text-sm font-medium text-[#4a453b] hover:bg-[#fcfbf9]">Cancel</button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!value.trim()}
+          className="rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#332e2a] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Save request
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const OptionCard = ({ item, selected, price, multiSelect = false, compact = false, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`group overflow-hidden rounded-md border text-left transition-all hover:-translate-y-0.5 hover:border-[#8a7f70] hover:bg-[#f7f4ef] hover:shadow-md ${selected ? 'border-[#1a1715] bg-[#f7f4ef] ring-1 ring-[#1a1715]' : 'border-[#d6cfc2]'}`}
+    aria-pressed={selected}
+    className={`group overflow-hidden border text-left transition-all ${compact
+      ? 'flex aspect-square flex-col'
+      : ''
+    } ${compact
+      ? `rounded-lg bg-white hover:border-[#8a7f70] hover:bg-[#fcfbf9] hover:shadow-sm ${selected ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`
+      : `rounded-md hover:-translate-y-0.5 hover:border-[#8a7f70] hover:bg-[#f7f4ef] hover:shadow-md ${selected ? 'border-[#1a1715] bg-[#f7f4ef] ring-1 ring-[#1a1715]' : 'border-[#d6cfc2]'}`}`}
   >
-    {item.image ? <img src={item.image} alt={item.name} className="h-36 w-full object-cover" /> : <div className="h-24 w-full bg-[#f7f4ef]" />}
-    <span className="block p-4">
+    {item.image ? <img src={item.image} alt={item.name} className={`${compact ? 'h-1/2 shrink-0' : 'h-36'} w-full object-cover`} /> : <div className={`${compact ? 'h-1/2 shrink-0' : 'h-24'} w-full bg-[#f7f4ef]`} />}
+    <span className={compact ? 'flex min-h-0 flex-1 flex-col justify-center p-4' : 'block p-4'}>
       <span className="flex items-start justify-between gap-3">
         <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{item.name}</span>
         {multiSelect && <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selected ? '✓' : ''}</span>}
       </span>
       <span className="mt-1 block text-[11px] font-semibold" style={{ color: colors.accentDark }}>{price}</span>
-      {item.details && <span className="mt-2 block text-[11px] leading-relaxed" style={{ color: colors.textMuted }}>{item.details}</span>}
+      {item.details && <span className={`mt-2 block text-[11px] leading-relaxed ${compact ? 'line-clamp-3' : ''}`} style={{ color: colors.textMuted }}>{item.details}</span>}
     </span>
   </button>
 );
@@ -274,12 +377,16 @@ const CustomPlanner = () => {
   const [destination, setDestination] = useState('');
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [otherAccommodationPreference, setOtherAccommodationPreference] = useState('');
+  const [accommodationPreferenceDraft, setAccommodationPreferenceDraft] = useState('');
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [otherActivityPreference, setOtherActivityPreference] = useState('');
+  const [activityPreferenceDraft, setActivityPreferenceDraft] = useState('');
   const [tourGuides, setTourGuides] = useState([]);
   const [preferredGuideId, setPreferredGuideId] = useState('');
   const [showGuidePicker, setShowGuidePicker] = useState(false);
   const [showAccommodationPicker, setShowAccommodationPicker] = useState(false);
+  const [showAccommodationPreferenceDialog, setShowAccommodationPreferenceDialog] = useState(false);
+  const [showActivityPreferenceDialog, setShowActivityPreferenceDialog] = useState(false);
   const [showActivityPicker, setShowActivityPicker] = useState(false);
   const [selectionPage, setSelectionPage] = useState(null);
 
@@ -304,9 +411,35 @@ const CustomPlanner = () => {
   useEffect(() => {
     setSelectedHotel(null);
     setOtherAccommodationPreference('');
+    setAccommodationPreferenceDraft('');
     setSelectedActivities([]);
     setOtherActivityPreference('');
+    setActivityPreferenceDraft('');
   }, [destination]);
+
+  const openAccommodationPreferenceDialog = () => {
+    setAccommodationPreferenceDraft(otherAccommodationPreference);
+    setShowAccommodationPicker(false);
+    setShowAccommodationPreferenceDialog(true);
+  };
+
+  const saveAccommodationPreference = () => {
+    setOtherAccommodationPreference(accommodationPreferenceDraft.trim());
+    setSelectedHotel({ id: '__other__', name: 'Custom accommodation request', pricePerGuest: 0 });
+    setShowAccommodationPreferenceDialog(false);
+    setSelectionPage(null);
+  };
+
+  const openActivityPreferenceDialog = () => {
+    setActivityPreferenceDraft(otherActivityPreference);
+    setShowActivityPicker(false);
+    setShowActivityPreferenceDialog(true);
+  };
+
+  const saveActivityPreference = () => {
+    setOtherActivityPreference(activityPreferenceDraft.trim());
+    setShowActivityPreferenceDialog(false);
+  };
 
   const handleDateSelect = useCallback((dateStr) => {
     const durationEndDate = getDurationEndDate(dateStr, numDays, numNights);
@@ -389,9 +522,10 @@ const CustomPlanner = () => {
   const currentDest = data.destinations[destination];
   const preferredGuide = tourGuides.find(guide => String(guide.guideId) === preferredGuideId);
   const currentHotels = data.hotels?.[destination] || [];
-  const selectedActivitiesSummary = selectedActivities
+  const selectedActivityNames = selectedActivities
     .map((actId) => currentDest?.activities?.find((activity) => activity.id === actId)?.name)
     .filter(Boolean);
+  const selectedActivitiesSummary = [...selectedActivityNames];
   if (otherActivityPreference.trim()) {
     selectedActivitiesSummary.push(`Other: ${otherActivityPreference.trim()}`);
   }
@@ -452,28 +586,46 @@ const CustomPlanner = () => {
     return (
       <SelectionPage
         title="Choose an accommodation"
-        description="Select an accommodation to include in your custom trip request."
+        description="Choose one of these stays, or tell us what you’re looking for."
         onBack={() => setSelectionPage(null)}
       >
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="mx-auto mb-5 flex max-w-4xl flex-col gap-4 rounded-lg border border-[#d6cfc2] bg-[#fcfbf9] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
+              {selectedHotel?.id === '__other__' ? 'Looking for a different stay?' : 'Can’t find what you’re looking for?'}
+            </p>
+            <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>
+              Tell us your preferred accommodation and our team will review your request.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openAccommodationPreferenceDialog}
+            className="shrink-0 rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#332e2a]"
+          >
+            {selectedHotel?.id === '__other__' ? 'Edit request' : 'Request a different stay'}
+          </button>
+        </div>
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {currentHotels.map(hotel => (
             <OptionCard
               key={hotel.id}
               item={hotel}
               selected={selectedHotel?.id === hotel.id}
               price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+              compact
               onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setSelectionPage(null); }}
             />
           ))}
-          <button
-            type="button"
-            onClick={() => { setSelectedHotel({ id: '__other__', name: 'Other', pricePerGuest: 0 }); setOtherAccommodationPreference(''); setSelectionPage(null); }}
-            className={`rounded-md border p-6 text-center transition-all hover:bg-[#f7f4ef] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
-          >
-            <span className="text-base font-semibold" style={{ color: colors.textPrimary }}>Other preference</span>
-            <span className="mt-2 block text-sm" style={{ color: colors.textMuted }}>Tell the tour team what type of stay you prefer.</span>
-          </button>
         </div>
+        {showAccommodationPreferenceDialog && (
+          <AccommodationPreferenceDialog
+            value={accommodationPreferenceDraft}
+            onChange={setAccommodationPreferenceDraft}
+            onClose={() => setShowAccommodationPreferenceDialog(false)}
+            onSave={saveAccommodationPreference}
+          />
+        )}
       </SelectionPage>
     );
   }
@@ -487,7 +639,24 @@ const CustomPlanner = () => {
         actionLabel="Done"
         onAction={() => setSelectionPage(null)}
       >
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="mx-auto mb-5 flex max-w-4xl flex-col gap-4 rounded-lg border border-[#d6cfc2] bg-[#fcfbf9] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: colors.textPrimary }}>
+              {otherActivityPreference ? 'Want to change your activity request?' : 'Can’t find the activity you want?'}
+            </p>
+            <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>
+              Tell us what you’d like to do and our team will review your request.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openActivityPreferenceDialog}
+            className="shrink-0 rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#332e2a]"
+          >
+            {otherActivityPreference ? 'Edit activity request' : 'Request another activity'}
+          </button>
+        </div>
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(currentDest?.activities || []).map(activity => (
             <OptionCard
               key={activity.id}
@@ -495,10 +664,19 @@ const CustomPlanner = () => {
               selected={selectedActivities.includes(activity.id)}
               price={`PHP ${Number(activity.price || 0).toLocaleString()}`}
               multiSelect
+              compact
               onClick={() => handleActivityToggle(activity.id)}
             />
           ))}
         </div>
+        {showActivityPreferenceDialog && (
+          <ActivityPreferenceDialog
+            value={activityPreferenceDraft}
+            onChange={setActivityPreferenceDraft}
+            onClose={() => setShowActivityPreferenceDialog(false)}
+            onSave={saveActivityPreference}
+          />
+        )}
       </SelectionPage>
     );
   }
@@ -589,7 +767,7 @@ const CustomPlanner = () => {
                   <label className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textSecondary }}>
                     Number of PAX
                   </label>
-                  <span className="text-xs" style={{ color: colors.textMuted }}>(max 212 pax)</span>
+                  <span className="text-xs" style={{ color: colors.textMuted }}></span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[
@@ -727,16 +905,20 @@ const CustomPlanner = () => {
                   <span className="text-[18px] leading-none" style={{ color: colors.textMuted }}>⌄</span>
                 </button>
                 {selectedHotel?.id === '__other__' && (
-                  <input
-                    type="text"
-                    value={otherAccommodationPreference}
-                    onChange={e => setOtherAccommodationPreference(e.target.value)}
-                    placeholder="Enter your accommodation preference"
-                    aria-label="Other accommodation preference"
-                    className="mt-3 w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                    style={inputStyle}
-                    {...inputFocusHandlers}
-                  />
+                  <div className="mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textMuted }}>Custom stay request</p>
+                      <p className="mt-1 break-words text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>{otherAccommodationPreference}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openAccommodationPreferenceDialog}
+                      className="self-start rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:bg-white sm:self-center"
+                      style={{ borderColor: colors.border, color: colors.accentDark }}
+                    >
+                      Edit request
+                    </button>
+                  </div>
                 )}
 
                 {showAccommodationPicker && (
@@ -745,26 +927,35 @@ const CustomPlanner = () => {
                     description="Select an accommodation to include in your custom trip request."
                     onClose={() => setShowAccommodationPicker(false)}
                   >
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {currentHotels.map(hotel => (
                         <OptionCard
                           key={hotel.id}
                           item={hotel}
                           selected={selectedHotel?.id === hotel.id}
                           price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+                          compact
                           onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
                         />
                       ))}
                       <button
                         type="button"
-                        onClick={() => { setSelectedHotel({ id: '__other__', name: 'Other', pricePerGuest: 0 }); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
-                        className={`rounded-md border p-5 text-center transition-all hover:bg-[#f7f4ef] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
+                        onClick={openAccommodationPreferenceDialog}
+                        className={`flex aspect-square flex-col items-center justify-center rounded-lg border p-5 text-center transition-all hover:border-[#8a7f70] hover:bg-[#fcfbf9] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#f7f4ef]' : 'border-[#d6cfc2]'}`}
                       >
                         <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Other preference</span>
-                        <span className="mt-2 block text-[11px]" style={{ color: colors.textMuted }}>Tell the tour team what type of stay you prefer.</span>
+                        <span className="mt-2 block text-[11px]" style={{ color: colors.textMuted }}>Describe the stay you are looking for.</span>
                       </button>
                     </div>
                   </OptionPickerModal>
+                )}
+                {showAccommodationPreferenceDialog && (
+                  <AccommodationPreferenceDialog
+                    value={accommodationPreferenceDraft}
+                    onChange={setAccommodationPreferenceDraft}
+                    onClose={() => setShowAccommodationPreferenceDialog(false)}
+                    onSave={saveAccommodationPreference}
+                  />
                 )}
               </div>
 
@@ -780,23 +971,41 @@ const CustomPlanner = () => {
                   <span>{selectedActivities.length ? `${selectedActivities.length} activit${selectedActivities.length === 1 ? 'y' : 'ies'} selected` : 'Select activities'}</span>
                   <span className="text-[18px] leading-none" style={{ color: colors.textMuted }}>⌄</span>
                 </button>
-                <textarea
-                  value={otherActivityPreference}
-                  onChange={e => setOtherActivityPreference(e.target.value)}
-                  placeholder="Other activity preference (optional)"
-                  aria-label="Other activity preference"
-                  rows={2}
-                  className="mt-3 w-full py-3 px-4 text-[13px] focus:outline-none transition-all"
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                  {...inputFocusHandlers}
-                />
+                {selectedActivityNames.length > 0 && (
+                  <div className="mt-3 rounded-md border px-4 py-3" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: colors.textMuted }}>Selected activities</p>
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {selectedActivityNames.map(activity => (
+                        <li key={activity} className="rounded-full border px-3 py-1 text-[12px]" style={{ borderColor: colors.border, color: colors.textSecondary, background: colors.cardBg }}>
+                          {activity}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {otherActivityPreference && (
+                  <div className="mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textMuted }}>Custom activity request</p>
+                      <p className="mt-1 break-words text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>{otherActivityPreference}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectionPage('activities')}
+                      className="self-start rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:bg-white sm:self-center"
+                      style={{ borderColor: colors.border, color: colors.accentDark }}
+                    >
+                      Edit request
+                    </button>
+                  </div>
+                )}
                 {showActivityPicker && (
                   <OptionPickerModal
                     title="Choose activities"
                     description="Select one or more activities to include in your custom trip request."
                     onClose={() => setShowActivityPicker(false)}
                   >
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {(currentDest?.activities || []).map(act => (
                         <OptionCard
                           key={act.id}
@@ -804,6 +1013,7 @@ const CustomPlanner = () => {
                           selected={selectedActivities.includes(act.id)}
                           price={`PHP ${Number(act.price || 0).toLocaleString()}`}
                           multiSelect
+                          compact
                           onClick={() => handleActivityToggle(act.id)}
                         />
                       ))}

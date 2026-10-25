@@ -67,7 +67,7 @@ const Home = () => {
               Discover beautiful places in Bicol with thoughtfully planned tours, flexible travel options, and local guidance every step of the way.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/packages" className="inline-flex items-center gap-2 rounded-full bg-[#6b1022] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_22px_rgba(74,8,24,0.28)] transition hover:bg-[#841b31]">
+              <Link to="/packages" className="inline-flex items-center gap-2 rounded-full bg-[#ead7b4] px-6 py-3 text-sm font-bold text-[#2d2a24] transition hover:bg-white">
                 Book Now <ArrowRight className="h-4 w-4" />
               </Link>
               <Link to="/customize" className="inline-flex items-center gap-2 rounded-full border border-white/45 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
@@ -113,22 +113,22 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="relative flex min-h-[calc(100vh-80px)] items-start overflow-hidden border-y border-[#ead8d8] bg-[linear-gradient(135deg,#fffaf9_0%,#f8eeee_52%,#fff8f4_100%)]">
+      <section className="relative flex min-h-[calc(100vh-80px)] items-start overflow-hidden border-y border-[#e5e1da] bg-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-          <span className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f1dce0]/75 blur-3xl animate-pulse" />
-          <span className="absolute right-[-6rem] top-40 h-80 w-80 rounded-full bg-[#f5e8e3]/80 blur-3xl animate-pulse [animation-delay:900ms]" />
-          <div className="absolute left-[8%] right-[8%] top-[47%] border-t border-dashed border-[#d6b8bd]/60" />
-          <span className="absolute left-[18%] top-[calc(47%-5px)] h-2.5 w-2.5 rounded-full bg-[#7a1428] shadow-[0_0_0_6px_rgba(122,20,40,0.12)] animate-[bounce_4s_ease-in-out_infinite]" />
-          <span className="absolute left-[67%] top-[calc(47%-5px)] h-2.5 w-2.5 rounded-full bg-[#b47b68] shadow-[0_0_0_6px_rgba(180,123,104,0.14)] animate-[bounce_4s_ease-in-out_infinite] [animation-delay:1.2s]" />
+          <span className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f6e9df]/70 blur-3xl animate-pulse" />
+          <span className="absolute right-[-6rem] top-40 h-80 w-80 rounded-full bg-[#e4eef2]/80 blur-3xl animate-pulse [animation-delay:900ms]" />
+          <div className="absolute left-[8%] right-[8%] top-[47%] border-t border-dashed border-[#d9c8b9]/60" />
+          <span className="absolute left-[18%] top-[calc(47%-5px)] h-2.5 w-2.5 rounded-full bg-[#b98e72] shadow-[0_0_0_6px_rgba(185,142,114,0.12)] animate-[bounce_4s_ease-in-out_infinite]" />
+          <span className="absolute left-[67%] top-[calc(47%-5px)] h-2.5 w-2.5 rounded-full bg-[#607d91] shadow-[0_0_0_6px_rgba(96,125,145,0.12)] animate-[bounce_4s_ease-in-out_infinite] [animation-delay:1.2s]" />
         </div>
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-12 lg:py-10">
         <div>
           <div className="flex items-end justify-between gap-5">
             <div>
-              <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#8b4a55]">Find your next escape</p>
-              <h2 className="mt-0 text-3xl font-medium tracking-[-0.025em] text-[#4a1020] sm:text-4xl" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Featured tour packages.</h2>
+              <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#8f8576]">Find your next escape</p>
+              <h2 className="mt-0 text-3xl font-medium tracking-[-0.025em] text-[#2d2a24] sm:text-4xl" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Featured tour packages.</h2>
             </div>
-            <Link to="/packages" className="hidden items-center gap-2 text-sm font-bold text-[#76172a] transition hover:text-[#a13b4c] sm:inline-flex">View all packages <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/packages" className="hidden items-center gap-2 text-sm font-bold text-[#603524] transition hover:text-[#294136] sm:inline-flex">View all packages <ArrowRight className="h-4 w-4" /></Link>
           </div>
           <div className="mt-10 grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {packages.map((pkg, index) => {
@@ -141,10 +141,10 @@ const Home = () => {
               return (
                 <article
                   key={pkgId || index}
-                  className="group relative flex h-full w-full flex-col overflow-hidden transition-all duration-500 hover:-translate-y-[3px] hover:border-[#b56c78] hover:shadow-[0_14px_32px_rgba(91,16,35,0.13)]"
-                  style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e8d5d6', boxShadow: '0 4px 16px rgba(91,16,35,0.06)', fontFamily: "'Inter', sans-serif" }}
+                  className="group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-[#d9c1ad] bg-[#fffaf5] shadow-[0_10px_24px_rgba(79,60,39,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#b98e72] hover:shadow-[0_16px_30px_rgba(79,60,39,0.15)]"
+                  style={{ fontFamily: "'Inter', sans-serif" }}
                 >
-                  <div className="relative h-[240px] w-full overflow-hidden bg-[#fcf6f5]">
+                  <div className="relative h-[240px] w-full overflow-hidden bg-[#dfe8e3]">
                     {pkgId && !String(pkgId).startsWith('fallback-') && (
                       <FavoriteButton itemId={pkgId} itemType="tour" className="absolute right-3 top-3 z-10 shadow-sm" />
                     )}
@@ -154,40 +154,40 @@ const Home = () => {
                       onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackPackages[index % fallbackPackages.length].image; }}
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#351018]/35 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#211b17]/35 to-transparent" />
                   </div>
                   <div className="flex flex-1 flex-col px-5 pb-5 pt-5">
-                    <h3 className="mb-1 text-sm font-semibold leading-snug text-[#3d1b22]" style={{ letterSpacing: '0.02em' }}>{packageTitle}</h3>
+                    <h3 className="mb-1 text-sm font-semibold leading-snug text-[#294136]" style={{ letterSpacing: '0.02em' }}>{packageTitle}</h3>
                     <div className="mb-2 flex items-center gap-1.5">
                       <div className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 fill-[#a87543] text-[#a87543]" />
-                        <span className="text-xs font-bold text-[#4a1020]">{Number(pkg.rating) > 0 ? Number(pkg.rating).toFixed(1) : 'New'}</span>
+                        <span className="text-xs font-bold text-[#603524]">{Number(pkg.rating) > 0 ? Number(pkg.rating).toFixed(1) : 'New'}</span>
                       </div>
-                      <span className="text-[10px] font-medium text-[#917b78]">
+                      <span className="text-[10px] font-medium text-[#8f8576]">
                         {Number(pkg.reviewsCount || pkg.reviews_count) > 0
                           ? `(${Number(pkg.reviewsCount || pkg.reviews_count)} ${Number(pkg.reviewsCount || pkg.reviews_count) === 1 ? 'review' : 'reviews'})`
                           : 'No reviews yet'}
                       </span>
                     </div>
-                    <div className="mt-auto grid grid-cols-2 gap-x-2 gap-y-3.5 border-t border-[#efdfdf] pt-4 text-[11px] font-medium text-[#514346]">
+                    <div className="mt-auto grid grid-cols-2 gap-x-2 gap-y-3.5 border-t border-[#e4d2bf] pt-4 text-[11px] font-medium text-[#526b7b]">
                       <div className="flex min-w-0 items-center gap-2">
-                        {isJoiner ? <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#861c32]" /> : <Clock className="h-3.5 w-3.5 shrink-0 text-[#861c32]" />}
+                        {isJoiner ? <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#8b5e48]" /> : <Clock className="h-3.5 w-3.5 shrink-0 text-[#8b5e48]" />}
                         <span className="truncate">{isJoiner ? packageDate(availability?.departureDate || pkg.joinerDate || pkg.joiner_date) : (pkg.duration || 'Duration TBA')}</span>
                       </div>
                       <div className="flex min-w-0 items-center gap-2">
-                        <Users className="h-3.5 w-3.5 shrink-0 text-[#861c32]" />
+                        <Users className="h-3.5 w-3.5 shrink-0 text-[#8b5e48]" />
                         <span className="truncate">{isJoiner
                           ? (availability ? (availability.bookingOpen ? `${availability.remainingSlots} ${availability.remainingSlots === 1 ? 'spot' : 'spots'} left` : 'Booking closed') : 'Availability loading')
                           : (pkg.maximumCapacity ? `Up to ${pkg.maximumCapacity} guests` : 'Flexible group size')}</span>
                       </div>
                     </div>
-                    <div className="mb-4 mt-5 h-px bg-[#efdfdf]" />
+                    <div className="mb-4 mt-5 h-px bg-[#e4d2bf]" />
                     <div className="flex items-center justify-between gap-3 pt-1">
                       <div>
-                        <span className="mr-1 text-lg font-semibold text-[#5a1023]">₱{Number(pkg.price || 0).toLocaleString()}</span>
-                        <span className="text-[9px] font-medium tracking-[0.06em] text-[#765b5f]">/ person</span>
+                        <span className="mr-1 text-lg font-semibold text-[#603524]">₱{Number(pkg.price || 0).toLocaleString()}</span>
+                        <span className="text-[9px] font-medium tracking-[0.06em] text-[#8f8576]">/ person</span>
                       </div>
-                      <Link to={bookingLink} className="rounded-[3px] border border-[#681326] bg-[#681326] px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_4px_12px_rgba(104,19,38,0.16)] transition-all duration-300 hover:border-[#8c263b] hover:bg-[#8c263b]" style={{ whiteSpace: 'nowrap' }}>
+                      <Link to={bookingLink} className="rounded-full border border-[#294136] bg-[#294136] px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white transition-all duration-300 hover:border-[#426348] hover:bg-[#426348]" style={{ whiteSpace: 'nowrap' }}>
                         Book Now
                       </Link>
                     </div>
@@ -260,38 +260,36 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden border-y border-[#57101f] bg-[linear-gradient(120deg,#4b0d1b_0%,#751a2d_52%,#4b0d1b_100%)]">
-        <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full border border-white/10" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-56 left-[10%] h-96 w-96 rounded-full bg-[#a94455]/20 blur-3xl" aria-hidden="true" />
+      <section className="border-y border-[#eadbca] bg-[#f5eee5]">
         <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-12 lg:py-16">
-          <div className="relative flex flex-col gap-8 rounded-2xl border border-[#ead7d5] bg-[#fffaf8] p-6 shadow-[0_18px_42px_rgba(35,4,13,0.24)] sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
+          <div className="flex flex-col gap-8 rounded-2xl border border-[#e4d2bf] bg-[#fffaf5] p-6 shadow-[0_12px_30px_rgba(92,57,35,0.09)] sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
             <div className="max-w-xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8b3547]">The RABAS difference</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#4a1020]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Why travel with us?</h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#426348]">The RABAS difference</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Why travel with us?</h2>
               <p className="mt-3 text-sm leading-6 text-[#6b6255]">From the first idea to the journey home, we make exploring Bicol feel easier, warmer, and more personal.</p>
             </div>
             <div className="grid flex-1 gap-5 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-4">
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3e5] text-[#7a1428] transition group-hover:scale-110"><Compass className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#4a1020]">Curated trips</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Thoughtful Bicol itineraries.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3e5] text-[#7a1428] transition group-hover:scale-110"><MapPin className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#4a1020]">Local guidance</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Routes shaped by locals.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3e5] text-[#7a1428] transition group-hover:scale-110"><ArrowRight className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#4a1020]">Easy booking</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Clear options from start to finish.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3e5] text-[#7a1428] transition group-hover:scale-110"><Users className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#4a1020]">Travel support</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Help whenever you need it.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e3eee6] text-[#426348] transition group-hover:scale-110"><Compass className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Curated trips</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Thoughtful Bicol itineraries.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f6e9df] text-[#8b5e48] transition group-hover:scale-110"><MapPin className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Local guidance</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Routes shaped by locals.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e6eef2] text-[#385467] transition group-hover:scale-110"><ArrowRight className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Easy booking</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Clear options from start to finish.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f0e8df] text-[#76513b] transition group-hover:scale-110"><Users className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Travel support</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Help whenever you need it.</p></div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-[#ead8d8] bg-[linear-gradient(180deg,#fffaf9_0%,#f8eeee_100%)]">
+      <section className="border-y border-[#e6dfd3] bg-white">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 sm:px-8 lg:grid-cols-[1fr_1.2fr] lg:px-12 lg:py-24">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8b4a55]">Travel made personal</p>
-            <h2 className="mt-3 max-w-md text-4xl font-semibold leading-tight tracking-[-0.035em] text-[#4a1020]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>More than a destination.</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8f8576]">Travel made personal</p>
+            <h2 className="mt-3 max-w-md text-4xl font-semibold leading-tight tracking-[-0.035em] text-[#2d2a24]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>More than a destination.</h2>
             <p className="mt-5 max-w-lg text-sm leading-7 text-[#6b6255]">From the first idea to the moment you arrive home, RABAS helps make every detail feel easier, warmer, and worth remembering.</p>
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              <div><Users className="h-5 w-5 text-[#7a1428]" /><h3 className="mt-3 text-sm font-bold text-[#4a1020]">Local perspective</h3><p className="mt-1 text-xs leading-5 text-[#6b6255]">Routes shaped by people who know the places best.</p></div>
-              <div><Compass className="h-5 w-5 text-[#7a1428]" /><h3 className="mt-3 text-sm font-bold text-[#4a1020]">Easy planning</h3><p className="mt-1 text-xs leading-5 text-[#6b6255]">Clear options for tours, rentals, and custom trips.</p></div>
+              <div><Users className="h-5 w-5 text-[#603524]" /><h3 className="mt-3 text-sm font-bold text-[#2d2a24]">Local perspective</h3><p className="mt-1 text-xs leading-5 text-[#6b6255]">Routes shaped by people who know the places best.</p></div>
+              <div><Compass className="h-5 w-5 text-[#603524]" /><h3 className="mt-3 text-sm font-bold text-[#2d2a24]">Easy planning</h3><p className="mt-1 text-xs leading-5 text-[#6b6255]">Clear options for tours, rentals, and custom trips.</p></div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-2xl border border-[#d9b7bd] bg-[#4a1020] p-1 shadow-[0_18px_45px_rgba(79,16,32,0.2)]">
+          <div className="relative overflow-hidden rounded-2xl bg-[#2d2a24] shadow-[0_18px_45px_rgba(79,60,39,0.16)]">
             <video
               className="h-[22rem] w-full rounded-xl object-cover sm:h-[30rem]"
               src="/rabas-travel-showcase.mov"
