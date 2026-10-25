@@ -1,4 +1,5 @@
 import mapGalleryService from './mapGalleryService';
+import { api } from '../../services/api';
 
 const STORAGE_KEY = 'rabas_customization_data_v2';
 
@@ -101,27 +102,48 @@ const saveData = (data) => {
   return normalized;
 };
 
+const saveRemoteData = async (data) => {
+  const normalized = normalizeData(data);
+  const saved = await api('/customization-options', {
+    method: 'PATCH',
+    body: JSON.stringify(normalized),
+  });
+  const result = normalizeData(saved);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+  return result;
+};
+
 export const customizationService = {
   getAll: async () => {
     await new Promise(resolve => setTimeout(resolve, 250));
+    try {
+      const remote = normalizeData(await api('/customization-options'));
+      const hasRemoteCatalog = Object.keys(remote.destinations).length > 0 || Object.keys(remote.hotels).length > 0;
+      if (hasRemoteCatalog) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+        return remote;
+      }
+    } catch {
+      // Keep the local default catalog available while the backend is unavailable.
+    }
     return loadData();
   },
 
   updateDestinations: async (destinations) => {
     await new Promise(resolve => setTimeout(resolve, 250));
-    const data = await loadData();
-    return saveData({ ...data, destinations });
+    const data = await customizationService.getAll();
+    return saveRemoteData({ ...data, destinations });
   },
 
   updateHotels: async (hotels) => {
     await new Promise(resolve => setTimeout(resolve, 250));
-    const data = await loadData();
-    return saveData({ ...data, hotels });
+    const data = await customizationService.getAll();
+    return saveRemoteData({ ...data, hotels });
   },
 
   updateHotelTiers: async (hotelTiers) => {
     await new Promise(resolve => setTimeout(resolve, 250));
-    const data = await loadData();
-    return saveData({ ...data, hotelTiers });
+    const data = await customizationService.getAll();
+    return saveRemoteData({ ...data, hotelTiers });
   }
 };

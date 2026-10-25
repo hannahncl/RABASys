@@ -247,6 +247,10 @@ async function sendBookingConfirmation(booking, type = "tour") {
 
     const isRental = type === "rental";
     const isCustomTrip = !isRental && Boolean(booking.customized_details);
+    const isConfirmedJoiner = !isRental
+        && !isCustomTrip
+        && String(booking.package_type || "").toLowerCase() === "joiner"
+        && booking.booking_status === "Confirmed";
     const isCustomQuote = type === "custom-quote";
     const isCustomAccepted = type === "custom-accepted";
     const isCustomSamplePayment = type === "custom-sample-payment";
@@ -338,7 +342,9 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ? "Your customized trip request has been reviewed and quoted."
             : isCustomTrip
                 ? "We received your customized trip request."
-                : "Your booking has been received.";
+                : isConfirmedJoiner
+                    ? "Your Joiner booking is confirmed and your spots are reserved."
+                    : "Your booking has been received.";
     const followUp = isCustomSamplePayment
         ? "This is a sample payment receipt only. No real payment was processed or money transferred."
         : isCustomAccepted
@@ -347,6 +353,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ? "To accept this itinerary and quote, sign in to your RABAS account and accept it from your booking details. No payment has been taken yet."
             : isCustomTrip
                 ? "Our team will review your selections and email you with the final quote and updates. No payment is required until pricing is reviewed."
+                : isConfirmedJoiner
+                    ? "Your Joiner departure is confirmed. Please keep this email for your records."
                 : "Please keep this email for your records. We will contact you with any updates.";
     const status = isCustomTrip && !hasQuote ? "Under review" : booking.booking_status || "Pending";
     const html = `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>${escapeHtml(message)}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>Status:</strong> ${escapeHtml(status)}</p><table style="width:100%;border-collapse:collapse">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}${priceHtml}</div><p>${escapeHtml(followUp)}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`;

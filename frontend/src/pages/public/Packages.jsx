@@ -2,10 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { api } from '../../services/api';
-import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays, Star } from 'lucide-react';
+import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays, Star, ChevronDown } from 'lucide-react';
 import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const packageCategories = [
+  {
+    key: 'all',
+    label: 'All Tour Packages',
+    shortLabel: 'All Packages',
+  },
   {
     key: 'exclusive',
     label: 'Exclusive Tour Package',
@@ -102,7 +107,7 @@ const Packages = () => {
       .toLowerCase();
 
     const matchesSearch = searchableText.includes(searchQuery.toLowerCase());
-    const matchesCategory = getPackageVisualCategory(pkg) === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || getPackageVisualCategory(pkg) === selectedCategory;
     const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
 
     return matchesSearch && matchesCategory && matchesPrice;
@@ -131,7 +136,7 @@ const Packages = () => {
             </h3>
 
             {/* Keyword Search */}
-            <div className="mb-6">
+            <div className="mb-8">
               <h4
                 className="text-[10px] font-semibold mb-3"
                 style={{
@@ -147,7 +152,7 @@ const Packages = () => {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="Search..."
-                className="w-full py-2.5 px-3 text-[13px] focus:outline-none transition-all"
+                className="w-full py-3 px-4 text-[13px] font-medium focus:outline-none transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.7)',
                   border: '1px solid #d6cfc2',
@@ -167,9 +172,9 @@ const Packages = () => {
             </div>
 
             {/* Package Category */}
-            <div className="mb-6">
+            <div className="mb-8">
               <h4
-                className="text-[10px] font-semibold mb-3 flex items-center gap-2"
+                className="text-[10px] font-semibold mb-4 flex items-center gap-2"
                 style={{
                   color: '#4a453b',
                   letterSpacing: '0.15em',
@@ -178,7 +183,7 @@ const Packages = () => {
               >
                 <Tags className="w-3.5 h-3.5" /> Category
               </h4>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 {packageCategories.map((category) => {
                   const isSelected = selectedCategory === category.key;
                   return (
@@ -186,11 +191,13 @@ const Packages = () => {
                       key={category.key}
                       type="button"
                       onClick={() => setSelectedCategory(category.key)}
-                      className="w-full rounded-md border px-3 py-2 text-left text-[11px] font-medium transition-colors"
+                      aria-pressed={isSelected}
+                      className="w-full rounded border px-4 py-3 text-left text-[13px] font-medium transition-colors"
                       style={{
-                        borderColor: isSelected ? '#2d2a24' : '#e0dbd0',
-                        background: isSelected ? '#2d2a24' : '#fff',
-                        color: isSelected ? '#f7f4ef' : '#45403a',
+                        borderColor: isSelected ? '#b0a68e' : '#d6cfc2',
+                        background: isSelected ? 'rgba(196,185,154,0.12)' : 'rgba(255,255,255,0.7)',
+                        color: isSelected ? '#3d3a34' : '#45403a',
+                        letterSpacing: '0.02em',
                       }}
                     >
                       {category.shortLabel}
@@ -200,9 +207,9 @@ const Packages = () => {
               </div>
             </div>
             {/* Price Range */}
-            <div className="mb-6">
+            <div className="mb-8">
               <h4
-                className="text-[10px] font-semibold mb-3"
+                className="text-[10px] font-semibold mb-4"
                 style={{
                   color: '#4a453b',
                   letterSpacing: '0.15em',
@@ -211,18 +218,28 @@ const Packages = () => {
               >
                 Price range
               </h4>
-              <select
-                value={priceRange.join('-')}
-                onChange={(e) => {
-                  const selectedRange = packagePriceRanges.find((option) => `${option.min}-${option.max}` === e.target.value);
-                  if (selectedRange) setPriceRange([selectedRange.min, selectedRange.max]);
-                }}
-                className="w-full rounded-md border border-[#e0dbd0] bg-white px-3 py-2.5 text-xs text-[#45403a] outline-none focus:border-[#b0a68e]"
-              >
-                {packagePriceRanges.map((option) => (
-                  <option key={option.label} value={`${option.min}-${option.max}`}>{option.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={priceRange.join('-')}
+                  onChange={(e) => {
+                    const selectedRange = packagePriceRanges.find((option) => `${option.min}-${option.max}` === e.target.value);
+                    if (selectedRange) setPriceRange([selectedRange.min, selectedRange.max]);
+                  }}
+                  className="w-full appearance-none py-3 pl-4 pr-10 text-[13px] font-medium transition-all"
+                  style={{
+                    borderRadius: '4px',
+                    border: '1px solid #d6cfc2',
+                    background: 'rgba(255,255,255,0.7)',
+                    color: '#45403a',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {packagePriceRanges.map((option) => (
+                    <option key={option.label} value={`${option.min}-${option.max}`}>{option.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b6255]" aria-hidden="true" />
+              </div>
             </div>
           </div>
 

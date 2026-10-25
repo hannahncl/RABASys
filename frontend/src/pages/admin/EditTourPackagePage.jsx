@@ -5,6 +5,7 @@ import { Save, ArrowLeft, X } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { compressPackageImage } from '../../utils/compressPackageImage';
+import { earliestBookingDeadline, isJoinerDeadlineValid } from '../../utils/joinerSchedule';
 
 const EditTourPackagePage = () => {
   const { id } = useParams();
@@ -119,8 +120,8 @@ const EditTourPackagePage = () => {
       showNotification('Please complete all fields before saving.', 'error');
       return;
     }
-    if (packageType === 'joiner' && formData.joinerBookingDeadline > formData.joinerDate) {
-      showNotification('The booking deadline must be on or before the trip date.', 'error');
+    if (packageType === 'joiner' && !isJoinerDeadlineValid(formData.joinerDate, formData.joinerBookingDeadline)) {
+      showNotification('The booking deadline must be at least 3 days before the trip date.', 'error');
       return;
     }
     if (packageType === 'joiner' && (!Number.isInteger(Number(formData.joinerSlots)) || Number(formData.joinerSlots) < 1)) {
@@ -231,8 +232,8 @@ const EditTourPackagePage = () => {
                 </div>
                 <div>
                   <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Booking Deadline</label>
-                  <input name="joinerBookingDeadline" type="date" max={formData.joinerDate || undefined} value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
-                  <p className="mt-1 text-[10px] text-slate-500">Last day to book; must be on or before the trip date.</p>
+                  <input name="joinerBookingDeadline" type="date" max={earliestBookingDeadline(formData.joinerDate) || undefined} value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <p className="mt-1 text-[10px] text-slate-500">Last day to book; at least 3 days before departure.</p>
                 </div>
               </div>
             </div>

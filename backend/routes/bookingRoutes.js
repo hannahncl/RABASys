@@ -4,6 +4,7 @@ const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
+const { isJoinerDeadlineValid } = require("../utils/joinerSchedule");
 const router = express.Router();
 
 
@@ -54,7 +55,7 @@ router.get("/joiner-availability/:packageId", async (req, res, next) => {
         const slotLimit = Math.min(Number(trip.joiner_slots || 0), Number(trip.max_capacity || trip.joiner_slots || 0));
         const remainingSlots = Math.max(0, slotLimit - Number(trip.reserved_slots || 0));
         const { rows: [{ today }] } = await db.query("SELECT CURRENT_DATE::text AS today");
-        const deadlineValid = Boolean(trip.joiner_booking_deadline && trip.joiner_date && trip.joiner_booking_deadline <= trip.joiner_date);
+        const deadlineValid = isJoinerDeadlineValid(trip.joiner_date, trip.joiner_booking_deadline);
         const bookingOpen = Boolean(trip.joiner_date && deadlineValid && trip.joiner_date >= today && remainingSlots > 0 && (!trip.joiner_booking_deadline || today <= trip.joiner_booking_deadline));
         res.json({
             packageId: String(trip.package_id),
@@ -94,7 +95,7 @@ router.post("/", requireAuth, async (req, res, next) => {
         let pkg = null;
         const reference = `RBT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         const client = await db.connect();
-        let inserted;
+        let booking;
         try {
             await client.query("BEGIN");
             if (package_id) {
@@ -108,6 +109,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
             const guestCount = Number(number_of_persons);
             const isJoiner = String(pkg?.package_type || "").toLowerCase() === "joiner";
+            let bookingTravelDate = travel_date;
             if (isJoiner) {
                 const scheduledDate = pkg.joiner_date ? String(pkg.joiner_date).slice(0, 10) : "";
                 const bookingDeadline = pkg.joiner_booking_deadline ? String(pkg.joiner_booking_deadline).slice(0, 10) : "";
@@ -118,14 +120,15 @@ router.post("/", requireAuth, async (req, res, next) => {
                 if (scheduledDate < today) {
                     throw Object.assign(new Error("This Joiner departure has already passed."), { status: 409 });
                 }
-                if (travel_date !== scheduledDate) {
-                    throw Object.assign(new Error("Joiner bookings are only available for the published departure date."), { status: 422 });
-                }
+                // The package defines the Joiner departure. Use the database
+                // date as the booking date instead of trusting a stale or
+                // differently formatted client date.
+                bookingTravelDate = scheduledDate;
                 if (bookingDeadline && today > bookingDeadline) {
                     throw Object.assign(new Error("The booking deadline for this Joiner departure has passed."), { status: 409 });
                 }
-                if (bookingDeadline && bookingDeadline > scheduledDate) {
-                    throw Object.assign(new Error("This Joiner departure has an invalid booking deadline. Please contact the tour operator."), { status: 409 });
+                if (!isJoinerDeadlineValid(scheduledDate, bookingDeadline)) {
+                    throw Object.assign(new Error("This Joiner departure has an invalid booking deadline. It must be at least 3 days before departure. Please contact the tour operator."), { status: 409 });
                 }
                 const seatLimit = Math.min(Number(pkg.joiner_slots), Number(pkg.max_capacity || pkg.joiner_slots));
                 const { rows: [reservation] } = await client.query(
@@ -144,10 +147,12 @@ router.post("/", requireAuth, async (req, res, next) => {
                 ? Number(pkg.price) * (isJoiner ? guestCount : 1)
                 : 0;
             const result = await client.query(
-                "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7) RETURNING booking_id",
-                [req.user.accountId, package_id || null, reference, travel_date, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null]
+                "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, booking_status) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8) RETURNING booking_id",
+                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? "Confirmed" : "Pending"]
             );
-            inserted = result.rows;
+            const newBookingId = result.rows[0].booking_id;
+            const { rows } = await client.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);
+            booking = rows[0];
             await client.query("COMMIT");
         } catch (error) {
             await client.query("ROLLBACK");
@@ -155,18 +160,40 @@ router.post("/", requireAuth, async (req, res, next) => {
         } finally {
             client.release();
         }
-        const newBookingId = inserted[0].booking_id;
-        const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);
-        await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "booking", recordId: newBookingId, newValues: rows[0], req });
-    // Create notifications for admins
-    const { rows: admins } = await db.query("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
-    for (const admin of admins) {
-      await db.query("INSERT INTO notification (account_id, booking_id, title, message, notification_type) VALUES ($1, $2, $3, $4, $5)", [admin.account_id, newBookingId, "New Tour Booking", `A new tour booking (${reference}) has been placed.`, "Booking"]);
-    }
-    // Send the customer a complete confirmation after the booking is stored.
-    // Do not await/fail the request on mail-provider errors.
-    try { await sendBookingConfirmation(rows[0], isCustomTrip ? "custom-request" : "tour"); } catch (error) { console.error("[booking] confirmation email error:", error.message); }
-    res.status(201).json(rows[0]); } catch (e) { next(e); }
+        const newBookingId = booking.booking_id;
+        try {
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "CREATE", tableName: "booking", recordId: newBookingId, newValues: booking, req });
+        } catch (error) {
+            console.error("[booking] audit logging failed after booking was saved:", error.message);
+        }
+
+        try {
+            const { rows: admins } = await db.query("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
+            const notificationTitle = isJoiner ? "New Confirmed Joiner Booking" : "New Tour Booking";
+            const notificationMessage = isJoiner
+                ? `A Joiner booking (${reference}) has been automatically confirmed and spots reserved.`
+                : `A new tour booking (${reference}) has been placed.`;
+            for (const admin of admins) {
+                try {
+                    await db.query(
+                        "INSERT INTO notification (account_id, booking_id, title, message, notification_type) VALUES ($1, $2, $3, $4, $5)",
+                        [admin.account_id, newBookingId, notificationTitle, notificationMessage, "Booking"]
+                    );
+                } catch (error) {
+                    console.error(`[booking] admin notification failed for account ${admin.account_id}:`, error.message);
+                }
+            }
+        } catch (error) {
+            console.error("[booking] could not load admins for booking notification:", error.message);
+        }
+
+        try {
+            await sendBookingConfirmation(booking, isCustomTrip ? "custom-request" : "tour");
+        } catch (error) {
+            console.error("[booking] confirmation email error:", error.message);
+        }
+        res.status(201).json(booking);
+    } catch (e) { next(e); }
 });
 router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
     try {

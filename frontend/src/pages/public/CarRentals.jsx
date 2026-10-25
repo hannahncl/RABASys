@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader, Star } from 'lucide-react';
+import { MapPin, Users, SlidersHorizontal, Zap, Tag, Square, Loader, Star, ChevronDown } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { serviceService } from '../services/serviceService';
 import { filterCars } from './carRentalsFilters';
@@ -112,49 +112,37 @@ const CarRentals = () => {
               >
                 Price range (PHP)
               </h4>
-              <div className="flex flex-col gap-2">
-                {[
+              <div className="relative">
+                <select
+                  value={`${priceRange[0]}-${priceRange[1]}`}
+                  onChange={(event) => {
+                    const [min, max] = event.target.value.split('-').map(Number);
+                    setPriceRange([min, max]);
+                  }}
+                  className="w-full appearance-none py-3 pl-4 pr-10 text-[13px] font-medium transition-all"
+                  style={{
+                    borderRadius: '4px',
+                    border: '1px solid #d6cfc2',
+                    background: 'rgba(255,255,255,0.7)',
+                    color: '#45403a',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {[
                   { label: 'All Prices', min: 0, max: 100000 },
                   { label: 'Under ₱3,000', min: 0, max: 3000 },
                   { label: '₱3,000 - ₱6,000', min: 3000, max: 6000 },
                   { label: '₱6,000 - ₱10,000', min: 6000, max: 10000 },
                   { label: '₱10,000+', min: 10000, max: 100000 },
-                ].map((option) => {
-                  const isSelected = priceRange[0] === option.min && priceRange[1] === option.max;
-                  return (
-                    <button
-                      key={option.label}
-                      type="button"
-                      onClick={() => setPriceRange([option.min, option.max])}
-                      className="w-full text-left px-4 py-2.5 text-[12px] font-medium transition-all"
-                      style={{
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid #b0a68e' : '1px solid #e0dbd0',
-                        background: isSelected ? 'rgba(196,185,154,0.12)' : 'rgba(255,255,255,0.5)',
-                        color: isSelected ? '#3d3a34' : '#45403a',
-                        letterSpacing: '0.02em',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#c4b99a';
-                          e.target.style.background = 'rgba(255,255,255,0.8)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#e0dbd0';
-                          e.target.style.background = 'rgba(255,255,255,0.5)';
-                        }
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+                  ].map((option) => (
+                    <option key={option.label} value={`${option.min}-${option.max}`}>{option.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b6255]" aria-hidden="true" />
               </div>
             </div>
 
-            {/* Siting Capacity */}
+            {/* Seating Capacity */}
             <div className="mb-8">
               <h4
                 className="text-[10px] font-semibold mb-4"
@@ -166,40 +154,29 @@ const CarRentals = () => {
               >
                 Minimum Seating Capacity
               </h4>
-              <div className="flex gap-2">
-                {[0, 2, 4, 6, 8, 12, 15].map(cap => {
-                  const isSelected = capacity === cap;
-                  return (
-                    <button
-                      key={cap}
-                      onClick={() => setCapacity(cap)}
-                      className="flex-1 py-2 text-[11px] font-semibold transition-all"
-                      style={{
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid #b0a68e' : '1px solid #e0dbd0',
-                        background: isSelected ? 'rgba(196,185,154,0.12)' : 'rgba(255,255,255,0.5)',
-                        color: isSelected ? '#3d3a34' : '#45403a',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#c4b99a';
-                          e.target.style.background = 'rgba(255,255,255,0.8)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#e0dbd0';
-                          e.target.style.background = 'rgba(255,255,255,0.5)';
-                        }
-                      }}
-                    >
-                      {cap === 0 ? 'Any' : cap}
-                    </button>
-                  );
-                })}
+              <div className="relative">
+                <select
+                  value={capacity}
+                  onChange={(event) => setCapacity(Number(event.target.value))}
+                  className="w-full appearance-none py-3 pl-4 pr-10 text-[13px] font-medium transition-all"
+                  style={{
+                    borderRadius: '4px',
+                    border: '1px solid #d6cfc2',
+                    background: 'rgba(255,255,255,0.7)',
+                    color: '#45403a',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {[0, 2, 4, 6, 8, 12, 15].map((cap) => (
+                    <option key={cap} value={cap}>
+                      {cap === 0 ? 'Any seating capacity' : `${cap}+ seats`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b6255]" aria-hidden="true" />
+              </div>
               </div>
             </div>
-          </div>
 
           {/* Main Content Grid */}
           <div className="flex-1">

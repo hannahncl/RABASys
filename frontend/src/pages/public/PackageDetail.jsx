@@ -201,6 +201,7 @@ const PackageDetail = () => {
   }
 
   const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
+  const joinerDepartureDate = joinerAvailability?.departureDate || pkg.joinerDate || pkg.joiner_date;
   const packageImages = (Array.isArray(pkg.images) && pkg.images.length ? pkg.images : [pkg.image || '/CAGSAWA.jpg']).filter(Boolean);
   const selectedImage = packageImages[selectedImageIndex] || packageImages[0] || '/CAGSAWA.jpg';
   const formatJoinerDate = (date) => date
@@ -301,6 +302,30 @@ const PackageDetail = () => {
 
             {/* Overview Section */}
             <div id="overview" className="space-y-10 scroll-mt-6">
+              {isJoiner && (
+                <div className="rounded border border-[#eae5db] bg-[#faf9f6] p-5">
+                  <div className="mb-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7355]">How Joiner Tours Work</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[#6b6255]">You book individual spots on one scheduled trip and travel with the other guests booked for that departure.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {[
+                      { number: '01', title: 'Choose this departure', text: joinerDepartureDate ? formatJoinerDate(joinerDepartureDate) : 'The operator will publish a date.' },
+                      { number: '02', title: 'Reserve your spots', text: joinerAvailability ? (joinerAvailability.bookingOpen ? `Price is per person; ${joinerAvailability.remainingSlots} spots remain.` : 'Booking is closed for this departure.') : 'Price is per person; availability is loading.' },
+                      { number: '03', title: 'Book your spots', text: 'Your spots are reserved automatically when you submit the booking.' },
+                    ].map((step) => (
+                      <div key={step.number} className="flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[#8b7355]">{step.number}</span>
+                        <div>
+                          <p className="text-xs font-semibold text-[#37332d]">{step.title}</p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-[#777064]">{step.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <p
                 className="text-[14px] leading-[1.85]"
                 style={{ color: colors.textSecondary }}
@@ -347,29 +372,6 @@ const PackageDetail = () => {
                 ))}
               </div>
 
-              {isJoiner && (
-                <div className="rounded border border-[#eae5db] bg-[#faf9f6] p-5">
-                  <div className="mb-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7355]">How Joiner Tours Work</p>
-                    <p className="mt-1 text-xs leading-relaxed text-[#6b6255]">You book individual spots on one scheduled trip and travel with the other guests booked for that departure.</p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {[
-                      { number: '01', title: 'Choose this departure', text: pkg.joinerDate ? formatJoinerDate(pkg.joinerDate) : 'The operator will publish a date.' },
-                      { number: '02', title: 'Reserve your spots', text: joinerAvailability ? (joinerAvailability.bookingOpen ? `Price is per person; ${joinerAvailability.remainingSlots} spots remain.` : 'Booking is closed for this departure.') : 'Price is per person; availability is loading.' },
-                      { number: '03', title: 'Wait for confirmation', text: 'The operator reviews your booking and shares final trip instructions.' },
-                    ].map((step) => (
-                      <div key={step.number} className="flex items-start gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-semibold text-[#8b7355]">{step.number}</span>
-                        <div>
-                          <p className="text-xs font-semibold text-[#37332d]">{step.title}</p>
-                          <p className="mt-1 text-[11px] leading-relaxed text-[#777064]">{step.text}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Itinerary Section */}
@@ -701,12 +703,12 @@ const PackageDetail = () => {
 
                   {isJoiner && (
                     <div className="space-y-2 rounded bg-[#faf9f6] p-3 text-[11px] text-[#514b42]">
-                      <p className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-[#8b7355]" /><span><strong>Departure:</strong> {formatJoinerDate(pkg.joinerDate)}</span></p>
+                      <p className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-[#8b7355]" /><span><strong>Departure:</strong> {formatJoinerDate(joinerDepartureDate)}</span></p>
                       {joinerAvailability && <p className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-[#8b7355]" /><span><strong>Spots remaining:</strong> {joinerAvailability.remainingSlots}</span></p>}
                       {joinerAvailability && <p><strong>Status:</strong> {joinerAvailability.bookingOpen ? 'Open for booking' : 'Closed'}</p>}
                       {joinerAvailability?.scheduleValid === false
-                        ? <p className="font-medium text-amber-800">The operator needs to correct this departure’s booking deadline.</p>
-                        : pkg.joinerBookingDeadline && <p><strong>Booking deadline:</strong> {formatJoinerDate(pkg.joinerBookingDeadline)}</p>}
+                        ? <p className="font-medium text-amber-800">The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.</p>
+                        : (joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline) && <p><strong>Booking deadline:</strong> {formatJoinerDate(joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline)} <span className="text-[#777064]">(at least 3 days before departure)</span></p>}
                       <p className="pt-1 leading-relaxed text-[#777064]">Your booking stays pending until the operator reviews and confirms it.</p>
                     </div>
                   )}
