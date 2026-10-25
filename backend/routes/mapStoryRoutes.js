@@ -9,6 +9,10 @@ const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377
 const mapStorySelect = `
     SELECT s.story_id::text AS id,
            s.spot_id AS "spotId",
+           s.location_name AS "locationName",
+           s.province,
+           s.latitude,
+           s.longitude,
            s.tourist_name AS "touristName",
            s.caption,
            s.image_url AS "imageUrl",
@@ -88,9 +92,41 @@ router.post("/", requireAuth, async (req, res, next) => {
         const touristName = String(req.body.touristName || "").trim();
         const caption = String(req.body.caption || "").trim();
         const imageUrl = typeof req.body.imageUrl === "string" ? req.body.imageUrl.trim() : "";
+        const location = req.body.location && typeof req.body.location === "object"
+            ? req.body.location
+            : null;
+        const locationName = location && typeof location.name === "string"
+            ? location.name.trim()
+            : null;
+        const province = location && typeof location.province === "string"
+            ? location.province.trim()
+            : null;
+        const rawProvince = location?.province;
+        const latitude = location?.coords?.[0];
+        const longitude = location?.coords?.[1];
+        const hasCoordinates = latitude !== undefined || longitude !== undefined;
 
         if (!spotId || spotId.length > 180) {
             return res.status(422).json({ message: "Choose a valid destination spot." });
+        }
+        if (location && (
+            !locationName
+            || locationName.length > 180
+            || (rawProvince !== undefined && rawProvince !== null && typeof rawProvince !== "string")
+            || (province && province.length > 100)
+            || !Array.isArray(location.coords)
+            || location.coords.length !== 2
+            || !Number.isFinite(latitude)
+            || !Number.isFinite(longitude)
+            || latitude < -90
+            || latitude > 90
+            || longitude < -180
+            || longitude > 180
+        )) {
+            return res.status(422).json({ message: "Choose a valid map location for this story." });
+        }
+        if (hasCoordinates && !location) {
+            return res.status(422).json({ message: "Choose a valid map location for this story." });
         }
         if (!touristName || touristName.length > 120) {
             return res.status(422).json({ message: "Your name must be 120 characters or fewer." });
@@ -111,10 +147,10 @@ router.post("/", requireAuth, async (req, res, next) => {
         }
 
         const { rows: inserted } = await db.query(
-            `INSERT INTO map_story (account_id, spot_id, tourist_name, caption, image_url)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO map_story (account_id, spot_id, location_name, province, latitude, longitude, tourist_name, caption, image_url)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING story_id`,
-            [req.user.accountId, spotId, touristName, caption, imageUrl]
+            [req.user.accountId, spotId, locationName, province, location ? latitude : null, location ? longitude : null, touristName, caption, imageUrl]
         );
         const story = await findStory(inserted[0].story_id, req.user.accountId);
         res.status(201).json(story);

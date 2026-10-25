@@ -119,6 +119,10 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
 
             const guestCount = Number(number_of_persons);
+            const packageCapacity = pkg ? Number(pkg.max_capacity) : null;
+            if (pkg && (!Number.isInteger(packageCapacity) || packageCapacity < 1)) {
+                throw Object.assign(new Error("This tour package does not have a valid maximum pax capacity. Please contact the tour operator."), { status: 409 });
+            }
             isJoiner = String(pkg?.package_type || "").toLowerCase() === "joiner";
             const paymentMethod = String(payment_method || "GCash").trim() || "GCash";
             const paymentReference = String(payment_reference || "").trim();
@@ -152,7 +156,7 @@ router.post("/", requireAuth, async (req, res, next) => {
                 if (!isJoinerDeadlineValid(scheduledDate, bookingDeadline)) {
                     throw Object.assign(new Error("This Joiner departure has an invalid booking deadline. It must be at least 3 days before departure. Please contact the tour operator."), { status: 409 });
                 }
-                const seatLimit = Math.min(Number(pkg.joiner_slots), Number(pkg.max_capacity || pkg.joiner_slots));
+                const seatLimit = Math.min(Number(pkg.joiner_slots), packageCapacity);
                 const { rows: [reservation] } = await client.query(
                     "SELECT COALESCE(SUM(number_of_persons), 0)::int AS reserved FROM booking WHERE package_id = $1 AND travel_date = $2 AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
                     [package_id, scheduledDate]
@@ -161,8 +165,8 @@ router.post("/", requireAuth, async (req, res, next) => {
                 if (guestCount > seatsRemaining) {
                     throw Object.assign(new Error(`Only ${seatsRemaining} Joiner spot${seatsRemaining === 1 ? '' : 's'} remain for this departure.`), { status: 409 });
                 }
-            } else if (pkg?.max_capacity && guestCount > Number(pkg.max_capacity)) {
-                throw Object.assign(new Error(`Number of persons exceeds package capacity (${pkg.max_capacity} pax).`), { status: 422 });
+            } else if (pkg && guestCount > packageCapacity) {
+                throw Object.assign(new Error(`Number of persons exceeds package capacity (${packageCapacity} pax).`), { status: 422 });
             }
 
             const joinerCapacity = Number(pkg?.max_capacity || pkg?.joiner_slots || 0);

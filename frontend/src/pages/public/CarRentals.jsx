@@ -167,7 +167,7 @@ const CarRentals = () => {
                     letterSpacing: '0.02em',
                   }}
                 >
-                  {[0, 2, 4, 6, 8, 12, 15].map((cap) => (
+                  {[0, 4, 6, 8, 12, 15].map((cap) => (
                     <option key={cap} value={cap}>
                       {cap === 0 ? 'Any seating capacity' : `${cap}+ seats`}
                     </option>
