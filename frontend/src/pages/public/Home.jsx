@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Clock, Compass, MapPin, Star, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Car, Clock, Compass, MapPin, Package, Search, SlidersHorizontal, Star, Users } from 'lucide-react';
 import { packageService } from '../../services/packageService';
 import { api } from '../../services/api';
 import FavoriteButton from '../../components/ui/FavoriteButton';
@@ -26,6 +26,9 @@ const Home = () => {
   const [packages, setPackages] = useState(fallbackPackages);
   const [joinerAvailability, setJoinerAvailability] = useState({});
   const [tukTripRun, setTukTripRun] = useState(0);
+  const [searchDestination, setSearchDestination] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+  const [searchTravelers, setSearchTravelers] = useState('2');
 
   useEffect(() => {
     let mounted = true;
@@ -54,29 +57,60 @@ const Home = () => {
 
   return (
     <main className="bg-[#fbfaf7] text-[#2d2a24]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <section className="relative isolate mx-4 mt-4 overflow-hidden rounded-3xl bg-[#2d2a24] text-white shadow-[0_18px_45px_rgba(79,60,39,0.16)] sm:mx-6 lg:mx-8">
-        <img src="/hero-mayon.jpg" alt="Mayon Volcano and a Bicol landscape" className="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
+      <section className="relative isolate mx-4 mt-4 min-h-[320px] overflow-hidden rounded-3xl bg-[#2d2a24] text-white shadow-[0_18px_45px_rgba(79,60,39,0.16)] sm:mx-6 lg:mx-8">
+        <img src="/hero-mayon.jpg" alt="Mayon Volcano and a Bicol landscape" className="absolute inset-0 -z-20 h-full w-full object-cover object-[center_35%]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#211b17]/90 via-[#2d2a24]/65 to-[#2d2a24]/20" />
-        <div className="mx-auto flex min-h-[420px] max-w-7xl flex-col justify-center px-8 py-16 sm:min-h-[460px] sm:px-12 lg:px-16">
+        <div className="mx-auto flex min-h-[320px] max-w-7xl flex-col justify-start px-8 pt-8 sm:min-h-[350px] sm:px-12 sm:pt-10 lg:px-16">
           <div className="max-w-2xl">
             <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ead7b4]">RABAS Travel &amp; Tours</p>
             <h1 className="max-w-xl text-4xl font-medium leading-[1.08] tracking-[-0.035em] sm:text-5xl lg:text-6xl" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
               Your next great story starts here.
             </h1>
-            <p className="mt-7 max-w-lg text-base leading-7 text-white/80 sm:text-lg">
-              Discover beautiful places in Bicol with thoughtfully planned tours, flexible travel options, and local guidance every step of the way.
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/packages" className="inline-flex items-center gap-2 rounded-full bg-[#ead7b4] px-6 py-3 text-sm font-bold text-[#2d2a24] transition hover:bg-white">
-                Book Now <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to="/customize" className="inline-flex items-center gap-2 rounded-full border border-white/45 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                Plan a Custom Trip
-              </Link>
-            </div>
           </div>
 
         </div>
+      </section>
+
+      <section className="relative z-20 mx-auto -mt-6 max-w-6xl px-6 sm:-mt-10 sm:px-8 lg:px-12">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const query = new URLSearchParams();
+            if (searchDestination.trim()) query.set('search', searchDestination.trim());
+            if (searchDate) query.set('date', searchDate);
+            query.set('travelers', searchTravelers);
+            window.location.href = `/packages?${query.toString()}`;
+          }}
+          className="grid gap-3 rounded-2xl border border-[#e0d2c3] bg-white p-3 shadow-[0_16px_35px_rgba(79,60,39,0.16)] sm:grid-cols-[1.4fr_1fr_0.85fr_auto] sm:items-center sm:gap-0 sm:p-2"
+        >
+          <label className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#faf6f0] sm:border-r sm:border-[#eee5da]">
+            <MapPin className="h-5 w-5 shrink-0 text-[#8b5e48]" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f8576]">Where to?</span>
+              <input value={searchDestination} onChange={(event) => setSearchDestination(event.target.value)} placeholder="Search a destination" className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none placeholder:text-[#aaa093]" />
+            </span>
+          </label>
+          <label className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#faf6f0] sm:border-r sm:border-[#eee5da]">
+            <CalendarDays className="h-5 w-5 shrink-0 text-[#8b5e48]" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f8576]">When?</span>
+              <input type="date" value={searchDate} onChange={(event) => setSearchDate(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none" />
+            </span>
+          </label>
+          <label className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#faf6f0]">
+            <Users className="h-5 w-5 shrink-0 text-[#8b5e48]" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f8576]">Travelers</span>
+              <select value={searchTravelers} onChange={(event) => setSearchTravelers(event.target.value)} className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => <option key={count} value={count}>{count} {count === 1 ? 'Traveler' : 'Travelers'}</option>)}
+              </select>
+            </span>
+          </label>
+          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#603524] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#754a36] sm:h-full">
+            <Search className="h-4 w-4" />
+            <span className="sm:hidden">Search tours</span>
+          </button>
+        </form>
       </section>
 
       <section className="hidden mt-8 bg-[#fbfaf7] px-6 py-8 text-white sm:px-8 lg:px-12">
@@ -113,7 +147,7 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="relative flex min-h-[calc(100vh-80px)] items-start overflow-hidden border-y border-[#e5e1da] bg-white">
+      <section className="relative flex min-h-[calc(100vh-80px)] items-start overflow-hidden bg-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           <span className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f6e9df]/70 blur-3xl animate-pulse" />
           <span className="absolute right-[-6rem] top-40 h-80 w-80 rounded-full bg-[#e4eef2]/80 blur-3xl animate-pulse [animation-delay:900ms]" />
@@ -188,7 +222,7 @@ const Home = () => {
                         <span className="text-[9px] font-medium tracking-[0.06em] text-[#8f8576]">/ person</span>
                       </div>
                       <Link to={bookingLink} className="rounded-full border border-[#294136] bg-[#294136] px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white transition-all duration-300 hover:border-[#426348] hover:bg-[#426348]" style={{ whiteSpace: 'nowrap' }}>
-                        Book Now
+                        {isJoiner ? 'Join this Tour' : 'Book Now'}
                       </Link>
                     </div>
                   </div>
@@ -260,20 +294,46 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="border-y border-[#eadbca] bg-[#f5eee5]">
+      <section className="border-y border-[#e4d9cc] bg-[#f7f3ed]">
         <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-12 lg:py-16">
-          <div className="flex flex-col gap-8 rounded-2xl border border-[#e4d2bf] bg-[#fffaf5] p-6 shadow-[0_12px_30px_rgba(92,57,35,0.09)] sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
-            <div className="max-w-xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#426348]">The RABAS difference</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Why travel with us?</h2>
-              <p className="mt-3 text-sm leading-6 text-[#6b6255]">From the first idea to the journey home, we make exploring Bicol feel easier, warmer, and more personal.</p>
-            </div>
-            <div className="grid flex-1 gap-5 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-4">
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e3eee6] text-[#426348] transition group-hover:scale-110"><Compass className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Curated trips</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Thoughtful Bicol itineraries.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f6e9df] text-[#8b5e48] transition group-hover:scale-110"><MapPin className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Local guidance</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Routes shaped by locals.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e6eef2] text-[#385467] transition group-hover:scale-110"><ArrowRight className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Easy booking</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Clear options from start to finish.</p></div>
-              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f0e8df] text-[#76513b] transition group-hover:scale-110"><Users className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Travel support</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Help whenever you need it.</p></div>
-            </div>
+          <div className="mb-8 max-w-xl">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8b5e48]">How can we help?</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Choose your way to travel.</h2>
+            <p className="mt-3 text-sm leading-6 text-[#6b6255]">Whether you want a ready-made adventure, a reliable ride, or a trip built around you, RABAS has an option for every journey.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            <Link to="/packages" onClick={() => window.scrollTo(0, 0)} className="group rounded-2xl border border-[#754a36] bg-[#754a36] p-6 text-white shadow-[0_10px_24px_rgba(117,74,54,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#603524] hover:bg-[#603524] hover:shadow-[0_16px_30px_rgba(117,74,54,0.28)]">
+              <div className="mb-5 flex justify-center text-[#f3d8c1] transition group-hover:scale-105"><Package className="h-8 w-8" /></div>
+              <h3 className="text-lg font-semibold text-white">Tour Packages</h3>
+              <p className="mt-2 text-sm leading-6 text-white/75">Explore curated Bicol destinations with thoughtfully planned itineraries.</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#f3d8c1]">Explore tours <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
+            </Link>
+            <Link to="/car-rentals" onClick={() => window.scrollTo(0, 0)} className="group rounded-2xl border border-[#385467] bg-[#385467] p-6 text-white shadow-[0_10px_24px_rgba(56,84,103,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#294354] hover:bg-[#294354] hover:shadow-[0_16px_30px_rgba(56,84,103,0.28)]">
+              <div className="mb-5 flex justify-center text-[#cfe3ec] transition group-hover:scale-105"><Car className="h-8 w-8" /></div>
+              <h3 className="text-lg font-semibold text-white">Car Rentals</h3>
+              <p className="mt-2 text-sm leading-6 text-white/75">Get around Bicol comfortably with flexible rental options for your plans.</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#cfe3ec]">Browse rentals <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
+            </Link>
+            <Link to="/customize" onClick={() => window.scrollTo(0, 0)} className="group rounded-2xl border border-[#426348] bg-[#426348] p-6 text-white shadow-[0_10px_24px_rgba(66,99,72,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#304f36] hover:bg-[#304f36] hover:shadow-[0_16px_30px_rgba(66,99,72,0.28)]">
+              <div className="mb-5 flex justify-center text-[#d4e8d7] transition group-hover:scale-105"><SlidersHorizontal className="h-8 w-8" /></div>
+              <h3 className="text-lg font-semibold text-white">Customize Trip</h3>
+              <p className="mt-2 text-sm leading-6 text-white/75">Tell us what you want to experience and we’ll help shape the journey.</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#d4e8d7]">Plan your trip <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
+            </Link>
+          </div>
+          <div className="relative mt-10 h-12 overflow-hidden" aria-label="Animated car traveling along a road" role="img">
+            <style>{`
+              @keyframes cardrive {
+                0% { transform: translateX(-5rem); }
+                100% { transform: translateX(calc(100vw + 5rem)); }
+              }
+              @keyframes carbounce {
+                0%, 100% { margin-bottom: 0; }
+                50% { margin-bottom: 3px; }
+              }
+            `}</style>
+            <div className="absolute bottom-2 left-0 right-0 border-t border-dashed border-[#c9b7a5]" />
+            <Car className="absolute bottom-3 left-0 h-7 w-7 text-[#603524]" style={{ animation: 'cardrive 8s linear infinite, carbounce 0.45s ease-in-out infinite' }} />
           </div>
         </div>
       </section>
@@ -304,6 +364,24 @@ const Home = () => {
             >
               Your browser does not support the travel video.
             </video>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#eadbca] bg-[#f5eee5]">
+        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-12 lg:py-16">
+          <div className="flex flex-col gap-8 rounded-2xl border border-[#e4d2bf] bg-[#fffaf5] p-6 shadow-[0_12px_30px_rgba(92,57,35,0.09)] sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
+            <div className="max-w-xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#426348]">The RABAS difference</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Why travel with us?</h2>
+              <p className="mt-3 text-sm leading-6 text-[#6b6255]">From the first idea to the journey home, we make exploring Bicol feel easier, warmer, and more personal.</p>
+            </div>
+            <div className="grid flex-1 gap-5 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-4">
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e3eee6] text-[#426348] transition group-hover:scale-110"><Compass className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Curated trips</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Thoughtful Bicol itineraries.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f6e9df] text-[#8b5e48] transition group-hover:scale-110"><MapPin className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Local guidance</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Routes shaped by locals.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e6eef2] text-[#385467] transition group-hover:scale-110"><ArrowRight className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Easy booking</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Clear options from start to finish.</p></div>
+              <div className="group"><div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#f0e8df] text-[#76513b] transition group-hover:scale-110"><Users className="h-4 w-4" /></div><h3 className="text-xs font-bold text-[#294136]">Travel support</h3><p className="mt-1 text-[11px] leading-5 text-[#6b6255]">Help whenever you need it.</p></div>
+            </div>
           </div>
         </div>
       </section>

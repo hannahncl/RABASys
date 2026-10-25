@@ -68,6 +68,7 @@ const CarBooking = () => {
   const [submitting, setSubmitting] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [bookedRanges, setBookedRanges] = useState([]);
 
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -100,6 +101,15 @@ const CarBooking = () => {
         const data = await serviceService.getById(id, 'car');
         if (!data || data.category !== 'car' || String(data.availabilityStatus ?? data.availability_status ?? 'Available').trim().toLowerCase() !== 'available') throw new Error('Not found');
         setCar(data);
+
+        try {
+          const availability = await api(`/rental-bookings/availability/${id}`);
+          setBookedRanges(Array.isArray(availability?.bookings) ? availability.bookings : []);
+        } catch (availabilityError) {
+          // The server-side conflict check remains authoritative if the
+          // calendar availability request fails.
+          console.error('Failed to load vehicle availability:', availabilityError);
+        }
       } catch (error) {
         showNotification('Car not found', 'error');
         navigate('/car-rentals');
@@ -123,6 +133,18 @@ const CarBooking = () => {
     fetchCar();
     loadReviews();
   }, [id, user, navigate, showNotification]);
+
+  const isDateOccupied = (dateValue) => {
+    const dateKey = typeof dateValue === 'string'
+      ? dateValue.slice(0, 10)
+      : `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
+    return bookedRanges.some(({ pickupDate, returnDate }) => pickupDate <= dateKey && dateKey < returnDate);
+  };
+
+  const isRentalRangeAvailable = (startDate, endDate) => {
+    if (!startDate || !endDate) return true;
+    return !bookedRanges.some(({ pickupDate, returnDate }) => pickupDate < endDate && returnDate > startDate);
+  };
 
   const handleBookCar = async (e) => {
     e.preventDefault();
@@ -215,7 +237,7 @@ const CarBooking = () => {
   };
 
   // Render calendar days for a given calendar date, selected value, and minimum date
-  const renderCalendarDays = (calDate, selectedValue, minDate, onSelect, weatherData) => {
+  const renderCalendarDays = (calDate, selectedValue, minDate, onSelect, weatherData, isDateDisabled) => {
     const year = calDate.getFullYear();
     const month = calDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -243,10 +265,11 @@ const CarBooking = () => {
 
       const currentDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
       const isPast = currentDate < minD;
+      const dateKey = fmtKey(currentDate);
+      const isUnavailable = Boolean(isDateDisabled?.(dateKey));
       const isSelected = selectedDate && currentDate.getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
 
       // Weather for this date
-      const dateKey = fmtKey(currentDate);
       const weather = weatherData ? weatherData[dateKey] : null;
 
       let dayStyle = {
@@ -257,7 +280,7 @@ const CarBooking = () => {
         position: 'relative',
       };
 
-      if (isPast) {
+      if (isPast || isUnavailable) {
         dayStyle = {
           ...dayStyle,
           color: '#c8c3b8',
@@ -276,18 +299,18 @@ const CarBooking = () => {
       return (
         <div
           key={i}
-          onClick={() => !isPast && onSelect(day.date)}
+          onClick={() => !isPast && !isUnavailable && onSelect(day.date)}
           className="flex items-center justify-center text-xs font-semibold transition-all"
           style={{ ...dayStyle, width: '36px', height: '36px' }}
           title={weather ? `${weather.description} · ${weather.tempMax}°C` : ''}
           onMouseEnter={(e) => {
-            if (isPast) return;
+            if (isPast || isUnavailable) return;
             if (!isSelected) {
               e.currentTarget.style.background = 'rgba(176,166,142,0.12)';
             }
           }}
           onMouseLeave={(e) => {
-            if (isPast) return;
+            if (isPast || isUnavailable) return;
             if (!isSelected) {
               e.currentTarget.style.background = 'transparent';
             }
@@ -313,7 +336,7 @@ const CarBooking = () => {
   };
 
   // Reusable calendar popover component
-  const CalendarPopover = ({ calDate, setCalDate, selectedValue, minDate, onSelect, onClose, weatherData }) => {
+  const CalendarPopover = ({ calDate, setCalDate, selectedValue, minDate, onSelect, onClose, weatherData, isDateDisabled }) => {
     const now = new Date();
     const minMonth = minDate || new Date(now.getFullYear(), now.getMonth(), 1);
     const isPastMonth = calDate.getFullYear() < minMonth.getFullYear() || (calDate.getFullYear() === minMonth.getFullYear() && calDate.getMonth() <= minMonth.getMonth());
@@ -391,7 +414,7 @@ const CarBooking = () => {
               {day}
             </div>
           ))}
-          {renderCalendarDays(calDate, selectedValue, minDate, onSelect, weatherData)}
+          {renderCalendarDays(calDate, selectedValue, minDate, onSelect, weatherData, isDateDisabled)}
         </div>
 
         {/* Footer Buttons */}
@@ -626,6 +649,7 @@ const CarBooking = () => {
                           }}
                           onClose={() => setShowPickupCal(false)}
                           weatherData={pickupCalWeather}
+                          isDateDisabled={(dateKey) => isDateOccupied(dateKey)}
                         />
                       )}
                     </div>
@@ -669,6 +693,10 @@ const CarBooking = () => {
                           }}
                           onClose={() => setShowReturnCal(false)}
                           weatherData={returnCalWeather}
+                          isDateDisabled={(dateKey) => {
+                            if (!pickupDate) return isDateOccupied(dateKey);
+                            return !isRentalRangeAvailable(pickupDate, dateKey);
+                          }}
                         />
                       )}
                     </div>

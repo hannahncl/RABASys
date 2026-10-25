@@ -4,6 +4,9 @@ const bookingFromApi = (item) => {
   const customizedDetails = typeof item.customized_details === 'string'
     ? JSON.parse(item.customized_details)
     : item.customized_details || null;
+  const participantNames = typeof item.participant_names === 'string'
+    ? JSON.parse(item.participant_names)
+    : item.participant_names || [];
 
   return {
     ...item,
@@ -21,13 +24,17 @@ const bookingFromApi = (item) => {
       : Number(item.total_amount),
     status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
     createdAt: item.created_at,
-    paymentRef: item.booking_reference,
+    paymentRef: item.payment_transaction_reference || item.booking_reference,
     paymentMethod: item.payment_method || null,
     paymentStatus: item.payment_status || null,
+    paymentAmount: item.payment_amount == null ? null : Number(item.payment_amount),
+    downpaymentPercent: item.joiner_downpayment_percent == null ? null : Number(item.joiner_downpayment_percent),
+    balanceAmount: item.total_amount == null || item.payment_amount == null ? null : Math.max(0, Number(item.total_amount) - Number(item.payment_amount)),
     paymentTransactionReference: item.payment_transaction_reference || null,
     paymentDate: item.payment_date || null,
     hasReviewed: Boolean(item.has_reviewed),
     customizedDetails,
+    participantNames: Array.isArray(participantNames) ? participantNames : [],
     guideId: item.guide_id ? String(item.guide_id) : null,
     guideName: item.guide_name || '',
   };
@@ -79,6 +86,9 @@ export const bookingService = {
       customized_details: item.customizedDetails || null,
       travel_date: item.tourDate,
       number_of_persons: Number(item.guestsCount),
+      payment_method: item.paymentMethod || null,
+      payment_reference: item.paymentRef || null,
+      participant_names: item.participantNames || [],
     }),
   })),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {

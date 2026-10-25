@@ -12,13 +12,14 @@ const bookingSelect = `SELECT b.*,
     COALESCE(p.package_name, CONCAT('Customized Trip: ', b.customized_details->>'destination')) AS package_name,
     COALESCE(p.destination, b.customized_details->>'destination') AS destination,
     COALESCE(p.package_type, CASE WHEN b.customized_details IS NOT NULL THEN 'customization' ELSE NULL END) AS package_type,
-    p.itinerary, p.duration, p.meeting_location, p.inclusion, p.joiner_date, p.joiner_slots, p.joiner_booking_deadline,
+    p.itinerary, p.duration, p.meeting_location, p.inclusion, p.joiner_date, p.joiner_slots, p.joiner_booking_deadline, p.joiner_downpayment_percent,
     a.first_name, a.last_name, a.email, a.contact_number,
     CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
-    (SELECT payment_method FROM payment WHERE booking_id = b.booking_id AND deleted_at IS NULL ORDER BY payment_id DESC LIMIT 1) AS payment_method,
-    (SELECT payment_status FROM payment WHERE booking_id = b.booking_id AND deleted_at IS NULL ORDER BY payment_id DESC LIMIT 1) AS payment_status,
-    (SELECT transaction_reference FROM payment WHERE booking_id = b.booking_id AND deleted_at IS NULL ORDER BY payment_id DESC LIMIT 1) AS payment_transaction_reference,
-    (SELECT payment_date FROM payment WHERE booking_id = b.booking_id AND deleted_at IS NULL ORDER BY payment_id DESC LIMIT 1) AS payment_date,
+    b.payment_method AS payment_method,
+    b.payment_status AS payment_status,
+    b.payment_amount AS payment_amount,
+    b.payment_reference AS payment_transaction_reference,
+    NULL AS payment_date,
     EXISTS(SELECT 1 FROM review r WHERE r.booking_id = b.booking_id) AS has_reviewed
     FROM booking b JOIN account a ON a.account_id = b.account_id LEFT JOIN tour_package p ON p.package_id = b.package_id
     LEFT JOIN tour_guide g ON g.guide_id = b.guide_id LEFT JOIN account ga ON ga.account_id = g.account_id`;
@@ -42,7 +43,7 @@ router.get("/joiner-availability/:packageId", async (req, res, next) => {
     try {
         const { rows } = await db.query(
             `SELECT p.package_id, p.joiner_date::text AS joiner_date, p.joiner_booking_deadline::text AS joiner_booking_deadline,
-                    p.joiner_slots, p.max_capacity,
+                    p.joiner_slots, p.max_capacity, p.joiner_downpayment_percent,
                     COALESCE(SUM(b.number_of_persons) FILTER (WHERE b.booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND b.deleted_at IS NULL), 0)::int AS reserved_slots
              FROM tour_package p
              LEFT JOIN booking b ON b.package_id = p.package_id AND b.travel_date = p.joiner_date
@@ -65,6 +66,7 @@ router.get("/joiner-availability/:packageId", async (req, res, next) => {
             totalSlots: slotLimit,
             reservedSlots: Number(trip.reserved_slots || 0),
             remainingSlots,
+            downpaymentPercent: Number(trip.joiner_downpayment_percent || 30),
             bookingOpen,
         });
     } catch (e) { next(e); }
@@ -81,7 +83,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 });
 router.post("/", requireAuth, async (req, res, next) => {
     try {
-        const { package_id, travel_date, number_of_persons } = req.body;
+        const { package_id, travel_date, number_of_persons, payment_method, payment_reference, participant_names } = req.body;
         const customizedDetails = req.body.customized_details;
         const isCustomTrip = !package_id
             && customizedDetails
@@ -92,15 +94,24 @@ router.post("/", requireAuth, async (req, res, next) => {
         if ((!package_id && !isCustomTrip) || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) {
             return res.status(422).json({ message: "A package or customized trip, travel_date, and a positive number_of_persons are required." });
         }
+        // Safety migration for environments where the backend was started
+        // before the Joiner pricing/roster columns were introduced.
+        await db.query("ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_downpayment_percent NUMERIC(5,2) NOT NULL DEFAULT 30");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS participant_names JSONB");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(100)");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_amount NUMERIC(10,2)");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50)");
         let pkg = null;
         const reference = `RBT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         const client = await db.connect();
         let booking;
+        let isJoiner = false;
         try {
             await client.query("BEGIN");
             if (package_id) {
                 const { rows: packages } = await client.query(
-                    "SELECT price, max_capacity, package_type, joiner_date, joiner_slots, joiner_booking_deadline FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
+                    "SELECT price, max_capacity, package_type, joiner_date, joiner_slots, joiner_booking_deadline, joiner_downpayment_percent FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
                     [package_id]
                 );
                 pkg = packages[0];
@@ -108,7 +119,18 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
 
             const guestCount = Number(number_of_persons);
-            const isJoiner = String(pkg?.package_type || "").toLowerCase() === "joiner";
+            isJoiner = String(pkg?.package_type || "").toLowerCase() === "joiner";
+            const paymentMethod = String(payment_method || "GCash").trim() || "GCash";
+            const paymentReference = String(payment_reference || "").trim();
+            const participantNames = Array.isArray(participant_names)
+                ? participant_names.map((name) => String(name || '').trim()).filter(Boolean)
+                : [];
+            if (isJoiner && !paymentReference) {
+                throw Object.assign(new Error("A downpayment reference is required to reserve a Joiner spot."), { status: 422 });
+            }
+            if (isJoiner && (participantNames.length !== guestCount || participantNames.some((name) => name.length < 2))) {
+                throw Object.assign(new Error("A full name is required for every Joiner traveler."), { status: 422 });
+            }
             let bookingTravelDate = travel_date;
             if (isJoiner) {
                 const scheduledDate = pkg.joiner_date ? String(pkg.joiner_date).slice(0, 10) : "";
@@ -143,12 +165,24 @@ router.post("/", requireAuth, async (req, res, next) => {
                 throw Object.assign(new Error(`Number of persons exceeds package capacity (${pkg.max_capacity} pax).`), { status: 422 });
             }
 
+            const joinerCapacity = Number(pkg?.max_capacity || pkg?.joiner_slots || 0);
+            const pricePerPerson = isJoiner && joinerCapacity > 0
+                ? Number(pkg.price) / joinerCapacity
+                : Number(pkg?.price || 0);
             const totalAmount = pkg
-                ? Number(pkg.price) * (isJoiner ? guestCount : 1)
+                ? Math.round(pricePerPerson * (isJoiner ? guestCount : 1) * 100) / 100
                 : 0;
+            const downpaymentPercent = isJoiner
+                ? Math.min(100, Math.max(1, Number(pkg.joiner_downpayment_percent || 30)))
+                : 100;
+            const paymentAmount = isJoiner
+                ? Math.round((totalAmount * downpaymentPercent / 100) * 100) / 100
+                : totalAmount;
+            const paymentStatus = isJoiner && paymentMethod.toLowerCase() === "gcash" ? "Pending Verification" : "Completed";
+            const bookingStatus = isJoiner && paymentStatus === "Pending Verification" ? "Pending" : (isJoiner ? "Confirmed" : "Pending");
             const result = await client.query(
-                "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, booking_status) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8) RETURNING booking_id",
-                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? "Confirmed" : "Pending"]
+                "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, participant_names, payment_method, payment_reference, payment_amount, payment_status, booking_status) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING booking_id",
+                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? JSON.stringify(participantNames) : null, isJoiner ? paymentMethod : null, isJoiner ? paymentReference : null, isJoiner ? paymentAmount : null, isJoiner ? paymentStatus : null, bookingStatus]
             );
             const newBookingId = result.rows[0].booking_id;
             const { rows } = await client.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);
@@ -169,9 +203,9 @@ router.post("/", requireAuth, async (req, res, next) => {
 
         try {
             const { rows: admins } = await db.query("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
-            const notificationTitle = isJoiner ? "New Confirmed Joiner Booking" : "New Tour Booking";
+            const notificationTitle = isJoiner ? "New Joiner Downpayment Booking" : "New Tour Booking";
             const notificationMessage = isJoiner
-                ? `A Joiner booking (${reference}) has been automatically confirmed and spots reserved.`
+                ? `A Joiner booking (${reference}) has been placed with a PHP ${Number(booking.payment_amount || 0).toLocaleString()} downpayment. Verify the payment before confirming.`
                 : `A new tour booking (${reference}) has been placed.`;
             for (const admin of admins) {
                 try {
@@ -251,6 +285,14 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
         }
         const result = await db.query("UPDATE booking SET booking_status = $1 WHERE booking_id = $2 AND deleted_at IS NULL", [req.body.booking_status, req.params.id]);
         if (!result.rowCount) return res.status(404).json({ message: "Booking not found." });
+        if (String(before[0].package_type || "").toLowerCase() === "joiner") {
+            const paymentStatus = req.body.booking_status === "Confirmed"
+                ? "Completed"
+                : req.body.booking_status === "Cancelled" ? "Cancelled" : null;
+            if (paymentStatus) {
+                await db.query("UPDATE booking SET payment_status = $1 WHERE booking_id = $2 AND deleted_at IS NULL", [paymentStatus, req.params.id]);
+            }
+        }
         const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: req.body.booking_status === "Cancelled" ? "CANCEL" : "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
         res.json(rows[0]);
