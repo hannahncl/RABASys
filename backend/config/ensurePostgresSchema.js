@@ -132,6 +132,7 @@ async function ensurePostgresSchema() {
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_date DATE NULL;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_slots INTEGER NULL;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_booking_deadline DATE NULL;
+        ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_downpayment_percent NUMERIC(5,2) NOT NULL DEFAULT 30;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'::jsonb;
         UPDATE tour_package
         SET images = jsonb_build_array(image)
@@ -154,6 +155,11 @@ async function ensurePostgresSchema() {
     // correctly sends a null package_id.
     await db.query(`
         ALTER TABLE booking ALTER COLUMN package_id DROP NOT NULL;
+        ALTER TABLE booking ADD COLUMN IF NOT EXISTS participant_names JSONB;
+        ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+        ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(100);
+        ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_amount NUMERIC(10,2);
+        ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50);
     `);
 }
 

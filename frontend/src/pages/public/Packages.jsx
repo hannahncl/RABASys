@@ -364,7 +364,7 @@ const Packages = () => {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          Book Now
+                          {getPackageVisualCategory(pkg) === 'joiner' ? 'Join this Tour' : 'Book Now'}
                         </Link>
                       </div>
                     </div>

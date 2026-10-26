@@ -29,7 +29,8 @@ const EditTourPackagePage = () => {
     availabilityStatus: 'Available',
     joinerDate: '',
     joinerSlots: '',
-    joinerBookingDeadline: ''
+    joinerBookingDeadline: '',
+    joinerDownpaymentPercent: '30'
   });
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +54,7 @@ const EditTourPackagePage = () => {
           packageName: item.packageName || item.title || '',
           description: item.description || '',
           destination: item.destination || '',
-          price: item.price != null ? String(item.price) : '',
+          price: item.packageTotalPrice != null ? String(item.packageTotalPrice) : (item.price != null ? String(item.price) : ''),
           duration: item.duration || '',
           inclusions: Array.isArray(item.inclusions) ? item.inclusions.join(', ') : (item.inclusions || ''),
           maximumCapacity: item.maximumCapacity != null ? String(item.maximumCapacity) : '',
@@ -64,7 +65,8 @@ const EditTourPackagePage = () => {
           availabilityStatus: item.availabilityStatus || item.availability_status || 'Available',
           joinerDate: item.joinerDate || '',
           joinerSlots: item.joinerSlots != null ? String(item.joinerSlots) : '',
-          joinerBookingDeadline: item.joinerBookingDeadline || ''
+          joinerBookingDeadline: item.joinerBookingDeadline || '',
+          joinerDownpaymentPercent: item.joinerDownpaymentPercent == null ? '30' : String(item.joinerDownpaymentPercent)
         });
       } catch {
         showNotification('Failed to load tour package details.', 'error');
@@ -132,6 +134,10 @@ const EditTourPackagePage = () => {
       showNotification('Maximum capacity must be a positive whole number for Joiner trips.', 'error');
       return;
     }
+    if (packageType === 'joiner' && (Number(formData.joinerDownpaymentPercent) < 1 || Number(formData.joinerDownpaymentPercent) > 100)) {
+      showNotification('Joiner downpayment must be between 1% and 100%.', 'error');
+      return;
+    }
 
     try {
       const payload = {
@@ -142,6 +148,7 @@ const EditTourPackagePage = () => {
         description: formData.description.trim(),
         destination: formData.destination.trim(),
         price: Number(formData.price),
+        packageTotalPrice: Number(formData.price),
         duration: formData.duration.trim(),
         inclusions: formData.inclusions.split(',').map(item => item.trim()).filter(Boolean),
         maximumCapacity: Number(formData.maximumCapacity),
@@ -154,6 +161,7 @@ const EditTourPackagePage = () => {
         joinerDate: packageType === 'joiner' ? formData.joinerDate : null,
         joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
         joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
+        joinerDownpaymentPercent: packageType === 'joiner' ? Number(formData.joinerDownpaymentPercent) : 30,
         image: formData.images[0] || formData.image || '/CAGSAWA.jpg',
         images: formData.images.length ? formData.images : [formData.image || '/CAGSAWA.jpg'],
         availabilityStatus: formData.availabilityStatus,
@@ -206,8 +214,8 @@ const EditTourPackagePage = () => {
               <input name="price" type="number" value={formData.price} onChange={handleChange} placeholder="e.g. 18500" className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none transition-all" />
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Duration</label>
-              <input name="duration" value={formData.duration} onChange={handleChange} placeholder="e.g. 3 Days, 2 Nights" className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none transition-all" />
+              <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Number of Days</label>
+              <input type="number" min="1" name="duration" value={formData.duration} onChange={handleChange} placeholder="e.g. 3" className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none transition-all" />
             </div>
           </div>
           <div>
@@ -221,7 +229,7 @@ const EditTourPackagePage = () => {
           {packageType === 'joiner' && (
             <div className="md:col-span-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
               <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-amber-300">Joiner Schedule & Availability</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Trip Date</label>
                   <input name="joinerDate" type="date" value={formData.joinerDate} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
@@ -234,6 +242,11 @@ const EditTourPackagePage = () => {
                   <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Booking Deadline</label>
                   <input name="joinerBookingDeadline" type="date" max={earliestBookingDeadline(formData.joinerDate) || undefined} value={formData.joinerBookingDeadline} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
                   <p className="mt-1 text-[10px] text-slate-500">Last day to book; at least 3 days before departure.</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Downpayment (%)</label>
+                  <input name="joinerDownpaymentPercent" type="number" min="1" max="100" step="1" value={formData.joinerDownpaymentPercent} onChange={handleChange} className="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 focus:outline-none" />
+                  <p className="mt-1 text-[10px] text-slate-500">Default is 30% to reserve a spot.</p>
                 </div>
               </div>
             </div>

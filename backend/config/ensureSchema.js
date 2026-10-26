@@ -169,6 +169,10 @@ async function ensureSchema() {
     if (!joinerDeadlineColumns.length) {
         await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_booking_deadline DATE NULL`);
     }
+    const [joinerDownpaymentColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'joiner_downpayment_percent'`);
+    if (!joinerDownpaymentColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN joiner_downpayment_percent DECIMAL(5,2) NOT NULL DEFAULT 30`);
+    }
 
     // 7. Vehicle
     await db.query(`CREATE TABLE IF NOT EXISTS vehicle (
@@ -253,6 +257,16 @@ async function ensureSchema() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     await db.query(`ALTER TABLE booking MODIFY COLUMN package_id INT UNSIGNED NULL DEFAULT NULL`);
+    const [participantNamesColumns] = await db.query(`SHOW COLUMNS FROM booking LIKE 'participant_names'`);
+    if (!participantNamesColumns.length) {
+        await db.query(`ALTER TABLE booking ADD COLUMN participant_names JSON NULL`);
+    }
+    const [bookingPaymentColumns] = await db.query(`SHOW COLUMNS FROM booking WHERE Field IN ('payment_method', 'payment_reference', 'payment_amount', 'payment_status')`);
+    const bookingPaymentColumnNames = new Set(bookingPaymentColumns.map((column) => column.Field));
+    if (!bookingPaymentColumnNames.has('payment_method')) await db.query(`ALTER TABLE booking ADD COLUMN payment_method VARCHAR(50) NULL`);
+    if (!bookingPaymentColumnNames.has('payment_reference')) await db.query(`ALTER TABLE booking ADD COLUMN payment_reference VARCHAR(100) NULL`);
+    if (!bookingPaymentColumnNames.has('payment_amount')) await db.query(`ALTER TABLE booking ADD COLUMN payment_amount DECIMAL(10,2) NULL`);
+    if (!bookingPaymentColumnNames.has('payment_status')) await db.query(`ALTER TABLE booking ADD COLUMN payment_status VARCHAR(50) NULL`);
     const [customizedDetailsColumn] = await db.query(`SHOW COLUMNS FROM booking LIKE 'customized_details'`);
     if (!customizedDetailsColumn.length) {
         await db.query(`ALTER TABLE booking ADD COLUMN customized_details JSON NULL AFTER guide_id`);

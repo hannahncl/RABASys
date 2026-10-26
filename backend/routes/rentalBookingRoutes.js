@@ -29,6 +29,32 @@ router.get("/", requireAuth, async (req, res, next) => {
     }
 });
 
+// Return the dates already occupied by active bookings for a vehicle. Rental
+// intervals are treated as [pickup, return), so a new rental may start on the
+// same calendar day another rental is returned.
+router.get("/availability/:vehicleId", requireAuth, async (req, res, next) => {
+    try {
+        const { rows } = await db.query(
+            `SELECT pickup_date, return_date
+             FROM car_rental_booking
+             WHERE vehicle_id = $1
+               AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
+               AND deleted_at IS NULL
+             ORDER BY pickup_date ASC`,
+            [req.params.vehicleId]
+        );
+        res.json({
+            vehicleId: req.params.vehicleId,
+            bookings: rows.map((row) => ({
+                pickupDate: String(row.pickup_date).slice(0, 10),
+                returnDate: String(row.return_date).slice(0, 10),
+            })),
+        });
+    } catch (e) {
+        next(e);
+    }
+});
+
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
         await db.query("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE rental_booking_id = $1 AND return_date <= NOW() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);
@@ -50,28 +76,69 @@ router.post("/", requireAuth, async (req, res, next) => {
             return res.status(422).json({ message: "vehicle_id, pickup_date, return_date, and pickup_location are required." });
         }
 
-        const { rows: vehicles } = await db.query(
-            "SELECT daily_rate FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL",
-            [vehicle_id]
-        );
-
-        const vehicle = vehicles[0];
-        if (!vehicle) return res.status(404).json({ message: "Available vehicle not found." });
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(pickup_date)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(return_date))) {
+            return res.status(422).json({ message: "Pickup and return dates must be valid calendar dates." });
+        }
 
         const start = new Date(pickup_date);
         const end = new Date(return_date);
-        if (end <= start) return res.status(422).json({ message: "Return date must be after pickup date." });
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+            return res.status(422).json({ message: "Return date must be after pickup date." });
+        }
 
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const totalAmount = Number(vehicle.daily_rate) * diffDays;
         const reference = payment_reference?.trim() || `RBC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
         const paymentMethod = payment_method?.trim() || 'GCash';
 
-        const { rows: inserted } = await db.query(
-            "INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Pending', $8) RETURNING rental_booking_id",
-            [req.user.accountId, vehicle_id, reference, pickup_date, return_date, pickup_location, totalAmount, paymentMethod]
-        );
+        // Lock the vehicle row while checking and creating the booking. This
+        // prevents two simultaneous requests from passing the overlap check.
+        const client = await db.connect();
+        let inserted;
+        try {
+            await client.query("BEGIN");
+
+            const { rows: vehicles } = await client.query(
+                "SELECT daily_rate FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
+                [vehicle_id]
+            );
+            const vehicle = vehicles[0];
+            if (!vehicle) {
+                const error = new Error("Available vehicle not found.");
+                error.status = 404;
+                throw error;
+            }
+
+            const { rows: conflicts } = await client.query(
+                `SELECT rental_booking_id, pickup_date, return_date
+                 FROM car_rental_booking
+                 WHERE vehicle_id = $1
+                   AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
+                   AND deleted_at IS NULL
+                   AND pickup_date < $2
+                   AND return_date > $3
+                 LIMIT 1`,
+                [vehicle_id, return_date, pickup_date]
+            );
+            if (conflicts.length) {
+                const error = new Error("That vehicle is already booked for part of the selected dates. Please choose different dates.");
+                error.status = 409;
+                throw error;
+            }
+
+            const totalAmount = Number(vehicle.daily_rate) * diffDays;
+            const result = await client.query(
+                "INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Pending', $8) RETURNING rental_booking_id",
+                [req.user.accountId, vehicle_id, reference, pickup_date, return_date, pickup_location, totalAmount, paymentMethod]
+            );
+            inserted = result.rows;
+            await client.query("COMMIT");
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
+        }
 
         const newBookingId = inserted[0].rental_booking_id;
         const { rows } = await db.query(`${bookingSelect} WHERE b.rental_booking_id = $1`, [newBookingId]);

@@ -67,6 +67,7 @@ const Booking = () => {
   const [tourDate, setTourDate] = useState(stateData.tourDate || '');
   const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || 1)));
   const [childrenCount, setChildrenCount] = useState(Math.max(0, Math.floor(Number(stateData.childrenCount) || 0)));
+  const [participantNames, setParticipantNames] = useState([]);
 
   // Tour Guide Selection
   const [selectedGuide, setSelectedGuide] = useState(null);
@@ -182,6 +183,15 @@ const Booking = () => {
   const totalGuests = adultsCount + childrenCount;
   const pricePerGuest = Number(pkg.price || 0);
   const totalPrice = isJoiner ? pricePerGuest * totalGuests : pricePerGuest;
+  const downpaymentPercent = isJoiner
+    ? Number(joinerAvailability?.downpaymentPercent ?? pkg.joinerDownpaymentPercent ?? 30)
+    : 100;
+  const downpaymentAmount = Math.round((totalPrice * downpaymentPercent / 100) * 100) / 100;
+  const balanceAmount = Math.max(0, totalPrice - downpaymentAmount);
+
+  const resizeParticipantNames = (nextCount) => {
+    setParticipantNames((current) => Array.from({ length: nextCount }, (_, index) => current[index] || ''));
+  };
 
   const handleIncreaseAdults = () => {
     if (hasPaxLimit && totalGuests >= maxPax) {
@@ -189,6 +199,7 @@ const Booking = () => {
       return;
     }
     setAdultsCount((prev) => prev + 1);
+    resizeParticipantNames(totalGuests + 1);
   };
 
   const handleIncreaseChildren = () => {
@@ -197,6 +208,7 @@ const Booking = () => {
       return;
     }
     setChildrenCount((prev) => prev + 1);
+    resizeParticipantNames(totalGuests + 1);
   };
 
   const getPackageDurationInDays = () => {
@@ -239,6 +251,10 @@ const Booking = () => {
     }
     if (!firstName || !lastName || !email || !phone || !tourDate || totalGuests === 0) {
       showNotification('Please fill in all booking fields.', 'warning');
+      return;
+    }
+    if (isJoiner && participantNames.slice(0, totalGuests).some((name) => !String(name || '').trim())) {
+      showNotification('Please enter the full name of every Joiner traveler.', 'warning');
       return;
     }
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) {
@@ -294,13 +310,17 @@ const Booking = () => {
         totalPrice,
         paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
         paymentRef: referenceNumber,
+        downpaymentAmount: isJoiner ? downpaymentAmount : totalPrice,
+        participantNames: isJoiner ? participantNames.slice(0, totalGuests).map((name) => name.trim()) : [],
         gcashNumber: 'N/A',
         ...(pkg.customizedDetails && { customizedDetails: pkg.customizedDetails })
       };
 
       await bookingService.create(bookingData);
       showNotification(isJoiner
-        ? 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.'
+        ? (paymentMethod === 'gcash'
+          ? 'Joiner booking submitted! Your spots are reserved while the downpayment is verified.'
+          : 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.')
         : 'Booking successfully submitted! A confirmation email has been dispatched.', 'success');
       navigate('/');
     } catch (error) {
@@ -663,7 +683,11 @@ const Booking = () => {
                         <div className="flex items-center gap-4">
                           <button
                             type="button"
-                            onClick={() => setAdultsCount(Math.max(1, adultsCount - 1))}
+                            onClick={() => {
+                              const nextAdults = Math.max(1, adultsCount - 1);
+                              setAdultsCount(nextAdults);
+                              resizeParticipantNames(nextAdults + childrenCount);
+                            }}
                             className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
                             style={{ color: colors.textMuted }}
                             onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
@@ -695,7 +719,11 @@ const Booking = () => {
                         <div className="flex items-center gap-4">
                           <button
                             type="button"
-                            onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
+                            onClick={() => {
+                              const nextChildren = Math.max(0, childrenCount - 1);
+                              setChildrenCount(nextChildren);
+                              resizeParticipantNames(adultsCount + nextChildren);
+                            }}
                             className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
                             style={{ color: colors.textMuted }}
                             onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
@@ -726,6 +754,38 @@ const Booking = () => {
                       </p>
                     )}
                   </div>
+
+                  {isJoiner && (
+                    <div>
+                      <SectionLabel>Joiner Traveler Names</SectionLabel>
+                      <p className="mb-4 text-[11px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                        Enter the full name of every traveler joining this departure. The contact person is not automatically counted as a traveler.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Array.from({ length: totalGuests }, (_, index) => (
+                          <div key={`participant-${index}`}>
+                            <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary }}>
+                              {index < adultsCount ? `Adult ${index + 1} Name` : `Child ${index - adultsCount + 1} Name`} <span style={{ color: '#b83b3b' }}>*</span>
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={participantNames[index] || ''}
+                              onChange={(event) => setParticipantNames((current) => {
+                                const next = [...current];
+                                next[index] = event.target.value.replace(/[^a-zA-Z .'-]/g, '');
+                                return next;
+                              })}
+                              placeholder="Full name"
+                              className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                              style={inputStyle}
+                              {...inputFocusHandlers}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Contact Information */}
                   <div>
@@ -866,7 +926,9 @@ const Booking = () => {
                       }}
                     >
                       <p className="text-[11px] leading-relaxed" style={{ color: colors.textSecondary }}>
-                        Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.
+                        {isJoiner
+                          ? `Please send the ${downpaymentPercent}% downpayment of PHP ${downpaymentAmount.toLocaleString()} via GCash. Your spot will be reserved while our admin verifies the payment.`
+                          : 'Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.'}
                       </p>
                       <div>
                         <label
@@ -1109,6 +1171,13 @@ const Booking = () => {
                     </span>
                   </div>
                 </div>
+
+                {isJoiner && currentStep === 2 && (
+                  <div className="mb-4 space-y-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                    <div className="flex justify-between"><span>Downpayment due now ({downpaymentPercent}%)</span><span>PHP {downpaymentAmount.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Remaining balance</span><span>PHP {balanceAmount.toLocaleString()}</span></div>
+                  </div>
+                )}
 
                 {currentStep === 1 && (
                   <button
