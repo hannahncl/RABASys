@@ -98,9 +98,9 @@ export const mapGalleryService = {
 
   getAllUploads: async () => api('/map-stories'),
 
-  uploadPhoto: async (spotId, touristName, caption, imageUrl, location) => api('/map-stories', {
+  uploadPhoto: async (spotId, touristName, caption, imageUrl, location, province) => api('/map-stories', {
     method: 'POST',
-    body: JSON.stringify({ spotId, touristName, caption, imageUrl, location }),
+    body: JSON.stringify({ spotId, touristName, caption, imageUrl, location, province }),
   }),
 
   getMyUploads: async () => api('/map-stories/mine'),
