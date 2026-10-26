@@ -326,19 +326,6 @@ const Bookings = () => {
                               <span>Confirm</span>
                             </button>
                           )}
-                          {booking.type === 'Tour Packages'
-                            && String(booking.package_type || '').toLowerCase() === 'joiner'
-                            && ['Pending Verification', 'Pending', 'Confirmed', 'Rescheduled'].includes(booking.status) && (
-                              <button
-                                onClick={() => handleStatusUpdate(booking, 'Cancelled')}
-                                disabled={updatingId === booking.id}
-                                className="px-2.5 py-1.5 rounded-md border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
-                                title="Cancel booking and release its reserved spots"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                                <span>Cancel</span>
-                              </button>
-                            )}
                         </div>
                       </td>
                     </tr>
@@ -407,6 +394,7 @@ const SummaryCard = ({ label, value, icon: Icon, tone = 'text-yellow-700', bgTon
 const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
   const isPending = booking.status === 'Pending Verification' || booking.status === 'Pending';
   const isCarRental = booking.type === 'Car Rental';
+  const isJoiner = !isCarRental && String(booking.package_type || '').toLowerCase() === 'joiner';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
@@ -470,6 +458,16 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
                 </div>
               )}
             </div>
+            {booking.participantNames?.length > 0 && (
+              <div className="mt-4 border-t border-[#f0ece5] pt-3">
+                <p className="text-slate-500 font-medium">Joiner Travelers:</p>
+                <ol className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 list-decimal list-inside text-[#1a1a1a]">
+                  {booking.participantNames.map((name, index) => (
+                    <li key={`${name}-${index}`} className="font-semibold">{name}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </section>
 
           {/* Schedule */}
@@ -523,8 +521,26 @@ const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
                   <span className="font-mono font-bold text-[#333]">{booking.paymentRef}</span>
                 </div>
               )}
+              {booking.paymentStatus && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Payment Status:</span>
+                  <span className="font-semibold text-[#1a1a1a]">{booking.paymentStatus}</span>
+                </div>
+              )}
+              {isJoiner && booking.paymentAmount != null && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Downpayment:</span>
+                    <span className="font-semibold text-[#1a1a1a]">₱{Number(booking.paymentAmount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Remaining Balance:</span>
+                    <span className="font-semibold text-[#1a1a1a]">₱{Number(booking.balanceAmount || 0).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
               <div className="flex items-center justify-between pt-2 border-t border-[#eae5db] text-sm">
-                <span className="font-bold text-[#1a1a1a]">Total Paid:</span>
+                <span className="font-bold text-[#1a1a1a]">{isJoiner ? 'Full Trip Price:' : 'Total Paid:'}</span>
                 <span className="font-extrabold text-[#1a1a1a]">₱{Number(booking.totalPrice || 0).toLocaleString()}</span>
               </div>
             </div>

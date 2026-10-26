@@ -107,28 +107,110 @@ const PRESET_UPLOAD_IMAGES = [
   { name: 'Matnog Pink Sand', url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800' },
 ];
 
-const DESTINATION_COORDINATES = {
-  albay: [13.1391, 123.7438],
-  legazpi: [13.1391, 123.7438],
-  'camarines sur': [13.6218, 123.1948],
-  naga: [13.6218, 123.1948],
-  caramoan: [13.7836, 123.8569],
-  'camarines norte': [14.4716, 122.9366],
-  calaguas: [14.4716, 122.9366],
-  sorsogon: [12.9067, 123.5997],
-  donsol: [12.9067, 123.5997],
-  matnog: [12.5852, 124.0853],
-};
+const DESTINATION_COORDINATES = [
+  { names: ['cagsawa ruins', 'cagsawa'], coords: [13.1660559, 123.7010503] },
+  { names: ['donsol'], coords: [12.9231333, 123.5779705] },
+  { names: ['matnog'], coords: [12.5387376, 124.1050759] },
+  { names: ['caramoan'], coords: [13.7681398, 123.8624978] },
+  { names: ['calaguas'], coords: [14.4759359, 122.9388605] },
+  { names: ['naga'], coords: [13.6240122, 123.1850318] },
+  { names: ['sorsogon city', 'sorsogon'], coords: [12.9711469, 124.0014783] },
+  { names: ['legazpi', 'albay'], coords: [13.1388505, 123.7345746] },
+  { names: ['camarines norte'], coords: [14.112333, 122.9556967] },
+  { names: ['camarines sur'], coords: [13.6240122, 123.1850318] },
+];
 
 const normalizeDestinationName = (value) => String(value || '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, ' ')
   .trim();
 
+const BICOL_PROVINCES = ['Albay', 'Camarines Norte', 'Camarines Sur', 'Catanduanes', 'Masbate', 'Sorsogon'];
+
+const getProvinceFromLocation = (...values) => {
+  const normalizedLocation = normalizeDestinationName(values.filter(Boolean).join(', '));
+  const knownProvince = BICOL_PROVINCES.find(province =>
+    normalizedLocation.includes(normalizeDestinationName(province))
+  );
+  if (knownProvince) return knownProvince;
+
+  const administrativeArea = values
+    .filter(value => typeof value === 'string')
+    .map(value => value.trim())
+    .find(value => value && !/region|metro manila|ncr|philippines/i.test(value));
+  return administrativeArea || '';
+};
+
+const getSpotProvince = (spot) => {
+  if (spot?.province) return spot.province;
+  const province = getProvinceFromLocation(spot?.name, spot?.description);
+  if (province) return province;
+  if (normalizeDestinationName(spot?.name).includes('naga city')) return 'Camarines Sur';
+  return '';
+};
+
+const createSearchedSpot = (name, coords, description = name, province = '') => ({
+  id: `searched-${coords[0].toFixed(6)}-${coords[1].toFixed(6)}`,
+  name,
+  coords,
+  description,
+  province,
+  category: 'Searched Location',
+  featuredImage: '',
+  travelTips: '',
+  bestSeason: '',
+  activities: [],
+  packageLink: '/packages',
+});
+
+const searchPhilippineLocations = async (query, signal) => {
+  const params = new URLSearchParams({
+    q: query,
+    limit: '3',
+    lang: 'en',
+    countrycode: 'PH',
+  });
+  const response = await fetch(`https://photon.komoot.io/api/?${params}`, { signal });
+  if (!response.ok) throw new Error(`Location search failed (${response.status}).`);
+
+  const data = await response.json();
+  if (!Array.isArray(data.features)) throw new Error('Location search returned an invalid response.');
+
+  return data.features
+    .filter(feature => feature.properties?.countrycode?.toUpperCase() === 'PH')
+    .map(feature => {
+      const [longitude, latitude] = feature.geometry?.coordinates || [];
+      const properties = feature.properties || {};
+      const address = [
+        properties.housenumber && properties.street
+          ? `${properties.housenumber} ${properties.street}`
+          : properties.street,
+        properties.district,
+        properties.city,
+        properties.county,
+        properties.state,
+        properties.country,
+      ].filter((value, index, values) => value && values.indexOf(value) === index);
+
+      return {
+        place_id: `${properties.osm_type || 'place'}-${properties.osm_id || `${latitude}-${longitude}`}`,
+        name: properties.name || address[0] || 'Unnamed location',
+        display_name: address.join(', ') || properties.name || 'Philippines',
+        province: getProvinceFromLocation(properties.state, properties.county),
+        lat: String(latitude),
+        lon: String(longitude),
+        addresstype: properties.type || properties.osm_value || '',
+      };
+    })
+    .filter(result => Number.isFinite(Number(result.lat)) && Number.isFinite(Number(result.lon)));
+};
+
 const getDestinationCoordinates = (destination) => {
   const normalized = normalizeDestinationName(destination);
-  const match = Object.entries(DESTINATION_COORDINATES).find(([name]) => normalized.includes(name) || name.includes(normalized));
-  return match ? match[1] : null;
+  const match = DESTINATION_COORDINATES.find(({ names }) =>
+    names.some(name => normalized === name || normalized.startsWith(`${name} `))
+  );
+  return match?.coords || null;
 };
 
 const getTimeAgo = (dateStr) => {
@@ -200,6 +282,13 @@ const ExploreMap = () => {
   const [mapCenter, setMapCenter] = useState([13.4, 123.6]);
   const [mapZoom, setMapZoom] = useState(8.5);
   const [searchQuery, setSearchQuery] = useState('');
+  const [destinationSearchQuery, setDestinationSearchQuery] = useState('');
+  const [mapSearchResults, setMapSearchResults] = useState([]);
+  const [mapSearchError, setMapSearchError] = useState('');
+  const [isMapSearching, setIsMapSearching] = useState(false);
+  const [hasSearchedMap, setHasSearchedMap] = useState(false);
+  const lastMapSearchAtRef = useRef(0);
+  const activeMapSearchRef = useRef(null);
 
   // Real Device GPS Tracking & Navigation state
   const [userLocation, setUserLocation] = useState(null);
@@ -342,6 +431,51 @@ const ExploreMap = () => {
     }
   }, [uploadModalOpen, stopCamera]);
 
+  useEffect(() => {
+    const query = destinationSearchQuery.trim();
+    if (query.length < 2 || query.toLowerCase() === selectedSpot?.name.toLowerCase()) {
+      setMapSearchResults([]);
+      setIsMapSearching(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    activeMapSearchRef.current?.abort();
+    activeMapSearchRef.current = controller;
+    setMapSearchResults([]);
+    setMapSearchError('');
+    setHasSearchedMap(false);
+
+    const elapsedSinceSearch = Date.now() - lastMapSearchAtRef.current;
+    const delay = Math.max(500, 1000 - elapsedSinceSearch);
+    const timer = window.setTimeout(async () => {
+      if (controller.signal.aborted) return;
+      lastMapSearchAtRef.current = Date.now();
+      setIsMapSearching(true);
+      try {
+        const results = await searchPhilippineLocations(query, controller.signal);
+        if (!controller.signal.aborted) {
+          setMapSearchResults(results);
+          setHasSearchedMap(true);
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Could not search map locations:', error);
+          if (!controller.signal.aborted) {
+            setMapSearchError('Location suggestions are unavailable right now. Please try again.');
+          }
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsMapSearching(false);
+      }
+    }, delay);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [destinationSearchQuery, selectedSpot]);
+
   // Initial load
   useEffect(() => {
     const initData = async () => {
@@ -355,7 +489,17 @@ const ExploreMap = () => {
         const existingNames = new Set(spotList.map((spot) => normalizeDestinationName(spot.name)));
         const packageDestinations = packages
           .filter((pkg) => pkg.destination && getDestinationCoordinates(pkg.destination))
-          .filter((pkg) => !existingNames.has(normalizeDestinationName(pkg.destination)))
+          .filter((pkg) => {
+            const destinationName = normalizeDestinationName(pkg.destination);
+            const destinationCoords = getDestinationCoordinates(pkg.destination);
+            return !existingNames.has(destinationName)
+              && !spotList.some((spot) => calculateDistanceKm(
+                spot.coords[0],
+                spot.coords[1],
+                destinationCoords[0],
+                destinationCoords[1],
+              ) < 1);
+          })
           .reduce((unique, pkg) => {
             const key = normalizeDestinationName(pkg.destination);
             if (!unique.has(key)) unique.set(key, pkg);
@@ -381,7 +525,34 @@ const ExploreMap = () => {
         console.warn('Could not load package destinations for the map:', error.message);
       }
 
-      setSpots(destinationSpots);
+      try {
+        const stories = await mapGalleryService.getAllUploads();
+        const savedLocations = new Map();
+        stories.forEach(story => {
+          const latitude = Number(story.latitude);
+          const longitude = Number(story.longitude);
+          if (story.locationName && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            const location = createSearchedSpot(story.locationName, [latitude, longitude], story.locationName, story.province);
+            savedLocations.set(location.id, location);
+          }
+        });
+        const existingIds = new Set(destinationSpots.map(spot => spot.id));
+        destinationSpots = [
+          ...destinationSpots,
+          ...Array.from(savedLocations.values()).filter(spot => !existingIds.has(spot.id)),
+        ];
+      } catch (error) {
+        console.warn('Could not load map story locations:', error.message);
+      }
+
+      setSpots(current => {
+        const currentSearchSpots = current.filter(spot => spot.id.startsWith('searched-'));
+        const allSpots = new Map(destinationSpots.map(spot => [spot.id, spot]));
+        currentSearchSpots.forEach(spot => {
+          if (!allSpots.has(spot.id)) allSpots.set(spot.id, spot);
+        });
+        return Array.from(allSpots.values());
+      });
     };
     initData();
   }, []);
@@ -432,10 +603,72 @@ const ExploreMap = () => {
   }, [storyViewerOpen, activeStoryIndex, uploads.length]);
 
   const handleSpotClick = (spot) => {
+    setHasSearchedMap(false);
     setSelectedSpot(spot);
-    setGalleryFilterValue(spot.name.split(',')[0]);
+    setGalleryFilterValue(getSpotProvince(spot) || 'All');
     setMapCenter(spot.coords);
     setMapZoom(11);
+    setFollowUser(false);
+    setDestinationSearchQuery(spot.name);
+  };
+
+  const handleDestinationSearch = async (event) => {
+    event.preventDefault();
+    const query = destinationSearchQuery.trim();
+    if (!query || isMapSearching) return;
+
+    if (mapSearchResults.length) {
+      handleMapSearchResultClick(mapSearchResults[0]);
+      return;
+    }
+
+    if (destinationSearchMatches.length) {
+      handleSpotClick(destinationSearchMatches[0]);
+      return;
+    }
+
+    const remainingWait = 1000 - (Date.now() - lastMapSearchAtRef.current);
+    if (remainingWait > 0) {
+      setMapSearchError('Please wait a moment before searching again.');
+      return;
+    }
+
+    lastMapSearchAtRef.current = Date.now();
+    setMapSearchResults([]);
+    setMapSearchError('');
+    setHasSearchedMap(true);
+    setIsMapSearching(true);
+
+    try {
+      const results = await searchPhilippineLocations(query);
+      setMapSearchResults(results);
+    } catch (error) {
+      console.error('Could not search map locations:', error);
+      setMapSearchError('Location search is unavailable right now. Please try again.');
+    } finally {
+      setIsMapSearching(false);
+    }
+  };
+
+  const handleMapSearchResultClick = (result) => {
+    const coords = [Number(result.lat), Number(result.lon)];
+    const placeName = result.name || result.display_name;
+    const addressType = result.addresstype || result.type;
+    const zoom = ['country', 'state', 'region', 'county'].includes(addressType) ? 8
+      : ['city', 'town', 'village', 'municipality'].includes(addressType) ? 12
+        : 16;
+    const searchedSpot = createSearchedSpot(placeName, coords, result.display_name, result.province);
+
+    setSpots(current => [...current.filter(spot => spot.id !== searchedSpot.id), searchedSpot]);
+    setSelectedSpot(searchedSpot);
+    setGalleryFilterValue('All');
+    setFollowUser(false);
+    setMapCenter(coords);
+    setMapZoom(zoom);
+    setDestinationSearchQuery(placeName);
+    setMapSearchResults([]);
+    setMapSearchError('');
+    setHasSearchedMap(false);
   };
 
   const handleBackToAll = () => {
@@ -459,8 +692,13 @@ const ExploreMap = () => {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, accuracy, heading, speed } = pos.coords;
-        setGpsStatus('connected');
-        setGpsErrorMsg('');
+        if (![latitude, longitude, accuracy].every(Number.isFinite)) {
+          setGpsStatus('error');
+          setGpsErrorMsg('GPS returned an invalid location.');
+          return;
+        }
+        setGpsStatus(accuracy > 50 ? 'low-accuracy' : 'connected');
+        setGpsErrorMsg(accuracy > 50 ? 'GPS signal is weak. Move outdoors for a more accurate location.' : '');
 
         setUserLocation(prev => {
           let calculatedHeading = 0;
@@ -476,7 +714,7 @@ const ExploreMap = () => {
           return {
             lat: latitude,
             lng: longitude,
-            accuracy: Math.round(accuracy) || 10,
+            accuracy,
             heading: calculatedHeading,
             speed: speedKmh,
             timestamp: Date.now()
@@ -503,8 +741,8 @@ const ExploreMap = () => {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 15000
+        maximumAge: 0,
+        timeout: 20000
       }
     );
 
@@ -601,7 +839,11 @@ const ExploreMap = () => {
     }
   };
 
-  const handleOpenUpload = async () => {
+  const handleOpenUpload = async (spot = selectedSpot) => {
+    if (spot) {
+      setSelectedSpot(spot);
+      setTargetSpotId(spot.id);
+    }
     const eligibilityError = await getUploadEligibilityError();
     if (eligibilityError) {
       showNotification(eligibilityError, 'warning');
@@ -628,7 +870,13 @@ const ExploreMap = () => {
     } else if (uploadTab === 'url' && customImageUrl.trim()) {
       finalImageUrl = customImageUrl.trim();
     } else {
-      finalImageUrl = selectedPresetImage;
+      setUploadError(uploadTab === 'camera'
+        ? 'Take a photo with your camera before sharing.'
+        : uploadTab === 'file'
+          ? 'Choose a photo from your device before sharing.'
+          : 'Enter a valid photo URL before sharing.');
+      setUploading(false);
+      return;
     }
 
     if (!finalImageUrl) {
@@ -638,8 +886,15 @@ const ExploreMap = () => {
     }
 
     try {
-      const activeSpotId = selectedSpot ? selectedSpot.id : targetSpotId;
-      const newUpload = await mapGalleryService.uploadPhoto(activeSpotId, touristName, caption, finalImageUrl, undefined, user);
+      const activeSpot = selectedSpot || spots.find(spot => spot.id === targetSpotId);
+      const activeSpotId = activeSpot?.id || targetSpotId;
+      const newUpload = await mapGalleryService.uploadPhoto(
+        activeSpotId,
+        touristName,
+        caption,
+        finalImageUrl,
+        activeSpot ? { name: activeSpot.name, coords: activeSpot.coords, province: getSpotProvince(activeSpot) } : undefined,
+      );
 
       setUploads(prev => [newUpload, ...prev]);
 
@@ -705,37 +960,50 @@ const ExploreMap = () => {
     return L.divIcon({
       className: 'custom-marker-wrapper',
       html: `
-        <div class="relative flex flex-col items-center group cursor-pointer">
-          <div class="p-[2px] rounded-full bg-stone-900 shadow-md transition-transform group-hover:scale-110 ${isSelected ? 'ring-4 ring-amber-400' : ''}">
-            <div class="w-9 h-9 rounded-full overflow-hidden border-2 border-white bg-stone-900">
-              <img src="${spot.featuredImage}" class="w-full h-full object-cover" />
-            </div>
-          </div>
-          <div class="mt-1 bg-white/95 backdrop-blur-sm border border-stone-200 text-stone-800 text-[10px] font-bold py-0.5 px-2.5 rounded-full whitespace-nowrap shadow-sm pointer-events-none flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            ${spot.name.split(',')[0]}
-          </div>
+        <div style="position:relative;width:24px;height:32px;transform:${isSelected ? 'scale(1.1)' : 'scale(1)'};transform-origin:50% 94%;transition:transform 0.15s ease;">
+          <svg width="24" height="32" viewBox="0 0 24 32" aria-hidden="true" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35));">
+            <path d="M12 30S21 21.5 21 12a9 9 0 1 0-18 0c0 9.5 9 18 9 18Z" fill="${isSelected ? '#2d2a24' : '#ffffff'}" stroke="${isSelected ? '#c4a66a' : '#5b5142'}" stroke-width="2"></path>
+            <circle cx="12" cy="12" r="3.5" fill="${isSelected ? '#ffffff' : '#5b5142'}"></circle>
+          </svg>
+          ${isSelected ? `
+            <span style="position:absolute;left:50%;bottom:34px;transform:translateX(-50%);padding:4px 8px;border-radius:12px;background:#2d2a24;color:#ffffff;font:600 11px/1.2 Inter,sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+              ${spot.name.split(',')[0]}
+            </span>
+          ` : ''}
         </div>
       `,
-      iconSize: [40, 50],
-      iconAnchor: [20, 25],
+      iconSize: [24, 32],
+      iconAnchor: [12, 30],
     });
   };
 
   const filteredSpots = spots.filter(spot =>
-    spot.name.toLowerCase().includes(searchQuery.toLowerCase())
+    spot.id === selectedSpot?.id || spot.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const destinationSearchMatches = destinationSearchQuery.trim()
+    ? spots.filter(spot =>
+      `${spot.name} ${spot.category}`.toLowerCase().includes(destinationSearchQuery.trim().toLowerCase())
+    ).slice(0, 6)
+    : [];
+  const showDestinationSearchResults = destinationSearchQuery.trim()
+    && destinationSearchQuery.trim().toLowerCase() !== selectedSpot?.name.toLowerCase();
 
   // Derive gallery filter options
-  const galleryDestinationOptions = ['All', ...spots.map(s => s.name.split(',')[0])];
+  const galleryProvinceOptions = ['All', ...new Set(
+    uploads
+      .map(upload => upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId)))
+      .filter(Boolean)
+      .sort((first, second) => first.localeCompare(second))
+  )];
 
   // Filtered uploads for gallery
   const galleryUploads = uploads.filter(up => {
     const spot = spots.find(s => s.id === up.spotId);
-    const matchesDestination = galleryFilterValue === 'All' || spot?.name.split(',')[0] === galleryFilterValue;
+    const province = up.province || getSpotProvince(spot);
+    const matchesProvince = galleryFilterValue === 'All' || province === galleryFilterValue;
     const query = searchQuery.trim().toLowerCase();
-    const matchesSearch = !query || [up.caption, up.touristName, spot?.name].some(value => String(value || '').toLowerCase().includes(query));
-    return matchesDestination && matchesSearch;
+    const matchesSearch = !query || [up.caption, up.touristName, spot?.name, up.locationName].some(value => String(value || '').toLowerCase().includes(query));
+    return matchesProvince && matchesSearch;
   });
 
   // Calculate live navigation metrics
@@ -834,17 +1102,17 @@ const ExploreMap = () => {
                 />
               </div>
 
-              {/* Destination dropdown */}
+              {/* Province dropdown */}
               <label style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem', color: '#6b6255', fontSize: '0.7rem', fontWeight: 600 }}>
                 <select
                   value={galleryFilterValue}
                   onChange={e => setGalleryFilterValue(e.target.value)}
-                  aria-label="Filter photos by destination"
+                  aria-label="Filter photos by province"
                   style={{ minWidth: '12rem', maxWidth: '100%', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#2d2a24', padding: '0.6rem 2rem 0.6rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}
                   onFocus={e => { e.currentTarget.style.borderColor = '#b0a68e'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.12)'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = '#d6cfc2'; e.currentTarget.style.boxShadow = 'none'; }}
                 >
-                  {galleryDestinationOptions.map(destination => <option key={destination} value={destination}>{destination === 'All' ? 'All destinations' : destination}</option>)}
+                  {galleryProvinceOptions.map(province => <option key={province} value={province}>{province === 'All' ? 'All provinces' : province}</option>)}
                 </select>
               </label>
 
@@ -907,9 +1175,9 @@ const ExploreMap = () => {
                           </div>
                           <div style={{ height: '1px', background: '#eae5db', margin: '0.125rem 0' }} />
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            {spot && (
+                            {(spot?.name || up.locationName) && (
                               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6rem', fontWeight: 600, color: '#6b6255' }}>
-                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{spot.name.split(',')[0]}
+                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{(spot?.name || up.locationName).split(',')[0]}
                               </span>
                             )}
                             <span style={{ fontSize: '0.575rem', color: '#b0a68e' }}>{getTimeAgo(up.date)}</span>
@@ -941,9 +1209,9 @@ const ExploreMap = () => {
                             <span style={{ fontWeight: 700 }}>{up.touristName}: </span>{up.caption}
                           </p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            {spot && (
+                            {(spot?.name || up.locationName) && (
                               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.625rem', fontWeight: 600, color: '#6b6255' }}>
-                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{spot.name.split(',')[0]}
+                                <MapPin style={{ width: '0.55rem', height: '0.55rem', color: '#b0a68e' }} />{(spot?.name || up.locationName || 'Bicol Spot').split(',')[0]}
                               </span>
                             )}
                             <span style={{ fontSize: '0.6rem', color: '#b0a68e' }}>{getTimeAgo(up.date)}</span>
@@ -981,6 +1249,92 @@ const ExploreMap = () => {
               </p>
             </div>
 
+            {/* Destination Search */}
+            <div style={{ position: 'relative', zIndex: 20 }}>
+              <form
+                onSubmit={handleDestinationSearch}
+                style={{ display: 'flex', gap: '0.5rem' }}
+              >
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', width: '0.875rem', height: '0.875rem', color: '#b0a68e' }} />
+                  <input
+                    type="search"
+                    value={destinationSearchQuery}
+                    placeholder="Search anywhere in the Philippines..."
+                    aria-label="Search map destinations"
+                    onChange={event => {
+                      setDestinationSearchQuery(event.target.value);
+                      setMapSearchResults([]);
+                      setMapSearchError('');
+                      setHasSearchedMap(false);
+                    }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.875rem 0.65rem 2.5rem', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#2d2a24', fontSize: '0.8rem', outline: 'none' }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!destinationSearchQuery.trim() || isMapSearching}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.6rem 1rem', border: '1px solid #2d2a24', borderRadius: '4px', background: '#2d2a24', color: '#ffffff', fontSize: '0.7rem', fontWeight: 600, cursor: destinationSearchQuery.trim() && !isMapSearching ? 'pointer' : 'not-allowed' }}
+                  onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#45403a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#2d2a24'; }}
+                >
+                  <Search style={{ width: '0.8rem', height: '0.8rem' }} />
+                  {isMapSearching ? 'Searching...' : 'Search'}
+                </button>
+              </form>
+              {showDestinationSearchResults && destinationSearchMatches.length > 0 && !mapSearchResults.length && !mapSearchError && !isMapSearching && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, right: 0, border: '1px solid #e0dbd0', borderRadius: '6px', background: '#ffffff', boxShadow: '0 8px 24px rgba(45,42,36,0.14)', overflow: 'hidden' }}>
+                  {destinationSearchMatches.map(spot => (
+                    <button
+                      key={spot.id}
+                      type="button"
+                      onClick={() => handleSpotClick(spot)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.75rem', border: 'none', borderBottom: '1px solid #eee9e0', background: '#ffffff', color: '#45403a', textAlign: 'left', cursor: 'pointer', fontSize: '0.75rem' }}
+                    >
+                      <MapPin style={{ width: '0.8rem', height: '0.8rem', flexShrink: 0, color: '#b0a68e' }} />
+                      <span>{spot.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(isMapSearching || hasSearchedMap || mapSearchError) && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, right: 0, border: '1px solid #e0dbd0', borderRadius: '6px', background: '#ffffff', boxShadow: '0 8px 24px rgba(45,42,36,0.14)', overflow: 'hidden' }}>
+                  {isMapSearching && (
+                    <p role="status" style={{ margin: 0, padding: '0.75rem', color: '#6b6255', fontSize: '0.75rem' }}>
+                      Searching the map...
+                    </p>
+                  )}
+                  {mapSearchError && (
+                    <p role="alert" style={{ margin: 0, padding: '0.75rem', color: '#9f3028', fontSize: '0.75rem' }}>
+                      {mapSearchError}
+                    </p>
+                  )}
+                  {!isMapSearching && hasSearchedMap && !mapSearchError && mapSearchResults.length === 0 && (
+                    <p style={{ margin: 0, padding: '0.75rem', color: '#6b6255', fontSize: '0.75rem' }}>
+                      No locations found. Try adding a city or country to your search.
+                    </p>
+                  )}
+                  {mapSearchResults.map((result, index) => (
+                    <button
+                      key={`${result.place_id}-${index}`}
+                      type="button"
+                      onClick={() => handleMapSearchResultClick(result)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', border: 'none', borderBottom: '1px solid #eee9e0', background: '#ffffff', color: '#45403a', textAlign: 'left', cursor: 'pointer', fontSize: '0.75rem' }}
+                    >
+                      <MapPin style={{ width: '0.8rem', height: '0.8rem', flexShrink: 0, color: '#b0a68e' }} />
+                      <span>
+                        <strong style={{ display: 'block', fontWeight: 600 }}>{result.name || result.display_name}</strong>
+                        <span style={{ display: 'block', color: '#6b6255', fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.display_name}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p style={{ margin: '0.35rem 0 0', color: '#6b6255', fontSize: '0.55rem' }}>
+                Location search by <a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer" style={{ color: '#6b6255', textDecoration: 'underline' }}>Photon</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: '#6b6255', textDecoration: 'underline' }}>OpenStreetMap contributors</a>
+              </p>
+            </div>
+
             {/* Map Container */}
             <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid #e0dbd0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '510px', position: 'relative', zIndex: 0 }}>
               {/* Floating Top GPS Status Bar */}
@@ -988,12 +1342,12 @@ const ExploreMap = () => {
                 {/* GPS Status Badge */}
                 <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)', padding: '0.35rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                   <span style={{ position: 'relative', display: 'flex', width: '8px', height: '8px' }}>
-                    <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: gpsStatus === 'connected' ? '#10b981' : gpsStatus === 'locating' ? '#f59e0b' : '#ef4444', opacity: 0.75, animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}></span>
-                    <span style={{ position: 'relative', borderRadius: '50%', width: '8px', height: '8px', background: gpsStatus === 'connected' ? '#059669' : gpsStatus === 'locating' ? '#d97706' : '#dc2626' }}></span>
+                    <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: gpsStatus === 'connected' ? '#10b981' : gpsStatus === 'locating' || gpsStatus === 'low-accuracy' ? '#f59e0b' : '#ef4444', opacity: 0.75, animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}></span>
+                    <span style={{ position: 'relative', borderRadius: '50%', width: '8px', height: '8px', background: gpsStatus === 'connected' ? '#059669' : gpsStatus === 'locating' || gpsStatus === 'low-accuracy' ? '#d97706' : '#dc2626' }}></span>
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.02em', lineHeight: 1.1 }}>
-                      {gpsStatus === 'connected' ? 'LIVE GPS CONNECTED' : gpsStatus === 'locating' ? 'ACQUIRING DEVICE GPS...' : gpsStatus === 'denied' ? 'LOCATION ACCESS DENIED' : 'GPS UNAVAILABLE'}
+                      {gpsStatus === 'connected' ? 'LIVE GPS CONNECTED' : gpsStatus === 'low-accuracy' ? 'GPS SIGNAL IS WEAK' : gpsStatus === 'locating' ? 'ACQUIRING DEVICE GPS...' : gpsStatus === 'denied' ? 'LOCATION ACCESS DENIED' : 'GPS UNAVAILABLE'}
                     </span>
                     <span style={{ fontSize: '0.52rem', color: '#64748b' }}>
                       {userLocation ? `${userLocation.lat.toFixed(3)}, ${userLocation.lng.toFixed(3)} • ${userLocation.speed || '0'} km/h • ±${userLocation.accuracy}m` : (gpsErrorMsg || 'Waiting for device satellite lock...')}
@@ -1052,7 +1406,7 @@ const ExploreMap = () => {
                 {userLocation && (
                   <Circle
                     center={[userLocation.lat, userLocation.lng]}
-                    radius={userLocation.accuracy || 20}
+                    radius={userLocation.accuracy}
                     pathOptions={{
                       color: '#2563eb',
                       fillColor: '#3b82f6',
@@ -1110,12 +1464,14 @@ const ExploreMap = () => {
                   <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
                     <Popup className="custom-spot-popup">
                       <div style={{ position: 'relative', padding: '0.375rem', maxWidth: '240px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <FavoriteButton
-                          itemId={spot.id}
-                          itemType="destination"
-                          className="absolute right-2 top-2 z-10 shadow-sm"
-                        />
-                        <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5.5rem', objectFit: 'cover', borderRadius: '4px' }} />
+                        {!spot.id.startsWith('searched-') && (
+                          <FavoriteButton
+                            itemId={spot.id}
+                            itemType="destination"
+                            className="absolute right-2 top-2 z-10 shadow-sm"
+                          />
+                        )}
+                        {spot.featuredImage && <img src={spot.featuredImage} alt={spot.name} style={{ width: '100%', height: '5.5rem', objectFit: 'cover', borderRadius: '4px' }} />}
                         <div>
                           <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#855912', background: '#fef9c3', padding: '0.15rem 0.5rem', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             {spot.category}
@@ -1158,6 +1514,15 @@ const ExploreMap = () => {
                             Navigate Here
                           </button>
                         </div>
+                        <button
+                          onClick={() => {
+                            handleOpenUpload(spot);
+                          }}
+                          style={{ width: '100%', padding: '0.45rem', background: '#f8f6f0', color: '#3d3a34', fontWeight: 700, fontSize: '0.6rem', borderRadius: '2px', border: '1px solid #d6cfc2', cursor: 'pointer', textTransform: 'uppercase' }}
+                        >
+                          <Camera style={{ width: '0.7rem', height: '0.7rem', display: 'inline', marginRight: '0.3rem' }} />
+                          Share Story at This Location
+                        </button>
                       </div>
                     </Popup>
                   </Marker>
@@ -1331,32 +1696,6 @@ const ExploreMap = () => {
               </div>
             )}
 
-            {/* Map Legend / Destination Chip Selection */}
-            <div>
-              <h4 style={{ fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                Bicol Destinations
-              </h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                {filteredSpots.map(spot => {
-                  const isActive = selectedSpot?.id === spot.id;
-                  return (
-                    <button
-                      key={spot.id}
-                      onClick={() => handleSpotClick(spot)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.4rem 0.875rem', borderRadius: '2px', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'all 0.2s', textTransform: 'uppercase',
-                        border: isActive ? '1px solid #b0a68e' : '1px solid #e0dbd0',
-                        background: isActive ? 'rgba(196,185,154,0.15)' : 'rgba(255,255,255,0.6)',
-                        color: isActive ? '#2d2a24' : '#45403a',
-                      }}
-                    >
-                      <MapPin style={{ width: '0.6rem', height: '0.6rem', color: '#b0a68e' }} />
-                      {spot.name.split(',')[0]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1396,7 +1735,7 @@ const ExploreMap = () => {
               </div>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#f7f4ef', background: 'rgba(29,26,20,0.6)', border: '1px solid rgba(196,185,154,0.3)', padding: '0.25rem 0.625rem', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '0.25rem', backdropFilter: 'blur(4px)' }}>
                 <MapPin style={{ width: '0.625rem', height: '0.625rem', color: '#c4b99a' }} />
-                {spots.find(s => s.id === uploads[activeStoryIndex].spotId)?.name.split(',')[0] || 'Bicol Spot'}
+                {(spots.find(s => s.id === uploads[activeStoryIndex].spotId)?.name || uploads[activeStoryIndex].locationName || 'Bicol Spot').split(',')[0]}
               </span>
             </div>
             {/* Image & Nav */}
@@ -1487,7 +1826,7 @@ const ExploreMap = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Photo Source</label>
                 <div style={{ display: 'flex', gap: '0.25rem', background: '#f5f2ee', borderRadius: '4px', padding: '0.25rem' }}>
-                  {[{ id: 'file', label: 'Device File', icon: ImageIcon }, { id: 'camera', label: 'Camera', icon: Camera }, { id: 'url', label: 'URL', icon: Link2 }].map(tab => (
+                  {[{ id: 'camera', label: 'Take Photo Now', icon: Camera }, { id: 'file', label: 'Upload Saved Photo', icon: ImageIcon }, { id: 'url', label: 'Image URL', icon: Link2 }].map(tab => (
                     <button
                       key={tab.id} type="button" onClick={() => setUploadTab(tab.id)}
                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.5rem', borderRadius: '3px', border: 'none', fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: uploadTab === tab.id ? '#ffffff' : 'transparent', color: uploadTab === tab.id ? '#1a1a1a' : '#6b6255', boxShadow: uploadTab === tab.id ? '0 1px 4px rgba(0,0,0,0.07)' : 'none' }}

@@ -5,7 +5,7 @@ import { api } from '../../services/api';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { 
-  ArrowUpRight, TrendingUp, DollarSign, Loader, ReceiptText, Clock3, 
+  ArrowUpRight, DollarSign, Loader, ReceiptText, Clock3,
   CheckCircle2, Star, MessageSquare, Trash2, Car, Compass 
 } from 'lucide-react';
 import {
@@ -287,7 +287,7 @@ const Dashboard = () => {
         {/* Total Sales */}
         <div className="bg-white border border-[#d9c1ad] p-5 rounded-md transition-colors hover:border-[#8b5e48] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Sales</span>
+            <span className="font-sans text-[11px] text-slate-500 font-semibold uppercase tracking-[0.12em]">Total Sales</span>
             <div className="p-1.5 rounded-md bg-[#f6e9df] border border-[#d9c1ad]">
               <DollarSign className="h-3.5 w-3.5 text-[#8b5e48]" />
             </div>
@@ -295,15 +295,13 @@ const Dashboard = () => {
           <p className="text-2xl font-bold font-display text-[#1a1a1a] mt-2">
             PHP {stats.totalRevenue.toLocaleString()}
           </p>
-          <span className="text-[10px] text-[#8b5e48] font-semibold flex items-center gap-1 mt-1">
-            <TrendingUp className="h-3 w-3 text-[#8b5e48]" /> System Live Gross
-          </span>
+          <span className="text-[10px] text-[#8b5e48] font-semibold block mt-1">System Live Gross</span>
         </div>
 
         {/* Total Bookings */}
         <div className="bg-white border border-[#cbd8e0] p-5 rounded-md transition-colors hover:border-[#607d91] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Bookings</span>
+            <span className="font-sans text-[11px] text-slate-500 font-semibold uppercase tracking-[0.12em]">Total Bookings</span>
             <div className="p-1.5 rounded-md bg-[#e6eef2] border border-[#cbd8e0]">
               <ReceiptText className="h-3.5 w-3.5 text-[#385467]" />
             </div>
@@ -315,7 +313,7 @@ const Dashboard = () => {
         {/* Confirmed Bookings */}
         <div className="bg-white border border-[#c7d8c7] p-5 rounded-md transition-colors hover:border-[#6f8f72] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Confirmed</span>
+            <span className="font-sans text-[11px] text-slate-500 font-semibold uppercase tracking-[0.12em]">Confirmed</span>
             <div className="p-1.5 rounded-md bg-[#e3eee6] border border-[#c7d8c7]">
               <CheckCircle2 className="h-3.5 w-3.5 text-[#426348]" />
             </div>
@@ -327,7 +325,7 @@ const Dashboard = () => {
         {/* Pending Verification */}
         <div className="bg-white border border-[#ead7b4] p-5 rounded-md transition-colors hover:border-[#d97706] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending</span>
+            <span className="font-sans text-[11px] text-slate-500 font-semibold uppercase tracking-[0.12em]">Pending</span>
             <div className="p-1.5 rounded-md bg-[#fff3d6] border border-[#f3d391]">
               <Clock3 className="h-3.5 w-3.5 text-[#b45309]" />
             </div>

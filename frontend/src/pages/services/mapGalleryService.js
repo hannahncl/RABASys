@@ -5,7 +5,7 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-mayon',
     name: 'Cagsawa Ruins & Mayon Volcano, Albay',
-    coords: [13.1391, 123.7438],
+    coords: [13.1660559, 123.7010503],
     description: 'Iconic 16th-century Franciscan church ruins with majestic views of Mayon Volcano, Earth\'s most perfect natural cone.',
     category: 'Historical Landmarks',
     featuredImage: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800',
@@ -17,7 +17,7 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-caramoan',
     name: 'Caramoan Islands, Camarines Sur',
-    coords: [13.7836, 123.8569],
+    coords: [13.7681398, 123.8624978],
     description: 'A rugged peninsula featuring secluded white-sand beaches, towering limestone cliffs, crystal lagoons, and Survivor filming locations.',
     category: 'Islands & Beaches',
     featuredImage: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&q=80&w=800',
@@ -29,7 +29,7 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-calaguas',
     name: 'Calaguas Beach, Camarines Norte',
-    coords: [14.4716, 122.9366],
+    coords: [14.4759359, 122.9388605],
     description: 'Famous for the pristine Mahabang Buhangin beach, featuring powdery white sand, sparkling turquoise waters, and peaceful off-grid camping.',
     category: 'Islands & Beaches',
     featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800',
@@ -41,7 +41,7 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-donsol',
     name: 'Donsol Whale Shark Sanctuary, Sorsogon',
-    coords: [12.9067, 123.5997],
+    coords: [12.9231333, 123.5779705],
     description: 'World-renowned eco-tourism destination for ethical swimming with gentle giant whale sharks (Butanding) in their natural habitat.',
     category: 'Eco Adventure',
     featuredImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800',
@@ -53,7 +53,7 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-matnog',
     name: 'Matnog Pink Sand Beach, Sorsogon',
-    coords: [12.5852, 124.0853],
+    coords: [12.5387376, 124.1050759],
     description: 'The southern tip of Luzon featuring Subic Beach, famous for its unique pink-tinted sand composed of crushed red organ-pipe corals.',
     category: 'Islands & Beaches',
     featuredImage: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&q=80&w=800',
@@ -65,13 +65,25 @@ const INITIAL_SPOTS = [
   {
     id: 'spot-naga',
     name: 'Peñafrancia Basilica, Naga City',
-    coords: [13.6218, 123.1948],
+    coords: [13.6320559, 123.200008],
     description: 'The major Roman Catholic pilgrimage site in Bicol, housing the revered image of Our Lady of Peñafrancia.',
     category: 'Cultural & Heritage',
     featuredImage: 'https://images.unsplash.com/photo-1548625361-18544e300185?auto=format&fit=crop&q=80&w=800',
     travelTips: 'September hosts the grand Peñafrancia Festival. Dress modestly when visiting religious sanctuaries.',
     bestSeason: 'Year-round (Peñafrancia Fiesta in Sept)',
     activities: ['Cultural Heritage Tour', 'Religious Pilgrimage', 'Naga Food Crawl'],
+    packageLink: '/packages'
+  },
+  {
+    id: 'spot-sorsogon-city',
+    name: 'Sorsogon City',
+    coords: [12.9711469, 124.0014783],
+    description: 'Explore Sorsogon City, the provincial capital, and its nearby heritage and food destinations.',
+    category: 'City Destinations',
+    featuredImage: '/SORSOGON.jpg',
+    travelTips: 'Use Sorsogon City as a starting point for exploring the province.',
+    bestSeason: 'Year-round',
+    activities: ['City Sightseeing', 'Local Food', 'Heritage Stops'],
     packageLink: '/packages'
   }
 ];
@@ -86,9 +98,9 @@ export const mapGalleryService = {
 
   getAllUploads: async () => api('/map-stories'),
 
-  uploadPhoto: async (spotId, touristName, caption, imageUrl) => api('/map-stories', {
+  uploadPhoto: async (spotId, touristName, caption, imageUrl, location) => api('/map-stories', {
     method: 'POST',
-    body: JSON.stringify({ spotId, touristName, caption, imageUrl }),
+    body: JSON.stringify({ spotId, touristName, caption, imageUrl, location }),
   }),
 
   getMyUploads: async () => api('/map-stories/mine'),

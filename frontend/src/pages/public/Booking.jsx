@@ -65,8 +65,9 @@ const Booking = () => {
   const [email, setEmail] = useState(stateData.email || user?.email || '');
   const [phone, setPhone] = useState(stateData.phone || '');
   const [tourDate, setTourDate] = useState(stateData.tourDate || '');
-  const [adultsCount, setAdultsCount] = useState(stateData.adultsCount || 1);
-  const [childrenCount, setChildrenCount] = useState(stateData.childrenCount || 0);
+  const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || 1)));
+  const [childrenCount, setChildrenCount] = useState(Math.max(0, Math.floor(Number(stateData.childrenCount) || 0)));
+  const [participantNames, setParticipantNames] = useState([]);
 
   // Tour Guide Selection
   const [selectedGuide, setSelectedGuide] = useState(null);
@@ -74,7 +75,10 @@ const Booking = () => {
 
   // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarDate, setCalendarDate] = useState(() => {
+    const initialDate = stateData.tourDate ? new Date(`${stateData.tourDate}T00:00:00`) : new Date();
+    return Number.isNaN(initialDate.getTime()) ? new Date() : initialDate;
+  });
 
   // Calendar weather forecast data { 'YYYY-MM-DD': { description, icon } }
   const [calendarWeather, setCalendarWeather] = useState({});
@@ -167,35 +171,51 @@ const Booking = () => {
   }
 
   const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
-  const packageCapacity = Number(pkg.maximumCapacity || pkg.max_capacity || 0);
-  const listedJoinerSlots = Number(joinerAvailability?.remainingSlots ?? pkg.joinerSlots ?? pkg.joiner_slots ?? 0);
-  const maxPax = isJoiner && listedJoinerSlots > 0
-    ? Math.min(packageCapacity || listedJoinerSlots, listedJoinerSlots)
+  const rawPackageCapacity = Number(pkg.maximumCapacity ?? pkg.max_capacity ?? 0);
+  const packageCapacity = Number.isFinite(rawPackageCapacity) && rawPackageCapacity > 0
+    ? Math.floor(rawPackageCapacity)
+    : 0;
+  const joinerPaxLimit = Number(joinerAvailability?.remainingSlots ?? pkg.joinerSlots ?? pkg.joiner_slots ?? 0);
+  const maxPax = isJoiner
+    ? Math.min(packageCapacity || joinerPaxLimit, joinerPaxLimit)
     : packageCapacity;
+  const hasPaxLimit = packageCapacity > 0 || (isJoiner && joinerAvailability !== null);
   const totalGuests = adultsCount + childrenCount;
   const pricePerGuest = Number(pkg.price || 0);
   const totalPrice = isJoiner ? pricePerGuest * totalGuests : pricePerGuest;
+  const downpaymentPercent = isJoiner
+    ? Number(joinerAvailability?.downpaymentPercent ?? pkg.joinerDownpaymentPercent ?? 30)
+    : 100;
+  const downpaymentAmount = Math.round((totalPrice * downpaymentPercent / 100) * 100) / 100;
+  const balanceAmount = Math.max(0, totalPrice - downpaymentAmount);
+
+  const resizeParticipantNames = (nextCount) => {
+    setParticipantNames((current) => Array.from({ length: nextCount }, (_, index) => current[index] || ''));
+  };
 
   const handleIncreaseAdults = () => {
-    if (maxPax > 0 && totalGuests >= maxPax) {
+    if (hasPaxLimit && totalGuests >= maxPax) {
       showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
       return;
     }
     setAdultsCount((prev) => prev + 1);
+    resizeParticipantNames(totalGuests + 1);
   };
 
   const handleIncreaseChildren = () => {
-    if (maxPax > 0 && totalGuests >= maxPax) {
+    if (hasPaxLimit && totalGuests >= maxPax) {
       showNotification(`Maximum capacity is ${maxPax} pax for this package.`, 'warning');
       return;
     }
     setChildrenCount((prev) => prev + 1);
+    resizeParticipantNames(totalGuests + 1);
   };
 
   const getPackageDurationInDays = () => {
     if (!pkg?.duration) return 1;
-    const match = String(pkg.duration).match(/(\d+)\s*Day/i);
-    return match ? parseInt(match[1], 10) : 1;
+    const match = String(pkg.duration).match(/(\d+)\s*-?\s*(?:days?|d)\b/i);
+    const durationDays = match ? Number.parseInt(match[1], 10) : Number(pkg.duration);
+    return Number.isInteger(durationDays) && durationDays > 0 ? durationDays : 1;
   };
 
   const formatDateInputValue = (date) => {
@@ -233,6 +253,10 @@ const Booking = () => {
       showNotification('Please fill in all booking fields.', 'warning');
       return;
     }
+    if (isJoiner && participantNames.slice(0, totalGuests).some((name) => !String(name || '').trim())) {
+      showNotification('Please enter the full name of every Joiner traveler.', 'warning');
+      return;
+    }
     if (!/^[A-Za-z\s]+$/.test(firstName.trim())) {
       showNotification('First Name must only contain letters.', 'warning');
       return;
@@ -245,7 +269,7 @@ const Booking = () => {
       showNotification('Contact Number must be exactly 11 digits.', 'warning');
       return;
     }
-    if (maxPax > 0 && totalGuests > maxPax) {
+    if (hasPaxLimit && totalGuests > maxPax) {
       showNotification(`The selected number of pax (${totalGuests}) exceeds the package capacity (${maxPax} pax).`, 'warning');
       return;
     }
@@ -286,13 +310,17 @@ const Booking = () => {
         totalPrice,
         paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
         paymentRef: referenceNumber,
+        downpaymentAmount: isJoiner ? downpaymentAmount : totalPrice,
+        participantNames: isJoiner ? participantNames.slice(0, totalGuests).map((name) => name.trim()) : [],
         gcashNumber: 'N/A',
         ...(pkg.customizedDetails && { customizedDetails: pkg.customizedDetails })
       };
 
       await bookingService.create(bookingData);
       showNotification(isJoiner
-        ? 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.'
+        ? (paymentMethod === 'gcash'
+          ? 'Joiner booking submitted! Your spots are reserved while the downpayment is verified.'
+          : 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.')
         : 'Booking successfully submitted! A confirmation email has been dispatched.', 'success');
       navigate('/');
     } catch (error) {
@@ -335,11 +363,9 @@ const Booking = () => {
 
     const numDays = getPackageDurationInDays();
     const selectedDate = tourDate ? new Date(`${tourDate}T00:00:00`) : null;
-    let endDate = null;
-    if (selectedDate && numDays > 1) {
-      endDate = new Date(selectedDate);
-      endDate.setDate(endDate.getDate() + (numDays - 1));
-    }
+    const rangeEndDate = selectedDate && !Number.isNaN(selectedDate.getTime())
+      ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + numDays - 1)
+      : null;
 
     // Helper to build date key for weather lookup
     const fmtKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -349,7 +375,8 @@ const Booking = () => {
 
       const currentDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
       const isPast = currentDate < today;
-      const isInRange = selectedDate && endDate && currentDate >= new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) && currentDate <= new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const isSelected = tourDate === fmtKey(currentDate);
+      const isInRange = selectedDate && rangeEndDate && currentDate >= selectedDate && currentDate <= rangeEndDate;
 
       // Weather for this date
       const dateKey = fmtKey(currentDate);
@@ -374,9 +401,9 @@ const Booking = () => {
       } else if (isInRange) {
         dayStyle = {
           ...dayStyle,
-          background: '#e8dfce',
+          background: '#E5E7EB',
           color: colors.textPrimary,
-          border: '1px solid #b0a68e',
+          border: '1px solid #9CA3AF',
         };
       }
 
@@ -477,7 +504,13 @@ const Booking = () => {
                     <div className="relative max-w-[320px]">
                       <button
                         type="button"
-                        onClick={() => setShowDatePicker(!showDatePicker)}
+                        onClick={() => {
+                          if (!showDatePicker && tourDate) {
+                            const selectedDate = new Date(`${tourDate}T00:00:00`);
+                            if (!Number.isNaN(selectedDate.getTime())) setCalendarDate(selectedDate);
+                          }
+                          setShowDatePicker(!showDatePicker);
+                        }}
                         className="w-full py-3 px-4 flex items-center justify-between text-[14px] transition-all focus:outline-none"
                         style={{
                           ...inputStyle,
@@ -558,6 +591,9 @@ const Booking = () => {
                           </div>
 
                           {/* Calendar Grid */}
+                          <p className="mb-3 text-center text-[10px]" style={{ color: colors.textMuted }}>
+                            Choose a start date · highlights {getPackageDurationInDays()} {getPackageDurationInDays() === 1 ? 'day' : 'consecutive days'}
+                          </p>
                           <div className="grid grid-cols-7 gap-y-3 mb-6 justify-items-center">
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                               <div
@@ -647,7 +683,11 @@ const Booking = () => {
                         <div className="flex items-center gap-4">
                           <button
                             type="button"
-                            onClick={() => setAdultsCount(Math.max(1, adultsCount - 1))}
+                            onClick={() => {
+                              const nextAdults = Math.max(1, adultsCount - 1);
+                              setAdultsCount(nextAdults);
+                              resizeParticipantNames(nextAdults + childrenCount);
+                            }}
                             className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
                             style={{ color: colors.textMuted }}
                             onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
@@ -659,10 +699,10 @@ const Booking = () => {
                           <button
                             type="button"
                             onClick={handleIncreaseAdults}
-                            disabled={maxPax > 0 && totalGuests >= maxPax}
-                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${maxPax > 0 && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            disabled={hasPaxLimit && totalGuests >= maxPax}
+                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${hasPaxLimit && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
                             style={{ color: colors.textMuted }}
-                            onMouseEnter={(e) => { if (!(maxPax > 0 && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
+                            onMouseEnter={(e) => { if (!(hasPaxLimit && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
                             onMouseLeave={(e) => (e.target.style.color = colors.textMuted)}
                           >
                             +
@@ -679,7 +719,11 @@ const Booking = () => {
                         <div className="flex items-center gap-4">
                           <button
                             type="button"
-                            onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
+                            onClick={() => {
+                              const nextChildren = Math.max(0, childrenCount - 1);
+                              setChildrenCount(nextChildren);
+                              resizeParticipantNames(adultsCount + nextChildren);
+                            }}
                             className="w-6 h-6 flex items-center justify-center font-semibold transition-colors"
                             style={{ color: colors.textMuted }}
                             onMouseEnter={(e) => (e.target.style.color = colors.textPrimary)}
@@ -691,10 +735,10 @@ const Booking = () => {
                           <button
                             type="button"
                             onClick={handleIncreaseChildren}
-                            disabled={maxPax > 0 && totalGuests >= maxPax}
-                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${maxPax > 0 && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            disabled={hasPaxLimit && totalGuests >= maxPax}
+                            className={`w-6 h-6 flex items-center justify-center font-semibold transition-colors ${hasPaxLimit && totalGuests >= maxPax ? 'opacity-30 cursor-not-allowed' : ''}`}
                             style={{ color: colors.textMuted }}
-                            onMouseEnter={(e) => { if (!(maxPax > 0 && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
+                            onMouseEnter={(e) => { if (!(hasPaxLimit && totalGuests >= maxPax)) e.target.style.color = colors.textPrimary; }}
                             onMouseLeave={(e) => (e.target.style.color = colors.textMuted)}
                           >
                             +
@@ -702,7 +746,7 @@ const Booking = () => {
                         </div>
                       </div>
                     </div>
-                    {maxPax > 0 && (
+                    {hasPaxLimit && (
                       <p className="text-[11px] mt-1.5 text-[#8a7f70]">
                         {isJoiner
                           ? `${totalGuests} guest${totalGuests === 1 ? '' : 's'} selected · PHP ${pricePerGuest.toLocaleString()} per person`
@@ -710,6 +754,38 @@ const Booking = () => {
                       </p>
                     )}
                   </div>
+
+                  {isJoiner && (
+                    <div>
+                      <SectionLabel>Joiner Traveler Names</SectionLabel>
+                      <p className="mb-4 text-[11px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                        Enter the full name of every traveler joining this departure. The contact person is not automatically counted as a traveler.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Array.from({ length: totalGuests }, (_, index) => (
+                          <div key={`participant-${index}`}>
+                            <label className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary }}>
+                              {index < adultsCount ? `Adult ${index + 1} Name` : `Child ${index - adultsCount + 1} Name`} <span style={{ color: '#b83b3b' }}>*</span>
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={participantNames[index] || ''}
+                              onChange={(event) => setParticipantNames((current) => {
+                                const next = [...current];
+                                next[index] = event.target.value.replace(/[^a-zA-Z .'-]/g, '');
+                                return next;
+                              })}
+                              placeholder="Full name"
+                              className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
+                              style={inputStyle}
+                              {...inputFocusHandlers}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Contact Information */}
                   <div>
@@ -850,7 +926,9 @@ const Booking = () => {
                       }}
                     >
                       <p className="text-[11px] leading-relaxed" style={{ color: colors.textSecondary }}>
-                        Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.
+                        {isJoiner
+                          ? `Please send the ${downpaymentPercent}% downpayment of PHP ${downpaymentAmount.toLocaleString()} via GCash. Your spot will be reserved while our admin verifies the payment.`
+                          : 'Please send your payment via GCash and enter the reference number below. Our admin will verify your payment.'}
                       </p>
                       <div>
                         <label
@@ -1093,6 +1171,13 @@ const Booking = () => {
                     </span>
                   </div>
                 </div>
+
+                {isJoiner && currentStep === 2 && (
+                  <div className="mb-4 space-y-1 text-[11px]" style={{ color: colors.textSecondary }}>
+                    <div className="flex justify-between"><span>Downpayment due now ({downpaymentPercent}%)</span><span>PHP {downpaymentAmount.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Remaining balance</span><span>PHP {balanceAmount.toLocaleString()}</span></div>
+                  </div>
+                )}
 
                 {currentStep === 1 && (
                   <button

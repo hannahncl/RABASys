@@ -64,7 +64,7 @@ const Packages = () => {
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedCategory, setSelectedCategory] = useState('exclusive');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState([0, 100000]);
 
   useEffect(() => {
@@ -364,7 +364,7 @@ const Packages = () => {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          Book Now
+                          {getPackageVisualCategory(pkg) === 'joiner' ? 'Join this Tour' : 'Book Now'}
                         </Link>
                       </div>
                     </div>

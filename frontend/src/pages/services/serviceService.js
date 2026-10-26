@@ -18,15 +18,25 @@ const normalizePackageType = (item = {}) => {
   return ['exclusive', 'joiner', 'tuktrip'].includes(normalized) ? normalized : 'exclusive';
 };
 
-const packageFromApi = (item) => ({
+const packageFromApi = (item) => {
+  const packageType = normalizePackageType(item);
+  const packageTotalPrice = Number(item.price || 0);
+  const capacity = Number(item.max_capacity || 0);
+  const pricePerPerson = packageType === 'joiner' && capacity > 0
+    ? packageTotalPrice / capacity
+    : packageTotalPrice;
+
+  return {
   ...item,
   id: String(item.package_id),
-  category: normalizePackageType(item),
-  packageType: normalizePackageType(item),
+  category: packageType,
+  packageType,
   availabilityStatus: item.availability_status ?? item.availabilityStatus ?? 'Available',
   title: item.package_name,
   packageName: item.package_name,
-  price: Number(item.price),
+  price: pricePerPerson,
+  packageTotalPrice,
+  pricePerPerson,
   maximumCapacity: item.max_capacity,
   inclusions: parseJson(item.inclusion, item.inclusion ? item.inclusion.split(',').map(x => x.trim()).filter(Boolean) : []),
   itinerary: parseJson(item.itinerary, item.itinerary || []),
@@ -36,6 +46,7 @@ const packageFromApi = (item) => ({
   joinerDate: item.joiner_date || item.joinerDate || '',
   joinerSlots: item.joiner_slots ?? item.joinerSlots ?? '',
   joinerBookingDeadline: item.joiner_booking_deadline || item.joinerBookingDeadline || '',
+  joinerDownpaymentPercent: Number(item.joiner_downpayment_percent ?? item.joinerDownpaymentPercent ?? 30),
   joinerReservedSlots: Number(item.joiner_reserved_slots ?? item.joinerReservedSlots ?? 0),
   joinerRemainingSlots: item.joiner_remaining_slots == null && item.joinerRemainingSlots == null
     ? null
@@ -43,7 +54,8 @@ const packageFromApi = (item) => ({
   tags: item.tags || [],
   rating: Number(item.rating || 0),
   reviewsCount: Number(item.reviews_count || 0),
-});
+  };
+};
 
 const vehicleFromApi = (item) => ({
   ...item,
@@ -71,7 +83,7 @@ const packagePayload = (item) => ({
   package_name: item.packageName || item.title,
   destination: item.destination,
   description: item.description || null,
-  price: Number(item.price),
+  price: Number(item.packageTotalPrice ?? item.price),
   duration: item.duration,
   inclusion: JSON.stringify(item.inclusions || item.includes || []),
   max_capacity: Number(item.maximumCapacity || item.max_capacity || 1),
@@ -88,6 +100,7 @@ const packagePayload = (item) => ({
     joiner_date: item.joinerDate || item.joiner_date || null,
     joiner_slots: item.joinerSlots === '' || item.joinerSlots == null ? null : Number(item.joinerSlots),
     joiner_booking_deadline: item.joinerBookingDeadline || item.joiner_booking_deadline || null,
+    joiner_downpayment_percent: item.joinerDownpaymentPercent == null || item.joinerDownpaymentPercent === '' ? 30 : Number(item.joinerDownpaymentPercent),
   } : {}),
 });
 

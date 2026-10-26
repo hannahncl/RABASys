@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1668 700" role="img" aria-labelledby="title">
+  <title id="title">RABAS Travel and Tours Services</title>
+  <defs>
+    <filter id="white-logo" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.8504 -2.8608 -0.288 0 4" />
+    </filter>
+  </defs>
+  <image href="/RABAS%20LOGO.png" width="1668" height="700" preserveAspectRatio="none" filter="url(#white-logo)" />
+</svg>
