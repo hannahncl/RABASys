@@ -7,6 +7,7 @@ import { useConfirmation } from '../../contexts/ConfirmationContext';
 const emptyForm = () => ({
   packageName: '',
   description: '',
+  accommodations: '',
   destination: '',
   price: '',
   duration: '',
@@ -80,6 +81,7 @@ const TourPackages = () => {
     setFormData({
       packageName: pkg.packageName || pkg.title || '',
       description: pkg.description || '',
+      accommodations: pkg.accommodations || '',
       destination: pkg.destination || '',
       price: pkg.price ?? '',
       duration: pkg.duration || '',
@@ -120,6 +122,7 @@ const TourPackages = () => {
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
+        accommodations: formData.accommodations.trim(),
         destination: formData.destination.trim(),
         price: Number(formData.price),
         duration: formData.duration.trim(),
@@ -209,6 +212,10 @@ const TourPackages = () => {
               <div>
                 <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Description</label>
                 <textarea name="description" value={formData.description} onChange={handleChange} rows={4} placeholder="Describe the experience in a few sentences" className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Accommodations</label>
+                <textarea name="accommodations" value={formData.accommodations} onChange={handleChange} rows={3} placeholder="Describe lodging, room arrangements, or overnight stays..." className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-white outline-none focus:border-cyan-500" />
               </div>
               <div>
                 <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Destination</label>

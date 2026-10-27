@@ -9,6 +9,8 @@ import { compressPackageImage } from '../../utils/compressPackageImage';
 import { earliestBookingDeadline, isJoinerDeadlineValid } from '../../utils/joinerSchedule';
 import { useAuth } from '../../hooks/useAuth';
 import { normalizeFrontendRole } from '../../contexts/AuthContext';
+import ItineraryEditor from '../../components/admin/ItineraryEditor';
+import { serializeItinerary } from '../../utils/itinerary';
 
 const AddTourPackagePage = () => {
   const navigate = useNavigate();
@@ -26,13 +28,14 @@ const AddTourPackagePage = () => {
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
+    accommodations: '',
     destination: '',
     price: '',
     duration: '',
     inclusions: '',
     maximumCapacity: '',
     meetingLocation: '',
-    itinerary: '',
+    itinerary: [{ day: 1, startTime: '', endTime: '', activity: '' }],
     image: '',
     images: [],
     joinerDate: '',
@@ -76,10 +79,23 @@ const AddTourPackagePage = () => {
   const handleSave = async () => {
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const joinerRequired = packageType === 'joiner' ? ['joinerDate', 'joinerSlots', 'joinerBookingDeadline'] : [];
-    const missing = [...required, ...joinerRequired].filter(field => !String(formData[field]).trim());
+    const missing = [...required.filter(field => field !== 'itinerary'), ...joinerRequired]
+      .filter(field => !String(formData[field]).trim());
 
-    if (missing.length > 0) {
+    if (missing.length > 0 || !formData.itinerary.some(entry => entry.activity.trim())) {
       showNotification('Please complete all fields before saving.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.activity.trim() && (!Number.isInteger(Number(entry.day)) || Number(entry.day) < 1))) {
+      showNotification('Each itinerary activity needs a day number of 1 or higher.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.activity.trim() && Boolean(entry.startTime) !== Boolean(entry.endTime))) {
+      showNotification('Add both a start time and end time for each scheduled activity.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.startTime && entry.endTime && entry.endTime <= entry.startTime)) {
+      showNotification('The end time must be later than the start time.', 'error');
       return;
     }
     if (packageType === 'joiner' && !isJoinerDeadlineValid(formData.joinerDate, formData.joinerBookingDeadline)) {
@@ -120,6 +136,7 @@ const AddTourPackagePage = () => {
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
+        accommodations: formData.accommodations.trim(),
         destination: formData.destination.trim(),
         price: Number(formData.price),
         packageTotalPrice: Number(formData.price),
@@ -127,11 +144,7 @@ const AddTourPackagePage = () => {
         inclusions: formData.inclusions.split(',').map(item => item.trim()).filter(Boolean),
         maximumCapacity: Number(formData.maximumCapacity),
         meetingLocation: formData.meetingLocation.trim(),
-        itinerary: formData.itinerary
-          .split(/\r?\n/)
-          .map(line => line.trim())
-          .filter(Boolean)
-          .map((line, index) => ({ day: index + 1, title: line, desc: line })),
+        itinerary: serializeItinerary(formData.itinerary),
         joinerDate: packageType === 'joiner' ? formData.joinerDate : null,
         joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
         joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
@@ -272,6 +285,17 @@ const AddTourPackagePage = () => {
             />
           </div>
           <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Accommodations</label>
+            <textarea
+              name="accommodations"
+              value={formData.accommodations}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Describe lodging, room arrangements, or overnight stays..."
+              className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none"
+            />
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Inclusions</label>
             <textarea 
               name="inclusions" 
@@ -283,15 +307,8 @@ const AddTourPackagePage = () => {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Itinerary</label>
-            <textarea 
-              name="itinerary" 
-              value={formData.itinerary} 
-              onChange={handleChange} 
-              rows={4} 
-              placeholder="Day 1: Arrival and welcome dinner&#10;Day 2: Adventure activity"
-              className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none" 
-            />
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Tour Itinerary</label>
+            <ItineraryEditor entries={formData.itinerary} onChange={(itinerary) => setFormData(prev => ({ ...prev, itinerary }))} />
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Package Photos</label>

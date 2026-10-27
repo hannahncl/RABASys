@@ -129,6 +129,7 @@ async function ensurePostgresSchema() {
     // PostgreSQL schema. Keep these nullable so existing tour packages remain
     // valid while allowing joiner packages to be created.
     await db.query(`
+        ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS accommodations TEXT NULL;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_date DATE NULL;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_slots INTEGER NULL;
         ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_booking_deadline DATE NULL;
