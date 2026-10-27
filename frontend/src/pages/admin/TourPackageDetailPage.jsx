@@ -67,6 +67,7 @@ const TourPackageDetailPage = () => {
 
   const itinerary = useMemo(() => parseDetailList(pkg?.itinerary), [pkg]);
   const inclusions = useMemo(() => parseDetailList(pkg?.inclusions), [pkg]);
+  const accommodations = useMemo(() => parseDetailList(pkg?.accommodations), [pkg]);
   const packageImages = (Array.isArray(pkg?.images) && pkg.images.length ? pkg.images : [pkg?.image || '/CAGSAWA.jpg']).filter(Boolean);
   const selectedImage = packageImages[selectedImageIndex] || packageImages[0] || '/CAGSAWA.jpg';
 
@@ -180,6 +181,19 @@ const TourPackageDetailPage = () => {
                 Description
               </h2>
               <p className="text-xs text-slate-300 leading-relaxed">{pkg.description}</p>
+            </div>
+          )}
+
+          {accommodations.length > 0 && (
+            <div>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-850/80 pb-2 mb-2">
+                Accommodations
+              </h2>
+              <div className="space-y-1">
+                {accommodations.map((accommodation, index) => (
+                  <p key={index} className="text-xs text-slate-300 leading-relaxed">{accommodation}</p>
+                ))}
+              </div>
             </div>
           )}
 

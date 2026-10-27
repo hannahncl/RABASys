@@ -13,7 +13,9 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const notifRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,6 +43,24 @@ const AdminLayout = () => {
     return () => {
       clearInterval(interval);
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, []);
 
@@ -75,6 +95,7 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     if (!(await confirm('Are you sure you want to log out?'))) return;
+    setProfileMenuOpen(false);
     await logout();
     navigate('/login');
   };
@@ -92,12 +113,12 @@ const AdminLayout = () => {
     { name: 'Services', items: [
       { name: 'Tour Packages', path: '/admin/tour-packages', icon: Package },
       { name: 'Car Rentals', path: '/admin/car-rentals', icon: Car },
+      { name: 'Customization', path: '/admin/customizations', icon: Settings },
     ] },
     { name: 'Analytics', items: [
       { name: 'Sales Reports', path: '/admin/sales', icon: BarChart3 },
     ] },
     { name: 'System Management', items: [
-      { name: 'Customization', path: '/admin/customizations', icon: Settings },
       { name: 'Accounts', path: '/admin/accounts', icon: Users },
     ] },
   ];
@@ -160,16 +181,6 @@ const AdminLayout = () => {
           {renderNavigationGroups()}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4 mt-auto border-t border-stone-100">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50/70 hover:text-rose-600 transition-colors cursor-pointer"
-          >
-            <LogOut className="h-5 w-5 text-rose-500" />
-            Logout
-          </button>
-        </div>
       </aside>
 
       {/* Mobile Sidebar Drawer */}
@@ -195,13 +206,6 @@ const AdminLayout = () => {
               {renderNavigationGroups(() => setSidebarOpen(false))}
             </nav>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors mt-auto cursor-pointer"
-            >
-              <LogOut className="h-5 w-5 text-rose-500" />
-              Logout
-            </button>
           </div>
         </div>
       )}
@@ -284,14 +288,53 @@ const AdminLayout = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-3 border-l border-slate-900 pl-6">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-slate-200">{user?.name}</p>
-                <p className="text-xs text-[#603524] uppercase tracking-wider font-semibold">Administrator</p>
-              </div>
-              <div className="h-9 w-9 rounded-xl bg-[#f7f1ed] border border-[#e0cfc4] flex items-center justify-center text-[#603524] font-bold font-display">
-                A
-              </div>
+            <div className="relative border-l border-slate-900 pl-4 sm:pl-6" ref={profileMenuRef}>
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open admin profile menu"
+                className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-slate-800/60"
+              >
+                <span className="hidden text-right sm:block">
+                  <span className="block text-sm font-semibold text-slate-200">{user?.name || 'Rabas Admin'}</span>
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-[#603524]">Administrator</span>
+                </span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e0cfc4] bg-[#f7f1ed] font-bold text-[#603524]">
+                  {(user?.name || 'A').charAt(0).toUpperCase()}
+                </span>
+              </button>
+
+              {profileMenuOpen && (
+                <div role="menu" className="absolute right-0 top-full z-[60] mt-2 w-64 border border-stone-300 bg-white text-stone-700 shadow-xl">
+                  <div className="border-b border-stone-300 px-5 py-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-stone-600">Logged in as</p>
+                    <p className="mt-1 truncate text-sm font-bold text-black">{user?.name || 'Rabas Admin'}</p>
+                    <span className="mt-2 inline-block border border-[#e0cfc4] bg-[#f7f1ed] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#603524]">
+                      Admin
+                    </span>
+                  </div>
+                  <Link
+                    to="/"
+                    role="menuitem"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-3 border-b border-stone-300 px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-stone-600 transition-colors hover:bg-stone-50 hover:text-[#603524]"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    View Site
+                  </Link>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleLogout}
+                    className="flex w-full cursor-pointer items-center gap-3 px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-widest text-rose-500 transition-colors hover:bg-rose-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

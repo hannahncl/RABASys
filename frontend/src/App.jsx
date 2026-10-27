@@ -84,14 +84,7 @@ function App() {
               <Route path="customize" element={<CustomPlanner />} />
               <Route path="explore" element={<ExploreMap />} />
               <Route path="car-rentals" element={<CarRentals />} />
-              <Route
-                path="car-rentals/:id"
-                element={
-                  <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
-                    <CarBooking />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="car-rentals/:id" element={<CarBooking />} />
               <Route path="about" element={<AboutUs />} />
               <Route path="wishlist" element={<Wishlist />} />
               <Route path="support/chat" element={<SupportChat />} />

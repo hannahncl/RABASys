@@ -18,6 +18,9 @@ async function startServer() {
             "ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS joiner_downpayment_percent NUMERIC(5,2) NOT NULL DEFAULT 30"
         );
         await db.query(
+            "ALTER TABLE tour_package ADD COLUMN IF NOT EXISTS accommodations TEXT NULL"
+        );
+        await db.query(
             "ALTER TABLE booking ADD COLUMN IF NOT EXISTS participant_names JSONB"
         );
         await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)");
