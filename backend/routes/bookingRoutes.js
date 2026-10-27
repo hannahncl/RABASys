@@ -182,11 +182,12 @@ router.post("/", requireAuth, async (req, res, next) => {
             const paymentAmount = isJoiner
                 ? Math.round((totalAmount * downpaymentPercent / 100) * 100) / 100
                 : totalAmount;
-            const paymentStatus = isJoiner && paymentMethod.toLowerCase() === "gcash" ? "Pending Verification" : "Completed";
-            const bookingStatus = isJoiner && paymentStatus === "Pending Verification" ? "Pending" : (isJoiner ? "Confirmed" : "Pending");
+            const isPayMongo = paymentMethod.toLowerCase() === "paymongo";
+            const paymentStatus = isPayMongo ? "Pending" : (isJoiner && paymentMethod.toLowerCase() === "gcash" ? "Pending Verification" : (isJoiner ? "Completed" : null));
+            const bookingStatus = isPayMongo ? "Pending" : (isJoiner && paymentStatus === "Pending Verification" ? "Pending" : (isJoiner ? "Confirmed" : "Pending"));
             const result = await client.query(
                 "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, participant_names, payment_method, payment_reference, payment_amount, payment_status, booking_status) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING booking_id",
-                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? JSON.stringify(participantNames) : null, isJoiner ? paymentMethod : null, isJoiner ? paymentReference : null, isJoiner ? paymentAmount : null, isJoiner ? paymentStatus : null, bookingStatus]
+                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? JSON.stringify(participantNames) : null, (isJoiner || isPayMongo) ? paymentMethod : null, (isJoiner || isPayMongo) ? paymentReference : null, (isJoiner || isPayMongo) ? (isJoiner ? paymentAmount : totalAmount) : null, (isJoiner || isPayMongo) ? paymentStatus : null, bookingStatus]
             );
             const newBookingId = result.rows[0].booking_id;
             const { rows } = await client.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);

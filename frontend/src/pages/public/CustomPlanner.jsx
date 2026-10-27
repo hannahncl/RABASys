@@ -175,7 +175,7 @@ const ActivityPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
   </div>
 );
 
-const OptionCard = ({ item, selected, price, multiSelect = false, compact = false, onClick }) => (
+const OptionCard = ({ item, selected, price, multiSelect = false, compact = false, checkboxPosition = 'top-right', onClick }) => (
   <button
     type="button"
     onClick={onClick}
@@ -191,12 +191,33 @@ const OptionCard = ({ item, selected, price, multiSelect = false, compact = fals
     <span className={compact ? 'flex min-h-0 flex-1 flex-col justify-center p-4' : 'block p-4'}>
       <span className="flex items-start justify-between gap-3">
         <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{item.name}</span>
-        {multiSelect && <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selected ? '✓' : ''}</span>}
+        {multiSelect && checkboxPosition === 'top-right' && <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selected ? '✓' : ''}</span>}
       </span>
       <span className="mt-1 block text-[11px] font-semibold" style={{ color: colors.accentDark }}>{price}</span>
       {item.details && <span className={`mt-2 block text-[11px] leading-relaxed ${compact ? 'line-clamp-3' : ''}`} style={{ color: colors.textMuted }}>{item.details}</span>}
+      {multiSelect && checkboxPosition === 'bottom-right' && <span className={`mt-3 flex h-4 w-4 items-center justify-center self-end rounded border text-[10px] ${selected ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selected ? '✓' : ''}</span>}
     </span>
   </button>
+);
+
+const DestinationDropdown = ({ dayIndex, selectedDestinations, destinations, onToggle, onOpen, isOpen }) => (
+  <details open={isOpen} className="group relative">
+    <summary onClick={event => { event.preventDefault(); onOpen(dayIndex); }} className="flex min-h-[44px] cursor-pointer list-none items-center justify-between rounded-md border px-3 py-2.5 text-[13px] [&::-webkit-details-marker]:hidden" style={inputStyle}>
+      <span className={selectedDestinations.length ? '' : 'text-[#8a8275]'}>{selectedDestinations.length ? selectedDestinations.join(', ') : 'Select destinations'}</span>
+      <span className="ml-3 text-base transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+    </summary>
+    <div className="mt-1 max-h-56 overflow-y-auto rounded-md border bg-white p-2 shadow-lg" style={{ borderColor: colors.border }}>
+      {Object.keys(destinations).map(destinationName => {
+        const selected = selectedDestinations.includes(destinationName);
+        return (
+          <button key={destinationName} type="button" onClick={() => onToggle(dayIndex, destinationName)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[13px] hover:bg-[#f7f4ef]" style={{ color: colors.textPrimary }}>
+            <span className="flex h-4 w-4 items-center justify-center rounded-sm border text-[10px]" style={{ borderColor: selected ? colors.accentDark : colors.border, background: selected ? colors.accentDark : colors.cardBg, color: '#fff' }}>{selected ? '✓' : ''}</span>
+            {destinationName}
+          </button>
+        );
+      })}
+    </div>
+  </details>
 );
 
 const getWeatherEmoji = (description = '') => {
@@ -375,6 +396,11 @@ const CustomPlanner = () => {
   const [phone, setPhone] = useState('');
 
   const [destination, setDestination] = useState('');
+  const [dayDestinations, setDayDestinations] = useState([]);
+  const [dayHotels, setDayHotels] = useState([]);
+  const [dayActivities, setDayActivities] = useState([]);
+  const [activeDayIndex, setActiveDayIndex] = useState(null);
+  const [openDestinationDay, setOpenDestinationDay] = useState(null);
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [otherAccommodationPreference, setOtherAccommodationPreference] = useState('');
   const [accommodationPreferenceDraft, setAccommodationPreferenceDraft] = useState('');
@@ -389,6 +415,9 @@ const CustomPlanner = () => {
   const [showActivityPreferenceDialog, setShowActivityPreferenceDialog] = useState(false);
   const [showActivityPicker, setShowActivityPicker] = useState(false);
   const [selectionPage, setSelectionPage] = useState(null);
+  const [destinationDayBeingEdited, setDestinationDayBeingEdited] = useState(0);
+  const [accommodationDayBeingEdited, setAccommodationDayBeingEdited] = useState(0);
+  const [activityDayBeingEdited, setActivityDayBeingEdited] = useState(0);
 
   const [submitting, setSubmitting] = useState(false);
   const [requestReference, setRequestReference] = useState('');
@@ -460,14 +489,74 @@ const CustomPlanner = () => {
     setNumDays(value);
     setNumNights(nextNights);
 
+    const dayCount = Math.max(1, Number(value) || 1);
+    setDayDestinations(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || []));
+    setDayHotels(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || null));
+    setDayActivities(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || []));
+
     if (selectedDates.length) {
       const durationEndDate = getDurationEndDate(selectedDates[0], value, nextNights);
       setSelectedDates(durationEndDate ? [selectedDates[0], durationEndDate] : [selectedDates[0]]);
     }
   };
 
+  const toggleDayDestination = (dayIndex, destinationName) => {
+    setDayDestinations(prev => {
+      const next = Array.from({ length: Math.max(1, Number(numDays) || 1) }, (_, index) => [...(prev[index] || [])]);
+      next[dayIndex] = next[dayIndex].includes(destinationName)
+        ? next[dayIndex].filter(name => name !== destinationName)
+        : [...next[dayIndex], destinationName];
+      setDayHotels(current => { const updated = [...current]; updated[dayIndex] = null; return updated; });
+      setDayActivities(current => { const updated = [...current]; updated[dayIndex] = []; return updated; });
+      if (activeDayIndex === dayIndex) {
+        setSelectedHotel(null);
+        setSelectedActivities([]);
+      }
+      setOpenDestinationDay(null);
+      setDestination(next.flat()[0] || '');
+      return next;
+    });
+  };
+
+  const activateDay = (dayIndex) => {
+    setActiveDayIndex(dayIndex);
+    setSelectedHotel(dayHotels[dayIndex] || null);
+    setSelectedActivities(dayActivities[dayIndex] || []);
+    setOpenDestinationDay(null);
+  };
+
+  const openDayDestinationSelector = (dayIndex) => {
+    setDestinationDayBeingEdited(dayIndex);
+    setActiveDayIndex(dayIndex);
+    setSelectedHotel(dayHotels[dayIndex] || null);
+    setSelectedActivities(dayActivities[dayIndex] || []);
+    setOpenDestinationDay(dayIndex);
+  };
+
+  const toggleDayActivity = (dayIndex, activityId) => {
+    setDayActivities(prev => {
+      const next = Array.from({ length: Math.max(1, Number(numDays) || 1) }, (_, index) => [...(prev[index] || [])]);
+      next[dayIndex] = next[dayIndex].includes(activityId)
+        ? next[dayIndex].filter(id => id !== activityId)
+        : [...next[dayIndex], activityId];
+      return next;
+    });
+  };
+
+  const selectDayHotel = (dayIndex, hotel) => {
+    setDayHotels(prev => {
+      const next = Array.from({ length: Math.max(1, Number(numDays) || 1) }, (_, index) => prev[index] || null);
+      next[dayIndex] = hotel;
+      return next;
+    });
+  };
+
   const handleActivityToggle = (actId) => {
-    setSelectedActivities(prev => prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]);
+    setSelectedActivities(prev => {
+      const next = prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId];
+      setDayActivities(current => { const updated = [...current]; updated[activeDayIndex] = next; return updated; });
+      return next;
+    });
   };
 
   if (loading || !data) {
@@ -519,22 +608,40 @@ const CustomPlanner = () => {
     );
   }
 
-  const currentDest = data.destinations[destination];
+  const scheduledDestinationNames = [...new Set(dayDestinations.flat())];
+  const availableActivities = scheduledDestinationNames
+    .flatMap(name => data.destinations[name]?.activities || [])
+    .filter((activity, index, activities) => activities.findIndex(item => item.id === activity.id) === index);
+  const activeDayDestinations = dayDestinations[destinationDayBeingEdited] || [];
+  const activeAccommodationDestinations = dayDestinations[accommodationDayBeingEdited] || [];
+  const activeActivityDestinations = dayDestinations[activityDayBeingEdited] || [];
+  const activeAccommodationHotels = data.hotels?.[activeAccommodationDestinations[0]] || [];
+  const activeDayActivities = activeActivityDestinations
+    .flatMap(name => data.destinations[name]?.activities || [])
+    .filter((activity, index, activities) => activities.findIndex(item => item.id === activity.id) === index);
+  const activeAvailableActivities = (dayDestinations[activeDayIndex] || [])
+    .flatMap(name => data.destinations[name]?.activities || [])
+    .filter((activity, index, activities) => activities.findIndex(item => item.id === activity.id) === index);
   const preferredGuide = tourGuides.find(guide => String(guide.guideId) === preferredGuideId);
-  const currentHotels = data.hotels?.[destination] || [];
+  const currentHotels = data.hotels?.[dayDestinations[activeDayIndex]?.[0]] || [];
   const selectedActivityNames = selectedActivities
-    .map((actId) => currentDest?.activities?.find((activity) => activity.id === actId)?.name)
+    .map((actId) => availableActivities.find((activity) => activity.id === actId)?.name)
     .filter(Boolean);
-  const selectedActivitiesSummary = [...selectedActivityNames];
+  const scheduledActivityIds = [...new Set(dayActivities.flat())];
+  const scheduledActivityNames = scheduledActivityIds
+    .map(actId => availableActivities.find(activity => activity.id === actId)?.name)
+    .filter(Boolean);
+  const selectedAccommodation = dayHotels.find(Boolean) || selectedHotel;
+  const selectedActivitiesSummary = [...(scheduledActivityNames.length ? scheduledActivityNames : selectedActivityNames)];
   if (otherActivityPreference.trim()) {
     selectedActivitiesSummary.push(`Other: ${otherActivityPreference.trim()}`);
   }
   const selectedTravelDates = selectedDates.length > 1 && selectedDates[0] !== selectedDates[1]
     ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
     : selectedDates[0] || 'Not selected';
-  const accommodationSummary = selectedHotel?.id === '__other__'
+  const accommodationSummary = selectedAccommodation?.id === '__other__'
     ? otherAccommodationPreference.trim() || 'Other preference (not specified)'
-    : selectedHotel?.name || 'Not selected';
+    : selectedAccommodation?.name || 'Not selected';
 
   const guestCount = adultCount + childCount;
 
@@ -551,7 +658,9 @@ const CustomPlanner = () => {
     if (!/^\d{11}$/.test(phone)) { showNotification('Contact Number must be exactly 11 digits.', 'warning'); return; }
     if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
 
-    const selectedActNames = selectedActivities.map(actId => currentDest.activities.find(a => a.id === actId)?.name).filter(Boolean);
+    const selectedActNames = scheduledActivityNames.length > 0
+      ? [...scheduledActivityNames]
+      : selectedActivities.map(actId => availableActivities.find(a => a.id === actId)?.name).filter(Boolean);
     if (otherActivityPreference.trim()) selectedActNames.push(`Other: ${otherActivityPreference.trim()}`);
 
     setSubmitting(true);
@@ -562,9 +671,11 @@ const CustomPlanner = () => {
         guestsCount: Math.max(1, guestCount),
         customizedDetails: {
           destination,
-          hotel: selectedHotel?.id === '__other__'
+          destinations: scheduledDestinationNames,
+          destinationSchedule: dayDestinations.map((destinations, index) => ({ day: index + 1, destinations })),
+          hotel: selectedAccommodation?.id === '__other__'
             ? `Other: ${otherAccommodationPreference.trim() || 'Preference not specified'}`
-            : selectedHotel?.name || 'None',
+            : selectedAccommodation?.name || 'None',
           otherAccommodationPreference: otherAccommodationPreference.trim(),
           duration: `${numDays || 0} Days / ${numNights || 0} Nights`,
           adultCount,
@@ -582,12 +693,39 @@ const CustomPlanner = () => {
     }
   };
 
+  if (selectionPage === 'destinations') {
+    const dayIndex = destinationDayBeingEdited;
+    return (
+      <SelectionPage
+        title={`Choose destinations for Day ${dayIndex + 1}`}
+        description="Select one or more destinations for this day."
+        onBack={() => setSelectionPage(null)}
+        actionLabel="Done"
+        onAction={() => setSelectionPage(null)}
+      >
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Object.keys(data.destinations).map(dest => (
+            <OptionCard
+              key={dest}
+              item={{ name: dest, details: data.destinations[dest]?.details || 'Custom trip destination.' }}
+              selected={(dayDestinations[dayIndex] || []).includes(dest)}
+              multiSelect
+              onClick={() => toggleDayDestination(dayIndex, dest)}
+            />
+          ))}
+        </div>
+      </SelectionPage>
+    );
+  }
+
   if (selectionPage === 'accommodation') {
     return (
       <SelectionPage
         title="Choose an accommodation"
         description="Choose one of these stays, or tell us what you’re looking for."
         onBack={() => setSelectionPage(null)}
+        actionLabel="Done"
+        onAction={() => setSelectionPage(null)}
       >
         <div className="mx-auto mb-5 flex max-w-4xl flex-col gap-4 rounded-lg border border-[#d6cfc2] bg-[#fcfbf9] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
@@ -607,14 +745,16 @@ const CustomPlanner = () => {
           </button>
         </div>
         <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {currentHotels.map(hotel => (
+          {activeAccommodationHotels.map(hotel => (
             <OptionCard
               key={hotel.id}
               item={hotel}
-              selected={selectedHotel?.id === hotel.id}
+              selected={dayHotels[accommodationDayBeingEdited]?.id === hotel.id}
               price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+              multiSelect
+              checkboxPosition="bottom-right"
               compact
-              onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setSelectionPage(null); }}
+              onClick={() => { selectDayHotel(accommodationDayBeingEdited, hotel); setOtherAccommodationPreference(''); }}
             />
           ))}
         </div>
@@ -657,15 +797,15 @@ const CustomPlanner = () => {
           </button>
         </div>
         <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(currentDest?.activities || []).map(activity => (
+          {activeDayActivities.map(activity => (
             <OptionCard
               key={activity.id}
               item={activity}
-              selected={selectedActivities.includes(activity.id)}
+              selected={(dayActivities[activityDayBeingEdited] || []).includes(activity.id)}
               price={`PHP ${Number(activity.price || 0).toLocaleString()}`}
               multiSelect
               compact
-              onClick={() => handleActivityToggle(activity.id)}
+              onClick={() => toggleDayActivity(activityDayBeingEdited, activity.id)}
             />
           ))}
         </div>
@@ -873,31 +1013,67 @@ const CustomPlanner = () => {
             {/* Steps Container */}
             <div className="flex flex-col gap-10" id="steps-container">
 
-              {/* 1. Destination */}
+              {/* 1. Destinations by day */}
               <div id="section-destination">
-                <SectionLabel>1. Select Destination</SectionLabel>
-                <select
-                  id="select-destination"
-                  value={destination}
-                  onChange={e => setDestination(e.target.value)}
-                  className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                  {...inputFocusHandlers}
-                >
-                  <option value="" disabled>Select Destination</option>
-                  {Object.keys(data.destinations).map(dest => (
-                    <option key={dest} value={dest}>{dest}</option>
+                <SectionLabel>1. Select Destinations per Day</SectionLabel>
+                <p className="mb-4 text-[12px]" style={{ color: colors.textMuted }}>
+                  Choose one or more destinations for each day of your trip.
+                </p>
+                <div className="flex flex-wrap border-b" style={{ borderColor: colors.borderLight }}>
+                  {Array.from({ length: Math.max(1, Number(numDays) || 1) }, (_, dayIndex) => (
+                    <div key={dayIndex} className="min-w-[140px] flex-1">
+                      <button
+                        type="button"
+                        onClick={() => activateDay(dayIndex)}
+                        className="flex cursor-pointer list-none items-center justify-start border-b-2 px-4 py-3 text-[13px] font-semibold uppercase tracking-[0.12em] transition-colors"
+                        style={{ borderColor: activeDayIndex === dayIndex ? '#d49a00' : 'transparent', color: activeDayIndex === dayIndex ? colors.textPrimary : colors.textSecondary }}
+                      >
+                        Day {dayIndex + 1}
+                      </button>
+                      <DestinationDropdown
+                        dayIndex={dayIndex}
+                        selectedDestinations={dayDestinations[dayIndex] || []}
+                        destinations={data.destinations}
+                        onToggle={toggleDayDestination}
+                        onOpen={openDayDestinationSelector}
+                        isOpen={openDestinationDay === dayIndex}
+                      />
+                      <button
+                        id={`destination-day-${dayIndex + 1}`}
+                        type="button"
+                        onClick={() => { setDestinationDayBeingEdited(dayIndex); setSelectionPage('destinations'); }}
+                        className="hidden"
+                        style={inputStyle}
+                        aria-label={`Choose destinations for day ${dayIndex + 1}`}
+                      >
+                        <span className={(dayDestinations[dayIndex] || []).length ? '' : 'text-[#8a8275]'}>
+                          {(dayDestinations[dayIndex] || []).length ? dayDestinations[dayIndex].join(', ') : 'Select destinations'}
+                        </span>
+                        <span className="ml-3 text-base" aria-hidden="true">⌄</span>
+                      </button>
+                      {false && (dayDestinations[dayIndex] || []).length > 0 && (
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <button type="button" onClick={() => { setAccommodationDayBeingEdited(dayIndex); setSelectionPage('accommodation'); }} className="flex items-center justify-between rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:border-[#8a7f70]" style={inputStyle}>
+                            <span>{dayHotels[dayIndex]?.name || 'Select accommodation'}</span><span className="ml-3 text-base" aria-hidden="true">⌄</span>
+                          </button>
+                          <button type="button" onClick={() => { setActivityDayBeingEdited(dayIndex); setSelectionPage('activities'); }} className="flex items-center justify-between rounded-md border px-3 py-2.5 text-left text-[13px] transition-colors hover:border-[#8a7f70]" style={inputStyle}>
+                            <span>{(dayActivities[dayIndex] || []).length ? `${dayActivities[dayIndex].length} activit${dayActivities[dayIndex].length === 1 ? 'y' : 'ies'} selected` : 'Select activities'}</span><span className="ml-3 text-base" aria-hidden="true">⌄</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ))}
-                </select>
+                </div>
               </div>
 
+              {activeDayIndex !== null && (dayDestinations[activeDayIndex] || []).length > 0 && <>
               {/* 2. Accommodation */}
               <div id="section-accommodation">
                 <SectionLabel>2. Select Accommodation</SectionLabel>
                 <button
                   id="select-accommodation"
                   type="button"
-                  onClick={() => setSelectionPage('accommodation')}
+                  onClick={() => { setAccommodationDayBeingEdited(activeDayIndex); setSelectionPage('accommodation'); }}
                   className="flex w-full items-center justify-between py-3 px-4 text-left text-[14px] transition-all hover:border-[#1a1715]"
                   style={{ ...inputStyle, cursor: 'pointer' }}
                 >
@@ -934,8 +1110,10 @@ const CustomPlanner = () => {
                           item={hotel}
                           selected={selectedHotel?.id === hotel.id}
                           price={`PHP ${Number(hotel.pricePerGuest || 0).toLocaleString()} / guest`}
+                          multiSelect
+                          checkboxPosition="bottom-right"
                           compact
-                          onClick={() => { setSelectedHotel(hotel); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
+                          onClick={() => { setSelectedHotel(hotel); selectDayHotel(activeDayIndex, hotel); setOtherAccommodationPreference(''); setShowAccommodationPicker(false); }}
                         />
                       ))}
                       <button
@@ -945,6 +1123,7 @@ const CustomPlanner = () => {
                       >
                         <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Other preference</span>
                         <span className="mt-2 block text-[11px]" style={{ color: colors.textMuted }}>Describe the stay you are looking for.</span>
+                        <span className={`mt-3 flex h-4 w-4 self-end items-center justify-center rounded border text-[10px] ${selectedHotel?.id === '__other__' ? 'border-[#1a1715] bg-[#1a1715] text-white' : 'border-[#b8b0a4]'}`}>{selectedHotel?.id === '__other__' ? '✓' : ''}</span>
                       </button>
                     </div>
                   </OptionPickerModal>
@@ -964,7 +1143,7 @@ const CustomPlanner = () => {
                 <SectionLabel>3. Choose Custom Activities</SectionLabel>
                 <button
                   type="button"
-                  onClick={() => setSelectionPage('activities')}
+                  onClick={() => { setActivityDayBeingEdited(activeDayIndex); setSelectionPage('activities'); }}
                   className="flex w-full items-center justify-between py-3 px-4 text-left text-[14px] transition-all hover:border-[#1a1715]"
                   style={{ ...inputStyle, cursor: 'pointer' }}
                 >
@@ -1006,7 +1185,7 @@ const CustomPlanner = () => {
                     onClose={() => setShowActivityPicker(false)}
                   >
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {(currentDest?.activities || []).map(act => (
+                      {activeAvailableActivities.map(act => (
                         <OptionCard
                           key={act.id}
                           item={act}
@@ -1018,15 +1197,17 @@ const CustomPlanner = () => {
                         />
                       ))}
                     </div>
-                    {!currentDest?.activities?.length && <p className="py-3 text-[12px]" style={{ color: colors.textMuted }}>No activities available for this destination.</p>}
+                    {!activeAvailableActivities.length && <p className="py-3 text-[12px]" style={{ color: colors.textMuted }}>Select a destination first to see available activities.</p>}
                     <button type="button" onClick={() => setShowActivityPicker(false)} className="mt-5 w-full bg-[#1a1715] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white">Done</button>
                   </OptionPickerModal>
                 )}
               </div>
 
-              {/* 4. Select a Tour Guide */}
+              </>}
+
+              {/* 2. Select a Tour Guide */}
               <div id="section-tour-guide">
-                <SectionLabel>4. Select a Tour Guide</SectionLabel>
+                <SectionLabel>2. Select a Tour Guide</SectionLabel>
                 <label htmlFor="select-tour-guide" className="block text-[11px] font-medium mb-2" style={{ color: colors.textSecondary }}>
                   Choose a preferred guide (optional)
                 </label>

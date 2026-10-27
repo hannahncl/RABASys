@@ -753,6 +753,7 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
 
   const details = booking.customizedDetails || {};
   const activities = Array.isArray(details.activities) ? details.activities : [];
+  const destinationSchedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
   const isPending = booking.status === 'Pending Verification';
   const totalAmount = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
 
@@ -777,6 +778,14 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destination</p>
             <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">{details.destination || booking.destination || 'Not set'}</p>
           </div>
+          {destinationSchedule.length > 0 && (
+            <div className="border-t border-[#eae5db] pt-3 sm:col-span-2">
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destinations by day</p>
+              <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-[#1a1a1a] sm:grid-cols-2">
+                {destinationSchedule.map(item => <p key={item.day}><span className="font-semibold">Day {item.day}:</span> {(item.destinations || []).join(', ') || 'Not set'}</p>)}
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 border-t border-[#eae5db] pt-3 text-[11px] text-[#6b6255] sm:col-span-2">
             <CalendarDays className="h-4 w-4 text-[#b08a38]" />
             <span className="font-semibold">Travel date:</span> {formatDate(booking.tourDate)}

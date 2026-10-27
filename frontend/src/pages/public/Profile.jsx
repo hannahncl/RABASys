@@ -365,10 +365,10 @@ const Profile = () => {
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-100">
-          <button type="button" onClick={() => setProfileView('overview')} className={`border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'overview' ? 'border-yellow-400 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+          <button type="button" onClick={() => setProfileView('overview')} className={`border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'overview' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             Account &amp; Trips
           </button>
-          <button type="button" onClick={() => setProfileView('photos')} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'photos' ? 'border-yellow-400 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+          <button type="button" onClick={() => setProfileView('photos')} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'photos' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             <Camera className="h-3.5 w-3.5" /> My Shared Photos <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{myPhotos.length}</span>
           </button>
         </div>
@@ -390,7 +390,7 @@ const Profile = () => {
                   <User className="h-9 w-9 text-yellow-600" />
                 )}
               </div>
-              <h2 className="text-lg font-semibold text-slate-800 mt-3 leading-tight">
+              <h2 className="mt-3 text-lg font-semibold leading-tight text-[#2d2a24]">
                 {user?.name}
               </h2>
               <span className="inline-block text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-100 px-2.5 py-0.5 rounded-full mt-1.5 tracking-wide">

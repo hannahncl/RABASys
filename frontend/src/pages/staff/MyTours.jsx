@@ -234,6 +234,9 @@ const MyTours = () => {
                     <div><dt className="text-xs text-[#6b6255]">Accommodation</dt><dd className="font-semibold text-[#1a1a1a]">{selectedBooking.customizedDetails.hotel || 'None'}</dd></div>
                     <div><dt className="text-xs text-[#6b6255]">Duration</dt><dd className="font-semibold text-[#1a1a1a]">{selectedBooking.customizedDetails.duration || 'Not set'}</dd></div>
                     <div><dt className="text-xs text-[#6b6255]">Preferred guide</dt><dd className="font-semibold text-[#1a1a1a]">{selectedBooking.customizedDetails.preferredGuideName || 'No preference'}</dd></div>
+                    {Array.isArray(selectedBooking.customizedDetails.destinationSchedule) && selectedBooking.customizedDetails.destinationSchedule.length > 0 && (
+                      <div className="sm:col-span-2"><dt className="text-xs text-[#6b6255]">Destinations by day</dt><dd className="mt-1 space-y-1 font-semibold text-[#1a1a1a]">{selectedBooking.customizedDetails.destinationSchedule.map(item => <p key={item.day}>Day {item.day}: {(item.destinations || []).join(', ') || 'Not set'}</p>)}</dd></div>
+                    )}
                     {selectedBooking.customizedDetails.otherAccommodationPreference && (
                       <div className="sm:col-span-2"><dt className="text-xs text-[#6b6255]">Other accommodation preference</dt><dd className="font-semibold text-[#1a1a1a]">{selectedBooking.customizedDetails.otherAccommodationPreference}</dd></div>
                     )}
