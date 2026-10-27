@@ -112,7 +112,7 @@ const MainLayout = () => {
       <header className="sticky top-0 z-40 w-full bg-white shadow-none">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="-ml-4 flex shrink-0 items-center">
+          <Link to="/" className="-ml-8 flex shrink-0 items-center">
             <img src="/rabas-logo.png" alt="RABAS Travel and Tours Services" className="h-11 w-auto object-contain" />
           </Link>
 
@@ -171,14 +171,16 @@ const MainLayout = () => {
                       </span>
                     </div>
 
-                    <Link
-                      to="/profile"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
-                    >
-                      <User className="h-3.5 w-3.5 text-slate-500" />
-                      My Profile
-                    </Link>
+                    {user.role !== 'admin' && (
+                      <Link
+                        to="/profile"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
+                      >
+                        <User className="h-3.5 w-3.5 text-slate-500" />
+                        My Profile
+                      </Link>
+                    )}
 
                     {user.role !== 'customer' && (
                       <Link
@@ -312,14 +314,16 @@ const MainLayout = () => {
                   <p className="text-xs text-slate-400">Signed in as</p>
                   <p className="text-sm font-bold text-slate-700">{user.name}</p>
                 </div>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
-                >
-                  <User className="h-4 w-4" />
-                  My Profile
-                </Link>
+                {user.role !== 'admin' && (
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#603524] hover:bg-slate-50 rounded-lg font-semibold"
+                  >
+                    <User className="h-4 w-4" />
+                    My Profile
+                  </Link>
+                )}
                 {user.role !== 'customer' && (
                   <Link
                     to={user.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'}

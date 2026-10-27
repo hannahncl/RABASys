@@ -5,6 +5,7 @@ import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
 import { MapPin, Star, Clock, ShieldCheck, ArrowLeft, CheckCircle2, Users, CalendarDays } from 'lucide-react';
+import { parseItinerary } from '../../utils/itinerary';
 
 const PackageDetail = () => {
   const { id } = useParams();
@@ -80,22 +81,6 @@ const PackageDetail = () => {
     } finally {
       setLoadingReviews(false);
     }
-  };
-
-  const parseItinerary = (data) => {
-    if (!data) return [];
-    if (typeof data === 'string') {
-      return data.split('\n').filter(line => line.trim()).map(line => typeof line === 'string' ? line : String(line));
-    }
-    if (Array.isArray(data)) {
-      return data.map(item => {
-        if (typeof item === 'string') return item;
-        if (typeof item === 'object' && item.title) return item.title;
-        if (typeof item === 'object' && item.desc) return item.desc;
-        return String(item);
-      });
-    }
-    return [];
   };
 
   const parseInclusions = (data) => {
@@ -201,6 +186,32 @@ const PackageDetail = () => {
   }
 
   const isJoiner = String(pkg.packageType || pkg.package_type || pkg.category || '').toLowerCase() === 'joiner';
+  const itinerary = parseItinerary(pkg.itinerary);
+  const accommodations = typeof pkg.accommodations === 'string'
+    ? pkg.accommodations.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    : [];
+  const itineraryDays = itinerary.reduce((days, entry) => {
+    const existingDay = days.find((day) => day.day === entry.day);
+    if (existingDay) existingDay.entries.push(entry);
+    else days.push({ day: entry.day, entries: [entry] });
+    return days;
+  }, []);
+  const formatTimeRange = (entry) => {
+    const format = (value) => new Date(`2000-01-01T${value}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    if (!entry.startTime) return entry.endTime ? format(entry.endTime) : '';
+    if (!entry.endTime) return format(entry.startTime);
+
+    const start = format(entry.startTime);
+    const end = format(entry.endTime);
+    const startPeriod = start.match(/(AM|PM)$/)?.[0];
+    const endPeriod = end.match(/(AM|PM)$/)?.[0];
+    return startPeriod === endPeriod
+      ? `${start.replace(/\s(AM|PM)$/, '')}–${end}`
+      : `${start}–${end}`;
+  };
   const joinerDepartureDate = joinerAvailability?.departureDate || pkg.joinerDate || pkg.joiner_date;
   const packageImages = (Array.isArray(pkg.images) && pkg.images.length ? pkg.images : [pkg.image || '/CAGSAWA.jpg']).filter(Boolean);
   const selectedImage = packageImages[selectedImageIndex] || packageImages[0] || '/CAGSAWA.jpg';
@@ -273,6 +284,7 @@ const PackageDetail = () => {
               {[
                 { id: 'overview', label: 'Overview', active: true },
                 { id: 'itinerary', label: 'Itinerary', active: false },
+                { id: 'accommodations', label: 'Accommodations', active: false },
                 { id: 'inclusions', label: 'Inclusions', active: false },
                 { id: 'reviews', label: 'Reviews', active: false },
               ].map((tab) => (
@@ -392,37 +404,85 @@ const PackageDetail = () => {
                 Tour Itinerary
               </h2>
 
-              <div className="mt-5 space-y-0">
-                {parseItinerary(pkg.itinerary).map((line, index) => (
-                  <div key={index} className="relative pl-8 pb-4 last:pb-0">
-                    {/* Vertical line connecting steps */}
-                    {index < parseItinerary(pkg.itinerary).length - 1 && (
-                      <div
-                        className="absolute left-[9px] top-[20px] bottom-0 w-px"
-                        style={{ background: colors.border }}
-                      />
-                    )}
-                    {/* Number marker — minimal square */}
-                    <div
-                      className="absolute left-0 top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-semibold"
-                      style={{
-                        background: colors.subtleBg,
-                        color: colors.accentDark,
-                      }}
+              <div className="mt-5 space-y-6">
+                {itineraryDays.map(({ day, entries }) => (
+                  <section key={day} aria-label={`Day ${day} itinerary`}>
+                    <h3
+                      className="mb-4 text-[11px] font-bold uppercase tracking-[0.12em]"
+                      style={{ color: colors.accentDark }}
                     >
-                      {index + 1}
+                      Day {day}
+                    </h3>
+                    <div className="space-y-0">
+                      {entries.map((entry, index) => (
+                        <div key={`${day}-${index}`} className="relative pl-8 pb-4 last:pb-0">
+                          {index < entries.length - 1 && (
+                            <div
+                              className="absolute left-[9px] top-[20px] bottom-0 w-px"
+                              style={{ background: colors.border }}
+                            />
+                          )}
+                          <div
+                            className="absolute left-0 top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-semibold"
+                            style={{
+                              background: colors.subtleBg,
+                              color: colors.accentDark,
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="pt-0">
+                            {(entry.startTime || entry.endTime) && (
+                              <p
+                                className="mb-1 text-[11px] font-semibold uppercase tracking-wide"
+                                style={{ color: colors.accent }}
+                              >
+                                {formatTimeRange(entry)}
+                              </p>
+                            )}
+                            <p
+                              className="text-[13px] leading-relaxed"
+                              style={{ color: colors.textSecondary }}
+                            >
+                              {entry.activity}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="pt-0">
-                      <p
-                        className="text-[13px] leading-relaxed"
-                        style={{ color: colors.textSecondary }}
-                      >
-                        {line}
-                      </p>
-                    </div>
-                  </div>
+                  </section>
                 ))}
               </div>
+            </div>
+
+            {/* Accommodations Section */}
+            <div
+              id="accommodations"
+              className="space-y-5 scroll-mt-6 pt-12"
+              style={{ borderTop: `1px solid ${colors.borderLight}` }}
+            >
+              <h2
+                className="text-[13px] font-semibold"
+                style={{
+                  color: colors.textPrimary,
+                  fontFamily: "'Outfit', Georgia, serif",
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Accommodations
+              </h2>
+              {accommodations.length > 0 ? (
+                <div className="space-y-3">
+                  {accommodations.map((accommodation, index) => (
+                    <p key={index} className="text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                      {accommodation}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px]" style={{ color: colors.textMuted }}>No accommodation details provided.</p>
+              )}
             </div>
 
             {/* Inclusions Section */}

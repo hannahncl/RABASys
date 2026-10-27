@@ -90,25 +90,21 @@ const CarBooking = () => {
   const [returnCalWeather, setReturnCalWeather] = useState({});
 
   useEffect(() => {
-    if (!user) {
-      showNotification('Please log in to book a car', 'error');
-      navigate('/login', { state: { from: { pathname: `/car-rentals/${id}` } } });
-      return;
-    }
-
     const fetchCar = async () => {
       try {
         const data = await serviceService.getById(id, 'car');
         if (!data || data.category !== 'car' || String(data.availabilityStatus ?? data.availability_status ?? 'Available').trim().toLowerCase() !== 'available') throw new Error('Not found');
         setCar(data);
 
-        try {
-          const availability = await api(`/rental-bookings/availability/${id}`);
-          setBookedRanges(Array.isArray(availability?.bookings) ? availability.bookings : []);
-        } catch (availabilityError) {
-          // The server-side conflict check remains authoritative if the
-          // calendar availability request fails.
-          console.error('Failed to load vehicle availability:', availabilityError);
+        if (user) {
+          try {
+            const availability = await api(`/rental-bookings/availability/${id}`);
+            setBookedRanges(Array.isArray(availability?.bookings) ? availability.bookings : []);
+          } catch (availabilityError) {
+            // The server-side conflict check remains authoritative if the
+            // calendar availability request fails.
+            console.error('Failed to load vehicle availability:', availabilityError);
+          }
         }
       } catch (error) {
         showNotification('Car not found', 'error');
@@ -148,6 +144,11 @@ const CarBooking = () => {
 
   const handleBookCar = async (e) => {
     e.preventDefault();
+    if (!user) {
+      navigate('/login', { state: { from: { pathname: `/car-rentals/${id}` } } });
+      return;
+    }
+
     if (!(await confirm('Are you sure you want to submit this car rental booking?'))) return;
     if (!pickupDate || !returnDate || !pickupLocation) {
       showNotification('Please fill in all booking details', 'error');
@@ -589,7 +590,7 @@ const CarBooking = () => {
             </div>
           </div>
 
-          {/* Right Column - Forms */}
+          {/* Right Column - Booking */}
           <div className="lg:col-span-7 pt-2">
             <h2
               className="text-[13px] font-semibold mb-6"
@@ -602,6 +603,7 @@ const CarBooking = () => {
             >
               Rental Information
             </h2>
+            {user ? (
             <form onSubmit={handleBookCar} className="space-y-10">
 
               <div>
@@ -902,6 +904,34 @@ const CarBooking = () => {
               </div>
 
             </form>
+            ) : (
+              <div
+                className="p-8"
+                style={{
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '4px',
+                  background: colors.subtleBg,
+                }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+                  You can view this vehicle's details and reviews without an account. Log in to continue with a booking.
+                </p>
+                <Link
+                  to="/login"
+                  state={{ from: { pathname: `/car-rentals/${id}` } }}
+                  className="inline-flex mt-6 py-3 px-8 text-[11px] font-semibold transition-colors"
+                  style={{
+                    background: colors.accentDark,
+                    color: '#f7f4ef',
+                    borderRadius: '2px',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Log in to book
+                </Link>
+              </div>
+            )}
           </div>
 
         </div>
@@ -1002,4 +1032,3 @@ const CarBooking = () => {
 };
 
 export default CarBooking;
-

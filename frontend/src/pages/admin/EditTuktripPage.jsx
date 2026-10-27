@@ -13,6 +13,7 @@ const EditTuktripPage = () => {
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
+    accommodations: '',
     destination: '',
     price: '',
     duration: '',
@@ -37,6 +38,7 @@ const EditTuktripPage = () => {
         setFormData({
           packageName: item.packageName || item.title || '',
           description: item.description || '',
+          accommodations: item.accommodations || '',
           destination: item.destination || '',
           price: item.price != null ? String(item.price) : '',
           duration: item.duration || '',
@@ -89,6 +91,7 @@ const EditTuktripPage = () => {
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
+        accommodations: formData.accommodations.trim(),
         destination: formData.destination.trim(),
         price: Number(formData.price),
         duration: formData.duration.trim(),
@@ -167,12 +170,16 @@ const EditTuktripPage = () => {
             <textarea name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
           <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Accommodations</label>
+            <textarea name="accommodations" value={formData.accommodations} onChange={handleChange} rows={3} placeholder="Describe lodging, room arrangements, or overnight stays..." className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Inclusions</label>
-            <textarea name="inclusions" value={formData.inclusions} onChange={handleChange} rows={2} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <textarea name="inclusions" value={formData.inclusions} onChange={handleChange} rows={2} placeholder="Transport, meals, guide, entrance fees (comma-separated)" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Itinerary</label>
-            <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
+            <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} placeholder="Enter one activity per line, in trip order..." className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-500 font-bold mb-1">Package Image</label>

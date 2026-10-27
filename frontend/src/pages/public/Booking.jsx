@@ -85,7 +85,7 @@ const Booking = () => {
 
   // Step & Payment State
   const [currentStep, setCurrentStep] = useState(stateData.startStep || 1);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('PayMongo');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -278,20 +278,7 @@ const Booking = () => {
 
   const handleFinalSubmit = (e) => {
     e.preventDefault();
-    if (paymentMethod === 'gcash') {
-      if (!gcashRef.trim()) {
-        showNotification('Please enter your GCash reference number.', 'warning');
-        return;
-      }
-      handlePaymentSuccess(gcashRef.trim());
-    } else {
-      if (!cardNumber || !expiryDate || !cvv) {
-        showNotification('Please fill in card details.', 'warning');
-        return;
-      }
-      // Mock card success
-      handlePaymentSuccess('CARD-' + Math.random().toString(36).substr(2, 9).toUpperCase());
-    }
+    handlePaymentSuccess();
   }
 
   const handlePaymentSuccess = async (referenceNumber) => {
@@ -308,21 +295,17 @@ const Booking = () => {
         tourDate,
         guestsCount: totalGuests,
         totalPrice,
-        paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
-        paymentRef: referenceNumber,
+        paymentMethod: 'PayMongo',
+        paymentRef: `PENDING-${Date.now()}`,
         downpaymentAmount: isJoiner ? downpaymentAmount : totalPrice,
         participantNames: isJoiner ? participantNames.slice(0, totalGuests).map((name) => name.trim()) : [],
         gcashNumber: 'N/A',
         ...(pkg.customizedDetails && { customizedDetails: pkg.customizedDetails })
       };
 
-      await bookingService.create(bookingData);
-      showNotification(isJoiner
-        ? (paymentMethod === 'gcash'
-          ? 'Joiner booking submitted! Your spots are reserved while the downpayment is verified.'
-          : 'Joiner booking confirmed! Your spots are reserved and a confirmation email has been dispatched.')
-        : 'Booking successfully submitted! A confirmation email has been dispatched.', 'success');
-      navigate('/');
+      const booking = await bookingService.create(bookingData);
+      const checkout = await bookingService.createPaymongoSession(booking.id);
+      window.location.assign(checkout.checkoutUrl);
     } catch (error) {
       showNotification(error.message || 'Failed to save booking. Please try again.', 'error');
     } finally {
@@ -894,6 +877,14 @@ const Booking = () => {
                   Complete Payment
                 </h2>
                 <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-6">
+                  <div className="rounded border border-[#e0dbd0] bg-[#faf9f6] p-6 space-y-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: colors.textPrimary }}>Pay securely with PayMongo</p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                      You’ll be redirected to PayMongo’s secure checkout page to choose GCash, card, or another payment method enabled for this account. Your booking is confirmed only after PayMongo verifies payment.
+                    </p>
+                  </div>
+
+                  <div className="hidden">
 
                   {/* GCash Option */}
                   <label className="flex items-center gap-4 cursor-pointer py-2">
@@ -1052,6 +1043,8 @@ const Booking = () => {
                       </label>
                     </div>
                   )}
+
+                  </div>
 
                   {/* Final T&C and Submit */}
                   <div className="flex items-center justify-between pt-12">

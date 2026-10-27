@@ -91,6 +91,10 @@ export const bookingService = {
       participant_names: item.participantNames || [],
     }),
   })),
+  createPaymongoSession: async (bookingId) => api('/payments/paymongo/checkout-session', {
+    method: 'POST',
+    body: JSON.stringify({ booking_id: Number(bookingId) }),
+  }),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {
     method: 'POST',
     body: JSON.stringify({

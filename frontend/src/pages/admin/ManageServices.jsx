@@ -23,6 +23,7 @@ const CATEGORIES = [
     fields: [
       { name: 'packageName',      label: 'Package Name',         type: 'text',     placeholder: 'e.g. Bicol Adventure Escape' },
       { name: 'description',      label: 'Description',          type: 'textarea', placeholder: 'Describe the tour experience...' },
+      { name: 'accommodations',   label: 'Accommodations',       type: 'textarea', placeholder: 'Describe lodging, room arrangements, or overnight stays...' },
       { name: 'destination',      label: 'Destination',          type: 'text',     placeholder: 'e.g. Legazpi, Albay' },
       { name: 'price',            label: 'Price (PHP)',          type: 'number',   placeholder: 'e.g. 18500' },
       { name: 'duration',         label: 'Duration',             type: 'text',     placeholder: 'e.g. 3 Days, 2 Nights' },

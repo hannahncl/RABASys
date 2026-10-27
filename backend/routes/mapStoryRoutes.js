@@ -98,10 +98,11 @@ router.post("/", requireAuth, async (req, res, next) => {
         const locationName = location && typeof location.name === "string"
             ? location.name.trim()
             : null;
-        const province = location && typeof location.province === "string"
-            ? location.province.trim()
+        const rawProvince = location?.province ?? req.body.province;
+        const province = typeof rawProvince === "string"
+            ? rawProvince.trim()
             : null;
-        const rawProvince = location?.province;
+        const storyLocationName = locationName || province;
         const latitude = location?.coords?.[0];
         const longitude = location?.coords?.[1];
         const hasCoordinates = latitude !== undefined || longitude !== undefined;
@@ -124,6 +125,11 @@ router.post("/", requireAuth, async (req, res, next) => {
             || longitude > 180
         )) {
             return res.status(422).json({ message: "Choose a valid map location for this story." });
+        }
+        if (rawProvince !== undefined && rawProvince !== null && (
+            typeof rawProvince !== "string" || !province || province.length > 100
+        )) {
+            return res.status(422).json({ message: "Choose a valid province for this story." });
         }
         if (hasCoordinates && !location) {
             return res.status(422).json({ message: "Choose a valid map location for this story." });
@@ -150,7 +156,7 @@ router.post("/", requireAuth, async (req, res, next) => {
             `INSERT INTO map_story (account_id, spot_id, location_name, province, latitude, longitude, tourist_name, caption, image_url)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING story_id`,
-            [req.user.accountId, spotId, locationName, province, location ? latitude : null, location ? longitude : null, touristName, caption, imageUrl]
+            [req.user.accountId, spotId, storyLocationName, province, location ? latitude : null, location ? longitude : null, touristName, caption, imageUrl]
         );
         const story = await findStory(inserted[0].story_id, req.user.accountId);
         res.status(201).json(story);

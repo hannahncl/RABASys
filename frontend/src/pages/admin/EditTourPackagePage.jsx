@@ -6,6 +6,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { compressPackageImage } from '../../utils/compressPackageImage';
 import { earliestBookingDeadline, isJoinerDeadlineValid } from '../../utils/joinerSchedule';
+import ItineraryEditor from '../../components/admin/ItineraryEditor';
+import { parseItinerary, serializeItinerary } from '../../utils/itinerary';
 
 const EditTourPackagePage = () => {
   const { id } = useParams();
@@ -17,13 +19,14 @@ const EditTourPackagePage = () => {
   const [formData, setFormData] = useState({
     packageName: '',
     description: '',
+    accommodations: '',
     destination: '',
     price: '',
     duration: '',
     inclusions: '',
     maximumCapacity: '',
     meetingLocation: '',
-    itinerary: '',
+    itinerary: [{ day: 1, startTime: '', endTime: '', activity: '' }],
     image: '',
     images: [],
     availabilityStatus: 'Available',
@@ -53,13 +56,14 @@ const EditTourPackagePage = () => {
         setFormData({
           packageName: item.packageName || item.title || '',
           description: item.description || '',
+          accommodations: item.accommodations || '',
           destination: item.destination || '',
           price: item.packageTotalPrice != null ? String(item.packageTotalPrice) : (item.price != null ? String(item.price) : ''),
           duration: item.duration || '',
           inclusions: Array.isArray(item.inclusions) ? item.inclusions.join(', ') : (item.inclusions || ''),
           maximumCapacity: item.maximumCapacity != null ? String(item.maximumCapacity) : '',
           meetingLocation: item.meetingLocation || '',
-          itinerary: Array.isArray(item.itinerary) ? item.itinerary.map(entry => entry.title || entry.desc || '').join('\n') : (item.itinerary || ''),
+          itinerary: parseItinerary(item.itinerary),
           image: images[0] || item.image || '',
           images,
           availabilityStatus: item.availabilityStatus || item.availability_status || 'Available',
@@ -117,9 +121,22 @@ const EditTourPackagePage = () => {
     if (!(await confirm('Are you sure you want to save these tour package changes?'))) return;
     const required = ['packageName', 'description', 'destination', 'price', 'duration', 'inclusions', 'maximumCapacity', 'meetingLocation', 'itinerary'];
     const joinerRequired = packageType === 'joiner' ? ['joinerDate', 'joinerSlots', 'joinerBookingDeadline'] : [];
-    const missing = [...required, ...joinerRequired].filter(field => !String(formData[field]).trim());
-    if (missing.length > 0) {
+    const missing = [...required.filter(field => field !== 'itinerary'), ...joinerRequired]
+      .filter(field => !String(formData[field]).trim());
+    if (missing.length > 0 || !formData.itinerary.some(entry => entry.activity.trim())) {
       showNotification('Please complete all fields before saving.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.activity.trim() && (!Number.isInteger(Number(entry.day)) || Number(entry.day) < 1))) {
+      showNotification('Each itinerary activity needs a day number of 1 or higher.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.activity.trim() && Boolean(entry.startTime) !== Boolean(entry.endTime))) {
+      showNotification('Add both a start time and end time for each scheduled activity.', 'error');
+      return;
+    }
+    if (formData.itinerary.some(entry => entry.startTime && entry.endTime && entry.endTime <= entry.startTime)) {
+      showNotification('The end time must be later than the start time.', 'error');
       return;
     }
     if (packageType === 'joiner' && !isJoinerDeadlineValid(formData.joinerDate, formData.joinerBookingDeadline)) {
@@ -146,6 +163,7 @@ const EditTourPackagePage = () => {
         title: formData.packageName.trim(),
         packageName: formData.packageName.trim(),
         description: formData.description.trim(),
+        accommodations: formData.accommodations.trim(),
         destination: formData.destination.trim(),
         price: Number(formData.price),
         packageTotalPrice: Number(formData.price),
@@ -153,11 +171,7 @@ const EditTourPackagePage = () => {
         inclusions: formData.inclusions.split(',').map(item => item.trim()).filter(Boolean),
         maximumCapacity: Number(formData.maximumCapacity),
         meetingLocation: formData.meetingLocation.trim(),
-        itinerary: formData.itinerary
-          .split(/\r?\n/)
-          .map(line => line.trim())
-          .filter(Boolean)
-          .map((line, index) => ({ day: index + 1, title: line, desc: line })),
+        itinerary: serializeItinerary(formData.itinerary),
         joinerDate: packageType === 'joiner' ? formData.joinerDate : null,
         joinerSlots: packageType === 'joiner' ? Number(formData.joinerSlots) : null,
         joinerBookingDeadline: packageType === 'joiner' ? formData.joinerBookingDeadline : null,
@@ -256,12 +270,16 @@ const EditTourPackagePage = () => {
             <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Describe the tour experience..." className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none" />
           </div>
           <div className="md:col-span-2">
+            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Accommodations</label>
+            <textarea name="accommodations" value={formData.accommodations} onChange={handleChange} rows={3} placeholder="Describe lodging, room arrangements, or overnight stays..." className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none" />
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Inclusions</label>
             <textarea name="inclusions" value={formData.inclusions} onChange={handleChange} rows={2} placeholder="Transport, meals, guide, entrance fees (comma-separated)" className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none" />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Itinerary</label>
-            <textarea name="itinerary" value={formData.itinerary} onChange={handleChange} rows={4} placeholder="Day 1: Arrival and welcome dinner&#10;Day 2: Adventure activity" className="w-full bg-slate-900/40 border border-slate-800 focus:border-slate-700 focus:ring-1 focus:ring-slate-700/20 rounded-xl py-2.5 px-3.5 text-sm text-slate-200 placeholder:text-slate-655 focus:outline-none transition-all resize-none" />
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Tour Itinerary</label>
+            <ItineraryEditor entries={formData.itinerary} onChange={(itinerary) => setFormData(prev => ({ ...prev, itinerary }))} />
           </div>
           <div className="md:col-span-2">
             <label className="block text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Package Photos</label>

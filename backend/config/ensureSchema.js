@@ -130,6 +130,7 @@ async function ensureSchema() {
         package_name VARCHAR(255) NOT NULL,
         destination VARCHAR(255) NULL,
         description TEXT NULL,
+        accommodations TEXT NULL,
         price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
         duration VARCHAR(100) NULL,
         inclusion JSON NULL,
@@ -144,6 +145,11 @@ async function ensureSchema() {
         deleted_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (package_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    const [accommodationsColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'accommodations'`);
+    if (!accommodationsColumns.length) {
+        await db.query(`ALTER TABLE tour_package ADD COLUMN accommodations TEXT NULL`);
+    }
 
     const [packageTypeColumns] = await db.query(`SHOW COLUMNS FROM tour_package LIKE 'package_type'`);
     if (!packageTypeColumns.length) {

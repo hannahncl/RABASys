@@ -149,6 +149,12 @@ const getSpotProvince = (spot) => {
   return '';
 };
 
+const getSpotDisplayName = (spot) => String(
+  spot?.name || spot?.locationName || spot?.description || 'Selected location'
+);
+
+const getSpotShortName = (spot) => getSpotDisplayName(spot).split(',')[0];
+
 const createSearchedSpot = (name, coords, description = name, province = '') => ({
   id: `searched-${coords[0].toFixed(6)}-${coords[1].toFixed(6)}`,
   name,
@@ -196,7 +202,7 @@ const searchPhilippineLocations = async (query, signal) => {
         place_id: `${properties.osm_type || 'place'}-${properties.osm_id || `${latitude}-${longitude}`}`,
         name: properties.name || address[0] || 'Unnamed location',
         display_name: address.join(', ') || properties.name || 'Philippines',
-        province: getProvinceFromLocation(properties.state, properties.county),
+        province: getProvinceFromLocation(properties.county, properties.state),
         lat: String(latitude),
         lon: String(longitude),
         addresstype: properties.type || properties.osm_value || '',
@@ -318,7 +324,12 @@ const ExploreMap = () => {
   const [selectedPresetImage, setSelectedPresetImage] = useState(PRESET_UPLOAD_IMAGES[0].url);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [targetSpotId, setTargetSpotId] = useState('spot-mayon');
+  const [storyLocationQuery, setStoryLocationQuery] = useState('');
+  const [storyLocationResults, setStoryLocationResults] = useState([]);
+  const [storyLocationError, setStoryLocationError] = useState('');
+  const [isSearchingStoryLocation, setIsSearchingStoryLocation] = useState(false);
+  const [selectedStoryLocation, setSelectedStoryLocation] = useState(null);
+  const lastStorySearchAtRef = useRef(0);
 
   // Upload tab state: 'file' | 'camera' | 'gallery' | 'url'
   const [uploadTab, setUploadTab] = useState('file');
@@ -433,7 +444,7 @@ const ExploreMap = () => {
 
   useEffect(() => {
     const query = destinationSearchQuery.trim();
-    if (query.length < 2 || query.toLowerCase() === selectedSpot?.name.toLowerCase()) {
+    if (query.length < 2 || query.toLowerCase() === getSpotDisplayName(selectedSpot).toLowerCase()) {
       setMapSearchResults([]);
       setIsMapSearching(false);
       return undefined;
@@ -475,6 +486,45 @@ const ExploreMap = () => {
       controller.abort();
     };
   }, [destinationSearchQuery, selectedSpot]);
+
+  useEffect(() => {
+    const query = storyLocationQuery.trim();
+    if (
+      !uploadModalOpen
+      || query.length < 2
+      || (selectedStoryLocation && query === selectedStoryLocation.name)
+    ) {
+      setStoryLocationResults([]);
+      setIsSearchingStoryLocation(false);
+      setStoryLocationError('');
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const delay = Math.max(500, 1000 - (Date.now() - lastStorySearchAtRef.current));
+    const timer = window.setTimeout(async () => {
+      if (controller.signal.aborted) return;
+      lastStorySearchAtRef.current = Date.now();
+      setIsSearchingStoryLocation(true);
+      setStoryLocationError('');
+      try {
+        const results = await searchPhilippineLocations(query, controller.signal);
+        if (!controller.signal.aborted) setStoryLocationResults(results);
+      } catch (error) {
+        if (error.name !== 'AbortError' && !controller.signal.aborted) {
+          console.error('Could not search story locations:', error);
+          setStoryLocationError('Location suggestions are unavailable. Please try again.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsSearchingStoryLocation(false);
+      }
+    }, delay);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [storyLocationQuery, uploadModalOpen, selectedStoryLocation]);
 
   // Initial load
   useEffect(() => {
@@ -564,7 +614,6 @@ const ExploreMap = () => {
         if (selectedSpot) {
           const spotPhotos = await mapGalleryService.getUploads(selectedSpot.id);
           setUploads(spotPhotos);
-          setTargetSpotId(selectedSpot.id);
         } else {
           const all = await mapGalleryService.getAllUploads();
           setUploads(all);
@@ -603,13 +652,14 @@ const ExploreMap = () => {
   }, [storyViewerOpen, activeStoryIndex, uploads.length]);
 
   const handleSpotClick = (spot) => {
+    const namedSpot = { ...spot, name: getSpotDisplayName(spot) };
     setHasSearchedMap(false);
-    setSelectedSpot(spot);
-    setGalleryFilterValue(getSpotProvince(spot) || 'All');
-    setMapCenter(spot.coords);
+    setSelectedSpot(namedSpot);
+    setGalleryFilterValue(getSpotProvince(namedSpot) || 'All');
+    setMapCenter(namedSpot.coords);
     setMapZoom(11);
     setFollowUser(false);
-    setDestinationSearchQuery(spot.name);
+    setDestinationSearchQuery(namedSpot.name);
   };
 
   const handleDestinationSearch = async (event) => {
@@ -725,7 +775,7 @@ const ExploreMap = () => {
         if (navigationTarget) {
           const distKm = calculateDistanceKm(latitude, longitude, navigationTarget.coords[0], navigationTarget.coords[1]);
           if (distKm <= 0.05) {
-            showNotification(`🎉 You have arrived at ${navigationTarget.name.split(',')[0]}!`, 'success');
+            showNotification(`🎉 You have arrived at ${getSpotShortName(navigationTarget)}!`, 'success');
           }
         }
       },
@@ -804,9 +854,9 @@ const ExploreMap = () => {
     setFollowUser(true);
     setFitBoundsTrigger(prev => prev + 1);
     if (!userLocation) {
-      showNotification(`Starting GPS route to ${spot.name.split(',')[0]}. Acquiring your location...`, 'info');
+      showNotification(`Starting GPS route to ${getSpotShortName(spot)}. Acquiring your location...`, 'info');
     } else {
-      showNotification(`Live GPS route started to ${spot.name.split(',')[0]}!`, 'info');
+      showNotification(`Live GPS route started to ${getSpotShortName(spot)}!`, 'info');
     }
   };
 
@@ -841,8 +891,25 @@ const ExploreMap = () => {
 
   const handleOpenUpload = async (spot = selectedSpot) => {
     if (spot) {
-      setSelectedSpot(spot);
-      setTargetSpotId(spot.id);
+      const namedSpot = { ...spot, name: getSpotDisplayName(spot) };
+      const hasValidCoordinates = Array.isArray(namedSpot.coords)
+        && namedSpot.coords.length === 2
+        && namedSpot.coords.every(Number.isFinite);
+      setSelectedSpot(namedSpot);
+      setStoryLocationQuery(namedSpot.name);
+      setStoryLocationResults([]);
+      setSelectedStoryLocation(hasValidCoordinates ? {
+        name: namedSpot.name,
+        display_name: namedSpot.description || namedSpot.name,
+        lat: String(namedSpot.coords[0]),
+        lon: String(namedSpot.coords[1]),
+        province: getSpotProvince(namedSpot),
+        place_id: namedSpot.id,
+      } : null);
+    } else {
+      setStoryLocationQuery('');
+      setSelectedStoryLocation(null);
+      setStoryLocationResults([]);
     }
     const eligibilityError = await getUploadEligibilityError();
     if (eligibilityError) {
@@ -859,6 +926,10 @@ const ExploreMap = () => {
     if (eligibilityError) { setUploadError(eligibilityError); return; }
     if (!touristName.trim()) { setUploadError('Please enter your name.'); return; }
     if (!caption.trim()) { setUploadError('Please add a caption.'); return; }
+    if (!selectedStoryLocation) {
+      setUploadError('Choose a location from the live search suggestions.');
+      return;
+    }
     setUploading(true);
     setUploadError('');
 
@@ -886,17 +957,27 @@ const ExploreMap = () => {
     }
 
     try {
-      const activeSpot = selectedSpot || spots.find(spot => spot.id === targetSpotId);
-      const activeSpotId = activeSpot?.id || targetSpotId;
+      const storyProvinceName = selectedStoryLocation.province || '';
+      const namedSpot = createSearchedSpot(
+        selectedStoryLocation.name,
+        [Number(selectedStoryLocation.lat), Number(selectedStoryLocation.lon)],
+        selectedStoryLocation.display_name,
+        storyProvinceName,
+      );
+      const activeSpotId = namedSpot.id;
       const newUpload = await mapGalleryService.uploadPhoto(
         activeSpotId,
         touristName,
         caption,
         finalImageUrl,
-        activeSpot ? { name: activeSpot.name, coords: activeSpot.coords, province: getSpotProvince(activeSpot) } : undefined,
+        { name: namedSpot.name, coords: namedSpot.coords },
+        storyProvinceName,
       );
 
       setUploads(prev => [newUpload, ...prev]);
+      setGalleryFilterValue(storyProvinceName || 'All');
+      setSpots(current => [...current.filter(spot => spot.id !== namedSpot.id), namedSpot]);
+      setSelectedSpot(namedSpot);
 
       showNotification('Your photo was uploaded successfully!', 'success');
 
@@ -906,6 +987,9 @@ const ExploreMap = () => {
       setCapturedPhoto(null);
       setDeviceFile(null);
       setDeviceFilePreview('');
+      setStoryLocationQuery('');
+      setStoryLocationResults([]);
+      setSelectedStoryLocation(null);
       setUploadModalOpen(false);
       setUploadTab('file');
     } catch (error) {
@@ -967,7 +1051,7 @@ const ExploreMap = () => {
           </svg>
           ${isSelected ? `
             <span style="position:absolute;left:50%;bottom:34px;transform:translateX(-50%);padding:4px 8px;border-radius:12px;background:#2d2a24;color:#ffffff;font:600 11px/1.2 Inter,sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);">
-              ${spot.name.split(',')[0]}
+              ${getSpotShortName(spot)}
             </span>
           ` : ''}
         </div>
@@ -978,11 +1062,11 @@ const ExploreMap = () => {
   };
 
   const filteredSpots = spots.filter(spot =>
-    spot.id === selectedSpot?.id || spot.name.toLowerCase().includes(searchQuery.toLowerCase())
+    spot.id === selectedSpot?.id || getSpotDisplayName(spot).toLowerCase().includes(searchQuery.toLowerCase())
   );
   const destinationSearchMatches = destinationSearchQuery.trim()
     ? spots.filter(spot =>
-      `${spot.name} ${spot.category}`.toLowerCase().includes(destinationSearchQuery.trim().toLowerCase())
+      `${getSpotDisplayName(spot)} ${spot.category || ''}`.toLowerCase().includes(destinationSearchQuery.trim().toLowerCase())
     ).slice(0, 6)
     : [];
   const showDestinationSearchResults = destinationSearchQuery.trim()
@@ -995,7 +1079,6 @@ const ExploreMap = () => {
       .filter(Boolean)
       .sort((first, second) => first.localeCompare(second))
   )];
-
   // Filtered uploads for gallery
   const galleryUploads = uploads.filter(up => {
     const spot = spots.find(s => s.id === up.spotId);
@@ -1060,7 +1143,7 @@ const ExploreMap = () => {
               <div>
                 <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Grid style={{ width: '1rem', height: '1rem', color: '#6b6255' }} />
-                  {selectedSpot ? `${selectedSpot.name.split(',')[0]} Photos` : 'Photo Gallery'}
+                  {selectedSpot ? `${getSpotShortName(selectedSpot)} Photos` : 'Photo Gallery'}
                 </h2>
                 <p style={{ fontSize: '0.7rem', color: '#6b6255', marginTop: '0.125rem' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: galleryUploads.length ? '#2f9d74' : '#b0a68e', boxShadow: galleryUploads.length ? '0 0 0 3px rgba(47,157,116,.12)' : 'none' }} />{galleryUploads.length} photo{galleryUploads.length !== 1 ? 's' : ''} found</span>
@@ -1555,7 +1638,7 @@ const ExploreMap = () => {
                             LIVE GPS NAVIGATION • HEADING TO
                           </span>
                           <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
-                            {navigationTarget.name.split(',')[0]}
+                            {getSpotShortName(navigationTarget)}
                           </h4>
                         </div>
                       </div>
@@ -1616,7 +1699,7 @@ const ExploreMap = () => {
                 </div>
 
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif" }}>
-                  {selectedSpot.name}
+                  {getSpotDisplayName(selectedSpot)}
                 </h3>
 
                 <p style={{ fontSize: '0.725rem', color: '#4a453b', lineHeight: 1.4 }}>
@@ -1788,16 +1871,57 @@ const ExploreMap = () => {
             )}
 
             <form onSubmit={handleUploadSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Destination */}
+              {/* Story location */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Destination Spot</label>
-                <select
-                  value={selectedSpot ? selectedSpot.id : targetSpotId}
-                  onChange={e => setTargetSpotId(e.target.value)}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.8)', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#1a1a1a', outline: 'none', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <label htmlFor="story-location-search" style={{ display: 'block', fontSize: '0.6rem', fontWeight: 600, color: '#4a453b', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Location</label>
+                <div style={{ position: 'relative' }}>
+                    <input
+                      id="story-location-search"
+                      type="search"
+                      value={storyLocationQuery}
+                      onChange={e => {
+                        setStoryLocationQuery(e.target.value);
+                        setSelectedStoryLocation(null);
+                        setStoryLocationResults([]);
+                        setStoryLocationError('');
+                      }}
+                      placeholder="Search a city, town, or landmark..."
+                      autoComplete="off"
+                      style={{ width: '100%', boxSizing: 'border-box', background: '#ffffff', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#1a1a1a', outline: 'none', fontFamily: "'Inter', sans-serif" }}
+                    />
+                    {selectedStoryLocation && (
+                      <p style={{ margin: '0.4rem 0 0', color: '#3d6b50', fontSize: '0.65rem', fontWeight: 600 }}>
+                        Selected: {selectedStoryLocation.display_name}
+                      </p>
+                    )}
+                    {(isSearchingStoryLocation || storyLocationError || storyLocationResults.length > 0) && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, marginTop: '0.25rem', border: '1px solid #e0dbd0', borderRadius: '6px', background: '#ffffff', boxShadow: '0 8px 24px rgba(45,42,36,0.14)', overflow: 'hidden' }}>
+                        {isSearchingStoryLocation && <p role="status" style={{ margin: 0, padding: '0.7rem', color: '#6b6255', fontSize: '0.7rem' }}>Searching locations...</p>}
+                        {storyLocationError && <p role="alert" style={{ margin: 0, padding: '0.7rem', color: '#9f3028', fontSize: '0.7rem' }}>{storyLocationError}</p>}
+                        {!isSearchingStoryLocation && !storyLocationError && storyLocationResults.map(result => (
+                          <button
+                            key={result.place_id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedStoryLocation(result);
+                              setStoryLocationQuery(result.name);
+                              setStoryLocationResults([]);
+                            }}
+                            style={{ display: 'block', width: '100%', padding: '0.6rem 0.75rem', border: 'none', borderBottom: '1px solid #eee9e0', background: '#ffffff', color: '#45403a', textAlign: 'left', cursor: 'pointer', fontSize: '0.7rem' }}
+                          >
+                            <strong style={{ display: 'block', fontWeight: 600 }}>{result.name}</strong>
+                            <span style={{ display: 'block', color: '#6b6255', fontSize: '0.62rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.display_name}</span>
+                          </button>
+                        ))}
+                        {!isSearchingStoryLocation && !storyLocationError && storyLocationQuery.trim().length >= 2 && storyLocationResults.length === 0 && (
+                          <p style={{ margin: 0, padding: '0.7rem', color: '#6b6255', fontSize: '0.7rem' }}>No locations found. Try another search.</p>
+                        )}
+                      </div>
+                    )}
+                    <p style={{ margin: '0.35rem 0 0', color: '#6b6255', fontSize: '0.55rem' }}>
+                      Suggestions by <a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer" style={{ color: '#6b6255', textDecoration: 'underline' }}>Photon</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: '#6b6255', textDecoration: 'underline' }}>OpenStreetMap contributors</a>
+                    </p>
+                </div>
               </div>
 
               {/* Name */}
