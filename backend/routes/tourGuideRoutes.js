@@ -6,13 +6,14 @@ const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 const { requireAuth, allowRoles } = require("../middleware/auth");
+const uploadRoot = require("../config/uploadStorage");
 const { logAudit } = require("../utils/auditLogger");
 const router = express.Router();
 const hasValidPassword = (password) => typeof password === "string"
     && password.length >= 8
     && /[A-Z]/.test(password)
     && /[0-9]/.test(password);
-const uploadsDirectory = path.join(__dirname, "..", "uploads", "tour-guides");
+const uploadsDirectory = path.join(uploadRoot, "tour-guides");
 fs.mkdirSync(uploadsDirectory, { recursive: true });
 
 const imageExtensions = {

@@ -13,6 +13,7 @@ const wishlistRoutes = require("./routes/wishlistRoutes");
 const customizationRoutes = require("./routes/customizationRoutes");
 const mapStoryRoutes = require("./routes/mapStoryRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const uploadRoot = require("./config/uploadStorage");
 
 const app = express();
 
@@ -36,7 +37,7 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json({ limit: '50mb', verify: (req, res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadRoot));
 
 // Default Route
 app.get("/", (req, res) => {

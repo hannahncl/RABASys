@@ -11,6 +11,7 @@ const db = require("../config/db");
 const { requireAuth, getSecret } = require("../middleware/auth");
 const { sendPasswordResetOtp, sendTwoFactorOtp } = require("../config/mailer");
 const { logAudit } = require("../utils/auditLogger");
+const uploadRoot = require("../config/uploadStorage");
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -82,7 +83,7 @@ const logAuditEvent = async (accountId, action, detail = "", req = null) => {
     }
 };
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
-const profilePicturesDirectory = path.join(__dirname, "..", "uploads", "profile-pictures");
+const profilePicturesDirectory = path.join(uploadRoot, "profile-pictures");
 fs.mkdirSync(profilePicturesDirectory, { recursive: true });
 const profileImageExtensions = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
 const profilePictureUpload = multer({
