@@ -138,8 +138,14 @@ const MainLayout = () => {
               onClick={() => setNotificationsOpen(current => !current)}
               className="relative flex items-center gap-1.5 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-all px-3 py-2 rounded-full cursor-pointer"
               title="View notifications"
+              aria-label={`View notifications${unreadNotifications.length ? ` (${unreadNotifications.length} unread)` : ''}`}
             >
               <Bell className="h-[18px] w-[18px] text-[#603524]" />
+              {unreadNotifications.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#603524] px-1 text-[9px] font-bold text-white">
+                  {unreadNotifications.length > 99 ? '99+' : unreadNotifications.length}
+                </span>
+              )}
             </button>
             <Link
               to="/wishlist"
@@ -224,8 +230,14 @@ const MainLayout = () => {
               onClick={() => setNotificationsOpen(current => !current)}
               className="relative p-2 text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 rounded-full transition-colors"
               title="Notifications"
+              aria-label={`Notifications${unreadNotifications.length ? ` (${unreadNotifications.length} unread)` : ''}`}
             >
               <Bell className="h-5 w-5 text-[#603524]" />
+              {unreadNotifications.length > 0 && (
+                <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#603524] px-1 text-[9px] font-bold text-white">
+                  {unreadNotifications.length > 99 ? '99+' : unreadNotifications.length}
+                </span>
+              )}
             </button>
             <Link to="/wishlist" className="relative rounded-full p-2 text-slate-600 hover:bg-[#603524]/5 hover:text-[#603524]" title="Wishlist" aria-label="Wishlist">
               <Heart className="h-5 w-5 text-[#603524]" />
@@ -255,7 +267,7 @@ const MainLayout = () => {
             {!user ? (
               <div className="px-4 py-8 text-center text-sm text-slate-500">Sign in to receive booking and trip updates.</div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-slate-500">No new notifications.</div>
+              <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
             ) : (
               notifications.map(notification => (
                 <div

@@ -5,6 +5,7 @@ const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
 const { isJoinerDeadlineValid } = require("../utils/joinerSchedule");
+const { createInAppNotification } = require("../utils/notification");
 const router = express.Router();
 
 
@@ -182,12 +183,12 @@ router.post("/", requireAuth, async (req, res, next) => {
             const paymentAmount = isJoiner
                 ? Math.round((totalAmount * downpaymentPercent / 100) * 100) / 100
                 : totalAmount;
-            const isPayMongo = paymentMethod.toLowerCase() === "paymongo";
-            const paymentStatus = isPayMongo ? "Pending" : (isJoiner && paymentMethod.toLowerCase() === "gcash" ? "Pending Verification" : (isJoiner ? "Completed" : null));
-            const bookingStatus = isPayMongo ? "Pending" : (isJoiner && paymentStatus === "Pending Verification" ? "Pending" : (isJoiner ? "Confirmed" : "Pending"));
+            const isXendit = paymentMethod.toLowerCase() === "xendit";
+            const paymentStatus = isXendit ? "Pending" : (isJoiner && paymentMethod.toLowerCase() === "gcash" ? "Pending Verification" : (isJoiner ? "Completed" : null));
+            const bookingStatus = isXendit ? "Pending" : (isJoiner && paymentStatus === "Pending Verification" ? "Pending" : (isJoiner ? "Confirmed" : "Pending"));
             const result = await client.query(
                 "INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, participant_names, payment_method, payment_reference, payment_amount, payment_status, booking_status) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING booking_id",
-                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? JSON.stringify(participantNames) : null, (isJoiner || isPayMongo) ? paymentMethod : null, (isJoiner || isPayMongo) ? paymentReference : null, (isJoiner || isPayMongo) ? (isJoiner ? paymentAmount : totalAmount) : null, (isJoiner || isPayMongo) ? paymentStatus : null, bookingStatus]
+                [req.user.accountId, package_id || null, reference, bookingTravelDate, guestCount, totalAmount, customizedDetails ? JSON.stringify(customizedDetails) : null, isJoiner ? JSON.stringify(participantNames) : null, (isJoiner || isXendit) ? paymentMethod : null, (isJoiner || isXendit) ? paymentReference : null, (isJoiner || isXendit) ? (isJoiner ? paymentAmount : totalAmount) : null, (isJoiner || isXendit) ? paymentStatus : null, bookingStatus]
             );
             const newBookingId = result.rows[0].booking_id;
             const { rows } = await client.query(`${bookingSelect} WHERE b.booking_id = $1`, [newBookingId]);
@@ -224,6 +225,18 @@ router.post("/", requireAuth, async (req, res, next) => {
             }
         } catch (error) {
             console.error("[booking] could not load admins for booking notification:", error.message);
+        }
+
+        try {
+            await createInAppNotification({
+                accountId: req.user.accountId,
+                bookingId: newBookingId,
+                title: "Booking received",
+                message: `Your ${isJoiner ? "Joiner " : ""}tour booking (${reference}) has been received and is pending confirmation.`,
+                type: "Booking",
+            });
+        } catch (error) {
+            console.error(`[booking] customer notification failed for account ${req.user.accountId}:`, error.message);
         }
 
         try {
@@ -267,6 +280,17 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         await db.query("UPDATE booking SET travel_date = $1, booking_status = 'Rescheduled' WHERE booking_id = $2 AND deleted_at IS NULL", [requested_schedule_date, req.params.id]);
         const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "RESCHEDULE", tableName: "booking", recordId: req.params.id, oldValues: booking, newValues: rows[0], req });
+        try {
+            await createInAppNotification({
+                accountId: booking.account_id,
+                bookingId: req.params.id,
+                title: "Trip rescheduled",
+                message: `Your trip has been rescheduled to ${requested_schedule_date}.`,
+                type: "Booking",
+            });
+        } catch (error) {
+            console.error(`[booking] reschedule notification failed for account ${booking.account_id}:`, error.message);
+        }
         res.json(rows[0]);
     } catch (e) { next(e); }
 });
@@ -300,6 +324,19 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
         }
         const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: req.body.booking_status === "Cancelled" ? "CANCEL" : "UPDATE_STATUS", tableName: "booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
+        if (before[0].booking_status !== req.body.booking_status) {
+            try {
+                await createInAppNotification({
+                    accountId: before[0].account_id,
+                    bookingId: req.params.id,
+                    title: `Booking ${req.body.booking_status.toLowerCase()}`,
+                    message: `Your tour booking ${rows[0].booking_reference || ""} is now ${req.body.booking_status}.`,
+                    type: "Booking",
+                });
+            } catch (error) {
+                console.error(`[booking] status notification failed for account ${before[0].account_id}:`, error.message);
+            }
+        }
         res.json(rows[0]);
     } catch (e) { next(e); }
 });

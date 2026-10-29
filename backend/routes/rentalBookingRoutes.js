@@ -4,6 +4,7 @@ const db = require("../config/db");
 const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
+const { createInAppNotification } = require("../utils/notification");
 const router = express.Router();
 
 const bookingSelect = `SELECT b.*, 
@@ -150,6 +151,17 @@ router.post("/", requireAuth, async (req, res, next) => {
           await db.query("INSERT INTO notification (account_id, title, message, notification_type) VALUES ($1, $2, $3, $4)", [admin.account_id, "New Car Rental Booking", `A new car rental booking (${reference}) has been placed.`, "Booking"]);
         }
 
+        try {
+          await createInAppNotification({
+            accountId: req.user.accountId,
+            title: "Rental booking received",
+            message: `Your car rental booking (${reference}) has been received and is pending confirmation.`,
+            type: "Booking",
+          });
+        } catch (error) {
+          console.error(`[rental-booking] customer notification failed for account ${req.user.accountId}:`, error.message);
+        }
+
         // Send the customer a complete rental confirmation after the booking is stored.
         // Do not fail an otherwise successful booking when email delivery is unavailable.
         try { await sendBookingConfirmation(rows[0], "rental"); } catch (error) { console.error("[rental-booking] confirmation email error:", error.message); }
@@ -188,6 +200,16 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         await db.query("UPDATE car_rental_booking SET pickup_date = $1, return_date = $2, booking_status = 'Rescheduled' WHERE rental_booking_id = $3 AND deleted_at IS NULL", [requested_schedule_date, nextEndDate, req.params.id]);
         const { rows } = await db.query(`${bookingSelect} WHERE b.rental_booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "RESCHEDULE", tableName: "car_rental_booking", recordId: req.params.id, oldValues: booking, newValues: rows[0], req });
+        try {
+            await createInAppNotification({
+                accountId: booking.account_id,
+                title: "Rental rescheduled",
+                message: `Your car rental has been rescheduled to start on ${requested_schedule_date}.`,
+                type: "Booking",
+            });
+        } catch (error) {
+            console.error(`[rental-booking] reschedule notification failed for account ${booking.account_id}:`, error.message);
+        }
         res.json(rows[0]);
     } catch (e) { next(e); }
 });
@@ -207,6 +229,18 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
 
         const { rows } = await db.query(`${bookingSelect} WHERE b.rental_booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "UPDATE_STATUS", tableName: "car_rental_booking", recordId: req.params.id, oldValues: before[0], newValues: rows[0], req });
+        if (before[0].booking_status !== req.body.booking_status) {
+            try {
+                await createInAppNotification({
+                    accountId: before[0].account_id,
+                    title: `Rental ${req.body.booking_status.toLowerCase()}`,
+                    message: `Your car rental booking ${rows[0].booking_reference || ""} is now ${req.body.booking_status}.`,
+                    type: "Booking",
+                });
+            } catch (error) {
+                console.error(`[rental-booking] status notification failed for account ${before[0].account_id}:`, error.message);
+            }
+        }
         res.json(rows[0]);
     } catch (e) {
         next(e);

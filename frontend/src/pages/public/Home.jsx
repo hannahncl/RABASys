@@ -87,7 +87,7 @@ const Home = () => {
             <MapPin className="h-5 w-5 shrink-0 text-[#8b5e48]" />
             <span className="min-w-0 flex-1">
               <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f8576]">Where to?</span>
-              <input value={searchDestination} onChange={(event) => setSearchDestination(event.target.value)} placeholder="Search a destination" className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none placeholder:text-[#aaa093]" />
+              <input value={searchDestination} onChange={(event) => setSearchDestination(event.target.value)} placeholder="Search destinations, activities, or packages" className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none placeholder:text-[#aaa093]" />
             </span>
           </label>
           <label className="flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#faf6f0] sm:border-r sm:border-[#eee5da]">

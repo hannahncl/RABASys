@@ -85,7 +85,7 @@ const Booking = () => {
 
   // Step & Payment State
   const [currentStep, setCurrentStep] = useState(stateData.startStep || 1);
-  const [paymentMethod, setPaymentMethod] = useState('PayMongo');
+  const [paymentMethod, setPaymentMethod] = useState('Xendit');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -295,7 +295,7 @@ const Booking = () => {
         tourDate,
         guestsCount: totalGuests,
         totalPrice,
-        paymentMethod: 'PayMongo',
+        paymentMethod: 'Xendit',
         paymentRef: `PENDING-${Date.now()}`,
         downpaymentAmount: isJoiner ? downpaymentAmount : totalPrice,
         participantNames: isJoiner ? participantNames.slice(0, totalGuests).map((name) => name.trim()) : [],
@@ -304,7 +304,7 @@ const Booking = () => {
       };
 
       const booking = await bookingService.create(bookingData);
-      const checkout = await bookingService.createPaymongoSession(booking.id);
+      const checkout = await bookingService.createXenditSession(booking.id);
       window.location.assign(checkout.checkoutUrl);
     } catch (error) {
       showNotification(error.message || 'Failed to save booking. Please try again.', 'error');
@@ -878,9 +878,9 @@ const Booking = () => {
                 </h2>
                 <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-6">
                   <div className="rounded border border-[#e0dbd0] bg-[#faf9f6] p-6 space-y-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: colors.textPrimary }}>Pay securely with PayMongo</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: colors.textPrimary }}>Pay securely with Xendit</p>
                     <p className="text-[12px] leading-relaxed" style={{ color: colors.textSecondary }}>
-                      You’ll be redirected to PayMongo’s secure checkout page to choose GCash, card, or another payment method enabled for this account. Your booking is confirmed only after PayMongo verifies payment.
+                      You’ll be redirected to Xendit’s secure checkout page to choose GCash, card, or another payment method enabled for this account. Your booking is confirmed only after Xendit verifies payment.
                     </p>
                   </div>
 

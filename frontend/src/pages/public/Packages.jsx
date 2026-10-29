@@ -52,6 +52,26 @@ const getPackageVisualCategory = (pkg = {}) => {
   return 'exclusive';
 };
 
+const packageSearchFields = [
+  'title', 'packageName', 'package_name', 'destination', 'description',
+  'duration', 'inclusion', 'inclusions', 'itinerary', 'accommodations',
+  'meeting_location', 'meetingLocation', 'package_type', 'packageType',
+  'category', 'activities', 'activity', 'highlights', 'tags', 'services',
+];
+
+const flattenSearchValue = (value) => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.map(flattenSearchValue).join(' ');
+  if (typeof value === 'object') return Object.values(value).map(flattenSearchValue).join(' ');
+  return String(value);
+};
+
+const getPackageSearchText = (pkg = {}) => packageSearchFields
+  .map((field) => flattenSearchValue(pkg[field]))
+  .filter(Boolean)
+  .join(' ')
+  .toLowerCase();
+
 const formatPackageDate = (date) => date
   ? new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })
   : 'Date not set';
@@ -101,12 +121,9 @@ const Packages = () => {
   const displayPackages = packages;
 
   const filteredPackages = displayPackages.filter((pkg) => {
-    const searchableText = [pkg.title, pkg.destination, pkg.description]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    const matchesSearch = searchableText.includes(searchQuery.toLowerCase());
+    const searchableText = getPackageSearchText(pkg);
+    const searchWords = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const matchesSearch = searchWords.every((word) => searchableText.includes(word));
     const matchesCategory = selectedCategory === 'all' || getPackageVisualCategory(pkg) === selectedCategory;
     const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
 

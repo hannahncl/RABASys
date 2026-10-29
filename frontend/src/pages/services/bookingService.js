@@ -91,7 +91,7 @@ export const bookingService = {
       participant_names: item.participantNames || [],
     }),
   })),
-  createPaymongoSession: async (bookingId) => api('/payments/paymongo/checkout-session', {
+  createXenditSession: async (bookingId) => api('/payments/xendit/checkout-session', {
     method: 'POST',
     body: JSON.stringify({ booking_id: Number(bookingId) }),
   }),
