@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirmation } from '../contexts/ConfirmationContext';
-import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check, Phone, Mail, Heart } from 'lucide-react';
+import { Compass, Menu, X, User, LogOut, LayoutDashboard, CloudSun, Map, Landmark, Bell, Check, Phone, Mail, Heart, History } from 'lucide-react';
 import { notificationService, wishlistService } from '../services/api';
 import FaqChatbot from '../components/ui/FaqChatbot';
 
@@ -179,6 +179,17 @@ const MainLayout = () => {
                       >
                         <User className="h-3.5 w-3.5 text-slate-500" />
                         My Profile
+                      </Link>
+                    )}
+
+                    {user.role === 'customer' && (
+                      <Link
+                        to="/profile?view=history"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
+                      >
+                        <History className="h-3.5 w-3.5 text-slate-500" />
+                        Trip History
                       </Link>
                     )}
 
