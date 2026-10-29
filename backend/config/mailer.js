@@ -285,8 +285,14 @@ async function sendBookingConfirmation(booking, type = "tour") {
         : isCustomTrip
             ? [
                 ["Destination", booking.destination || customDetails.destination],
-                ["Destinations by day", Array.isArray(customDetails.destinationSchedule)
-                    ? customDetails.destinationSchedule.map(item => `Day ${item.day}: ${(item.destinations || []).join(", ") || "Not set"}`).join("; ")
+                ["Selections by day", Array.isArray(customDetails.destinationSchedule)
+                    ? customDetails.destinationSchedule.map(item => [
+                        `Day ${item.day}`,
+                        `Destinations: ${(item.destinations || []).join(", ") || "Not set"}`,
+                        `Accommodation: ${item.accommodation || "Not selected"}`,
+                        `Activities: ${(item.activities || []).join(", ") || "None selected"}`,
+                        `Tour guide: ${item.guide || "No preference"}`,
+                    ].join(" | ")).join("; ")
                     : "-"],
                 ["Travel date", booking.travel_date],
                 ["Number of persons", booking.number_of_persons],

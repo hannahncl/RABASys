@@ -9,7 +9,7 @@ import {
   AlertCircle, Clock, Edit2, Save, ShoppingBag, Eye, X,
   Loader2, ArrowRight, History, XCircle, RefreshCw, Star, Camera, Trash2, Heart, Pencil
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import mapGalleryService from '../services/mapGalleryService';
 
 /* ────────────────────────────────
@@ -37,7 +37,7 @@ const StatusBadge = ({ status }) => {
     </span>
   );
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-900 border border-yellow-300">
       <Clock className="h-3.5 w-3.5 animate-pulse" /> Pending Verification
     </span>
   );
@@ -57,6 +57,8 @@ const Profile = () => {
   const { user, updateUserSession } = useContext(AuthContext);
   const { confirm } = useConfirmation();
   const { showNotification } = useNotification();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [profileView, setProfileView] = useState(searchParams.get('view') === 'history' ? 'history' : 'overview');
 
   // Bookings state
   const [allBookings, setAllBookings] = useState([]);
@@ -89,7 +91,9 @@ const Profile = () => {
   const [editingPhotoId, setEditingPhotoId] = useState(null);
   const [photoCaptionDraft, setPhotoCaptionDraft] = useState('');
   const [savingCaptionId, setSavingCaptionId] = useState(null);
-  const [profileView, setProfileView] = useState('overview');
+  useEffect(() => {
+    setProfileView(searchParams.get('view') === 'history' ? 'history' : 'overview');
+  }, [searchParams]);
 
   // ── Load account & bookings on mount ──
   useEffect(() => {
@@ -365,20 +369,20 @@ const Profile = () => {
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-100">
-          <button type="button" onClick={() => setProfileView('overview')} className={`border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'overview' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            Account &amp; Trips
+          <button type="button" onClick={() => setSearchParams({})} className={`border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'overview' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            Account &amp; Photos
           </button>
-          <button type="button" onClick={() => setProfileView('photos')} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'photos' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            <Camera className="h-3.5 w-3.5" /> My Shared Photos <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{myPhotos.length}</span>
+          <button type="button" onClick={() => setSearchParams({ view: 'history' })} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'history' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <History className="h-3.5 w-3.5" /> Trip History <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{allBookings.length}</span>
           </button>
         </div>
 
-        {profileView === 'overview' ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ════════════════════════════════
               LEFT — Profile Card
           ════════════════════════════════ */}
+          {profileView === 'overview' && (
           <div className="lg:col-span-4">
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
 
@@ -393,9 +397,6 @@ const Profile = () => {
               <h2 className="mt-3 text-lg font-semibold leading-tight text-[#2d2a24]">
                 {user?.name}
               </h2>
-              <span className="inline-block text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-100 px-2.5 py-0.5 rounded-full mt-1.5 tracking-wide">
-                {user?.role}
-              </span>
             </div>
 
             {/* ── VIEW MODE ── */}
@@ -424,7 +425,7 @@ const Profile = () => {
                     {profilePictureFile ? 'Choose a different photo' : 'Choose photo from device'}
                   </label>
                   <input id="profile-picture-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleProfilePictureChange} className="sr-only" />
-                  <p className="mt-1.5 text-[10px] text-slate-400">JPEG, PNG, WebP, or GIF. Maximum 5 MB.</p>
+              
                 </div>
 
                 {/* First & Last Name */}
@@ -493,44 +494,46 @@ const Profile = () => {
           </div>
 
           </div>
+          )}
 
           {/* ════════════════════════════════
-              RIGHT — Booking History / Logs
+              TRIP HISTORY
           ════════════════════════════════ */}
-          <div className="lg:col-span-8 space-y-5">
+          {profileView === 'history' && (
+          <div className="lg:col-span-12 space-y-5">
 
             {/* Card */}
             <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
               {/* Header row */}
-              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+              <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
                 <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2">
                   <History className="h-4 w-4 text-yellow-500" />
                   Trip History
                 </h3>
                 <Link
                   to="/packages"
-                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-yellow-600 transition-colors"
+                  className="flex items-center gap-1 text-xs font-medium text-slate-700 hover:text-yellow-800 transition-colors"
                 >
                   Book a trip <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
 
               {/* Status Tabs */}
-              <div className="flex items-center gap-2 px-6 py-3 border-b border-slate-100 overflow-x-auto">
+              <div className="flex items-center gap-2 overflow-x-auto border-y border-slate-100 px-5 py-3 sm:px-6">
                 {tabs.map(tab => (
                   <button
                     key={tab}
                     onClick={() => handleTabChange(tab)}
-                    className={`flex items-center gap-1.5 whitespace-nowrap text-xs px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-xs transition-colors cursor-pointer ${
                       activeTab === tab
-                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-200 font-medium'
-                        : 'text-slate-400 hover:text-slate-600'
+                        ? 'border-yellow-200 bg-yellow-50 text-yellow-800 font-semibold'
+                        : 'border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     {tab === 'Pending Verification' ? 'Pending' : tab}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                      activeTab === tab ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-400'
+                    <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[10px] ${
+                      activeTab === tab ? 'bg-white/80 text-yellow-900' : 'bg-slate-100 text-slate-700'
                     }`}>
                       {countFor(tab)}
                     </span>
@@ -539,17 +542,17 @@ const Profile = () => {
               </div>
 
               {/* Booking list */}
-              <div className="px-6 py-4">
+              <div className="space-y-3 px-5 py-4 sm:px-6">
                 {loadingBookings ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                    <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-2" />
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+                    <Loader2 className="mb-2 h-7 w-7 animate-spin text-yellow-500" />
                     <p className="text-xs font-medium">Loading your trip history...</p>
                   </div>
                 ) : filteredBookings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-14 text-slate-300 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
-                    <ShoppingBag className="h-10 w-10 mb-3 stroke-1" />
-                    <p className="text-sm text-slate-400">No trips found</p>
-                    <p className="text-xs text-slate-300 mt-1 text-center max-w-[240px]">
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-slate-600">
+                    <ShoppingBag className="mb-3 h-8 w-8 stroke-1" />
+                    <p className="text-sm font-medium">No trips found</p>
+                    <p className="mt-1 max-w-[240px] text-center text-xs text-slate-600">
                       {activeTab === 'All'
                         ? "You haven't made any bookings yet."
                         : activeTab === 'To Review'
@@ -559,7 +562,7 @@ const Profile = () => {
                     {activeTab === 'All' && (
                       <Link
                         to="/packages"
-                        className="mt-5 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs font-medium px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+                        className="mt-5 bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border border-yellow-300 text-xs font-semibold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
                       >
                         Browse Packages
                       </Link>
@@ -567,47 +570,26 @@ const Profile = () => {
                   </div>
                 ) : activeTab === 'To Review' ? (
                   /* Pending Reviews Card View */
-                  <div>
-                    <div className="space-y-3">
+                  <div className="space-y-3">
                       {paginatedBookings.map(booking => (
                         <Link
                           key={booking.id}
                           to={`/review/${booking.id}`}
-                          className="block p-4 rounded-lg border border-yellow-200/70 bg-yellow-50/50 hover:bg-yellow-50 hover:border-yellow-300 transition-all group shadow-sm"
+                          className="group flex flex-col gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:border-yellow-300 hover:bg-yellow-50/30 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                  booking.type === 'Car Rental'
-                                    ? 'bg-amber-100/80 text-amber-900 border border-amber-300/60'
-                                    : 'bg-yellow-100 text-yellow-900 border border-yellow-300/60'
-                                }`}>
-                                  {booking.type === 'Car Rental' ? 'Car Rental' : 'Tour Package'}
-                                </span>
-                                <span className="text-[10px] font-mono text-slate-400">#{booking.id}</span>
-                              </div>
-                              <p className="text-sm font-semibold text-slate-800 group-hover:text-yellow-800 truncate">
-                                {booking.packageName}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {booking.type === 'Car Rental' ? (
-                                  <>Rental Date: {booking.tourDate} {booking.returnDate ? `— ${booking.returnDate}` : ''}</>
-                                ) : (
-                                  <>Trip Date: {booking.tourDate && new Date(booking.tourDate).toLocaleDateString('en-US', {
-                                    month: 'short', day: 'numeric', year: 'numeric'
-                                  })}</>
-                                )}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-400/20 text-yellow-800 text-xs font-semibold group-hover:bg-yellow-400 group-hover:text-slate-900 transition-colors shrink-0">
-                              <span>Write Review</span>
-                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                            </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#1a1a1a] group-hover:text-yellow-800">{booking.packageName}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {booking.type === 'Car Rental' ? 'Rental' : 'Trip'} date: {booking.tourDate && new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', year: 'numeric'
+                              })}
+                            </p>
                           </div>
+                          <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-yellow-800">
+                            Write review <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                          </span>
                         </Link>
                       ))}
-                    </div>
 
                     {/* Pagination for To Review */}
                     {totalPages > 1 && (
@@ -615,7 +597,7 @@ const Profile = () => {
                         <button
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1}
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                         >
                           ← Previous
                         </button>
@@ -639,7 +621,7 @@ const Profile = () => {
                         <button
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                         >
                           Next →
                         </button>
@@ -647,81 +629,46 @@ const Profile = () => {
                     )}
                   </div>
                 ) : (
-                  /* Timeline-style log */
-                  <div className="relative">
-                    {/* Vertical line */}
-                    <div className="absolute left-4 top-3 bottom-3 w-px bg-slate-100" />
-
-                    <div className="space-y-0">
-                      {paginatedBookings.map((booking, idx) => (
-                        <div key={booking.id} className="relative flex gap-5 items-start py-5">
-
-                          {/* Timeline dot */}
-                          <div className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                            (booking.status === 'Confirmed' || booking.status === 'Completed')
-                              ? 'bg-green-50 ring-1 ring-green-200'
-                              : booking.status === 'Cancelled'
-                                ? 'bg-red-50 ring-1 ring-red-200'
-                                : 'bg-yellow-50 ring-1 ring-yellow-200'
-                          }`}>
-                            {(booking.status === 'Confirmed' || booking.status === 'Completed')
-                              ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                              : booking.status === 'Cancelled'
-                                ? <XCircle className="h-3.5 w-3.5 text-red-400" />
-                                : <RefreshCw className="h-3.5 w-3.5 text-yellow-500 animate-spin" />
-                            }
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0 hover:bg-yellow-50/40 border border-slate-100 hover:border-yellow-100 rounded-xl p-4 transition-all group">
-                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                              <div className="space-y-1.5 min-w-0">
-
-                                {/* Booking ID + status */}
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase bg-white border border-slate-200 px-2 py-0.5 rounded font-mono">
-                                    {booking.id}
-                                  </span>
-                                  <StatusBadge status={booking.status} />
-                                </div>
-
-                                {/* Package name */}
-                                <h4 className="text-sm font-medium text-slate-700 leading-snug group-hover:text-yellow-700 transition-colors truncate">
-                                  {booking.packageName}
-                                </h4>
-
-                                {/* Meta row */}
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="space-y-3">
+                      {paginatedBookings.map(booking => (
+                        <article key={booking.id} className="rounded-xl border border-slate-200 p-4 transition-colors hover:border-slate-300 hover:bg-slate-50/40">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-medium text-slate-600">#{booking.id}</span>
+                                <StatusBadge status={booking.status} />
+                              </div>
+                              <h4 className="truncate text-sm font-semibold leading-snug text-[#1a1a1a]">
+                                {booking.packageName}
+                              </h4>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700">
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    {new Date(booking.tourDate).toLocaleDateString('en-US', {
-                                      month: 'long', day: 'numeric', year: 'numeric'
+                                    <Calendar className="h-3.5 w-3.5 text-slate-600" />
+                                    {booking.type === 'Car Rental' ? booking.tourDate : new Date(booking.tourDate).toLocaleDateString('en-US', {
+                                      month: 'short', day: 'numeric', year: 'numeric'
                                     })}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <User className="h-3.5 w-3.5" />
+                                    <User className="h-3.5 w-3.5 text-slate-600" />
                                     {booking.guestsCount} {booking.guestsCount > 1 ? 'guests' : 'guest'}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <CreditCard className="h-3.5 w-3.5" />
+                                    <CreditCard className="h-3.5 w-3.5 text-slate-600" />
                                     {booking.customizedDetails && booking.status === 'Pending Verification'
                                       ? 'Pricing under review'
                                       : `₱${booking.totalPrice?.toLocaleString()}`}
                                   </span>
-                                </div>
-
-                                {/* Booked on */}
-                                <p className="text-[10px] text-slate-400">
-                                  Booked on {new Date(booking.createdAt).toLocaleDateString('en-US', {
-                                    month: 'short', day: 'numeric', year: 'numeric'
-                                  })}
-                                </p>
                               </div>
-
-                              <div className="flex flex-col gap-2">
+                              <p className="text-[10px] text-slate-600">
+                                Booked {new Date(booking.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 gap-2 sm:flex-col">
                                 <button
                                   onClick={() => setViewingBooking(booking)}
-                                  className="flex items-center justify-center gap-1.5 shrink-0 text-slate-400 hover:text-yellow-700 text-xs px-3 py-1.5 rounded-lg border border-slate-100 hover:border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-yellow-300 hover:bg-yellow-50 hover:text-yellow-900"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                   Invoice
@@ -729,18 +676,16 @@ const Profile = () => {
                                 {booking.status !== 'Completed' && String(booking.package_type || booking.packageType || '').toLowerCase() !== 'joiner' && (
                                   <Link
                                     to={`/reschedule/${booking.id}`}
-                                    className="flex items-center justify-center gap-1.5 shrink-0 text-yellow-700 hover:text-yellow-800 text-xs px-3 py-1.5 rounded-lg border border-yellow-200 hover:bg-yellow-50 transition-all cursor-pointer"
+                                    className="flex items-center justify-center gap-1.5 rounded-lg border border-yellow-300 px-3 py-2 text-xs font-medium text-yellow-900 transition-colors hover:bg-yellow-50"
                                   >
                                     <RefreshCw className="h-3.5 w-3.5" />
                                     Reschedule
                                   </Link>
                                 )}
-                              </div>
                             </div>
                           </div>
-                        </div>
+                        </article>
                       ))}
-                    </div>
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
@@ -748,7 +693,7 @@ const Profile = () => {
                         <button
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1}
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                         >
                           ← Previous
                         </button>
@@ -772,7 +717,7 @@ const Profile = () => {
                         <button
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                         >
                           Next →
                         </button>
@@ -784,9 +729,10 @@ const Profile = () => {
 
             </div>
           </div>
-        </div>
-        ) : (
-          <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+          )}
+
+          {profileView === 'overview' && (
+          <section className="lg:col-span-8 flex max-h-[620px] min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
               <div>
                 <h2 className="flex items-center gap-2 text-base font-semibold text-slate-700"><Camera className="h-4 w-4 text-yellow-500" /> My Shared Photos</h2>
@@ -794,17 +740,17 @@ const Profile = () => {
               </div>
               <span className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-700">{myPhotos.length} photo{myPhotos.length === 1 ? '' : 's'}</span>
             </div>
-            <div className="p-5 sm:p-6">
+            <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
               {loadingPhotos ? (
-                <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400"><Loader2 className="h-5 w-5 animate-spin text-yellow-500" />Loading your photos...</div>
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400"><Loader2 className="h-5 w-5 animate-spin text-yellow-500" />Loading your photos...</div>
               ) : myPhotos.length === 0 ? (
-                <div className="py-16 text-center"><Camera className="mx-auto mb-3 h-8 w-8 text-slate-300" /><p className="text-sm text-slate-500">You haven’t shared any photos yet.</p><p className="mt-1 text-xs text-slate-400">Your Explore Map posts will appear here.</p></div>
+                <div className="py-8 text-center"><Camera className="mx-auto mb-3 h-8 w-8 text-slate-300" /><p className="text-sm text-slate-500">You haven’t shared any photos yet.</p><p className="mt-1 text-xs text-slate-400">Your Explore Map posts will appear here.</p></div>
               ) : (
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {myPhotos.map(photo => (
                     <article key={photo.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:shadow-md">
                       <img src={photo.imageUrl} alt={photo.caption || 'Your shared Explore Map photo'} className="aspect-[4/3] w-full object-cover" />
-                      <div className="p-4">
+                      <div className="p-3">
                         {editingPhotoId === photo.id ? (
                           <div>
                             <textarea value={photoCaptionDraft} onChange={event => setPhotoCaptionDraft(event.target.value)} maxLength={500} rows={4} aria-label="Edit photo caption" className="w-full resize-y rounded-lg border border-slate-200 p-3 text-sm leading-5 text-slate-700 outline-none focus:border-yellow-400" />
@@ -817,12 +763,12 @@ const Profile = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex min-h-14 items-start justify-between gap-2">
-                            <p className="whitespace-pre-wrap break-words text-sm leading-5 text-slate-700">{photo.caption}</p>
+                          <div className="flex min-h-10 items-start justify-between gap-2">
+                            <p className="line-clamp-2 break-words text-sm leading-5 text-slate-700">{photo.caption}</p>
                             <button type="button" onClick={() => { setEditingPhotoId(photo.id); setPhotoCaptionDraft(photo.caption || ''); }} aria-label="Edit photo caption" title="Edit caption" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-yellow-50 hover:text-yellow-700"><Pencil className="h-4 w-4" /></button>
                           </div>
                         )}
-                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                        <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
                           <span className="text-xs text-slate-400">{photo.date ? new Date(photo.date).toLocaleDateString() : ''}</span>
                           <div className="flex items-center gap-2">
                             <button type="button" onClick={() => handleLikePhoto(photo)} aria-label={`${photo.isLiked ? 'Unlike' : 'Like'} photo, ${photo.likesCount || 0} likes`} title="Like photo" className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition hover:bg-rose-50 ${photo.isLiked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}><Heart className={`h-4 w-4 ${photo.isLiked ? 'fill-current' : ''}`} />{photo.likesCount || 0}</button>
@@ -836,7 +782,8 @@ const Profile = () => {
               )}
             </div>
           </section>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ════════════════════════════════

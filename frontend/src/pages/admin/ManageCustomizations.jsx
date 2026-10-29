@@ -780,9 +780,17 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
           </div>
           {destinationSchedule.length > 0 && (
             <div className="border-t border-[#eae5db] pt-3 sm:col-span-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destinations by day</p>
-              <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-[#1a1a1a] sm:grid-cols-2">
-                {destinationSchedule.map(item => <p key={item.day}><span className="font-semibold">Day {item.day}:</span> {(item.destinations || []).join(', ') || 'Not set'}</p>)}
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Selections by day</p>
+              <div className="mt-2 grid grid-cols-1 gap-3 text-xs text-[#1a1a1a] sm:grid-cols-2">
+                {destinationSchedule.map(item => (
+                  <div key={item.day} className="rounded border border-[#eae5db] bg-white p-3">
+                    <p className="font-semibold">Day {item.day}</p>
+                    <p className="mt-1"><span className="text-[#6b6255]">Destinations:</span> {(item.destinations || []).join(', ') || 'Not set'}</p>
+                    <p className="mt-1"><span className="text-[#6b6255]">Accommodation:</span> {item.accommodation || 'Not selected'}</p>
+                    <p className="mt-1"><span className="text-[#6b6255]">Activities:</span> {(item.activities || []).join(', ') || 'None selected'}</p>
+                    <p className="mt-1"><span className="text-[#6b6255]">Tour guide:</span> {item.guide || 'No preference'}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}

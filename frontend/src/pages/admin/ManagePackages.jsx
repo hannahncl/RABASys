@@ -19,7 +19,7 @@ const ManagePackages = () => {
   const loadPackages = async () => {
     setLoading(true);
     try {
-      const data = await packageService.getAll();
+      const data = await packageService.getAll({ includePastJoiner: true });
       setPackages(data);
     } catch (e) {
       showNotification('Failed to load packages', 'error');
