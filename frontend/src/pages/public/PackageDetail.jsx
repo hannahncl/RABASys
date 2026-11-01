@@ -833,35 +833,6 @@ const PackageDetail = () => {
                 </div>
               </div>
 
-              {/* Additional Meeting Info */}
-              <div
-                className="max-w-sm p-5"
-                style={{
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: '4px',
-                  background: colors.cardBg,
-                }}
-              >
-                <p
-                  className="text-[10px] font-medium mb-2"
-                  style={{
-                    color: colors.textMuted,
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Meeting Point
-                </p>
-                <p
-                  className="text-[14px] font-medium"
-                  style={{ color: colors.textPrimary }}
-                >
-                  {pkg.meetingLocation || 'TBA'}
-                </p>
-                <p className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>
-                  Please arrive 15 minutes before departure.
-                </p>
-              </div>
             </div>
           </div>
         </div>

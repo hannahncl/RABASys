@@ -18,6 +18,16 @@ const normalizePackageType = (item = {}) => {
   return ['exclusive', 'joiner', 'tuktrip'].includes(normalized) ? normalized : 'exclusive';
 };
 
+const hasPastJoinerDeparture = (item) => {
+  if (normalizePackageType(item) !== 'joiner') return false;
+  const departureDate = String(item.joiner_date || item.joinerDate || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate)) return false;
+
+  const today = new Date();
+  const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return departureDate < todayDate;
+};
+
 const packageFromApi = (item) => {
   const packageType = normalizePackageType(item);
   const packageTotalPrice = Number(item.price || 0);
@@ -158,12 +168,21 @@ export const serviceService = {
 };
 
 export const packageService = {
-  getAll: async () => (await serviceService.getAll()).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
+  getAll: async ({ includePastJoiner = false } = {}) => (await serviceService.getAll()).filter((item) => (
+    String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'
+    && (includePastJoiner || !hasPastJoinerDeparture(item))
+  )),
   getById: async (id) => {
     const item = await serviceService.getById(id);
-    return String(item?.availabilityStatus ?? item?.availability_status ?? 'Available').trim().toLowerCase() === 'available' ? item : null;
+    return String(item?.availabilityStatus ?? item?.availability_status ?? 'Available').trim().toLowerCase() === 'available'
+      && !hasPastJoinerDeparture(item)
+      ? item
+      : null;
   },
-  getRecommendations: async (preferences) => (await serviceService.getRecommendations(preferences)).filter((item) => String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'),
+  getRecommendations: async (preferences) => (await serviceService.getRecommendations(preferences)).filter((item) => (
+    String(item.availabilityStatus ?? item.availability_status ?? 'Available').trim().toLowerCase() === 'available'
+    && !hasPastJoinerDeparture(item)
+  )),
   create: (item) => serviceService.create({ ...item, category: 'tour' }),
   update: (id, item) => serviceService.update(id, { ...item, category: 'tour' }),
   delete: (id) => serviceService.delete(id, 'tour'),
