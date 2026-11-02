@@ -1,6 +1,8 @@
 const express = require("express");
+const crypto = require("crypto");
 const db = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
+const { sendBookingConfirmation } = require("../config/mailer");
 
 const router = express.Router();
 const XENDIT_API = "https://api.xendit.co";
@@ -32,8 +34,151 @@ async function xenditRequest(path, body) {
     return data;
 }
 
+async function xenditGet(path) {
+    const response = await fetch(`${XENDIT_API}${path}`, {
+        method: "GET",
+        headers: { Authorization: xenditAuth(), "Content-Type": "application/json" },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const message = data?.message || data?.error_code || "Xendit could not verify the payment session.";
+        throw Object.assign(new Error(message), { status: response.status >= 500 ? 502 : 422 });
+    }
+    return data;
+}
+
+async function ensurePaymentCheckoutTable() {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS payment_checkout (
+            session_id VARCHAR(150) PRIMARY KEY,
+            account_id INTEGER NOT NULL,
+            booking_reference VARCHAR(100) NOT NULL,
+            payload JSONB NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            finalized_at TIMESTAMP NULL
+        )
+    `);
+}
+
+function configuredPaymentChannels() {
+    return String(process.env.XENDIT_PAYMENT_CHANNELS || "")
+        .split(",")
+        .map((item) => item.trim().toUpperCase())
+        .filter(Boolean);
+}
+
 router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
     try {
+        if (req.body?.booking_data) {
+            await ensurePaymentCheckoutTable();
+            const data = req.body.booking_data;
+            if (data.bookingType === "rental") {
+                const vehicleId = Number(data.vehicleId);
+                const pickupDate = String(data.pickupDate || "");
+                const returnDate = String(data.returnDate || "");
+                const start = new Date(pickupDate);
+                const end = new Date(returnDate);
+                const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                if (!Number.isInteger(vehicleId) || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate) || !/^\d{4}-\d{2}-\d{2}$/.test(returnDate) || end <= start || !data.pickupLocation) {
+                    return res.status(422).json({ message: "Complete rental details are required before payment." });
+                }
+                const { rows: vehicles } = await db.query(
+                    "SELECT vehicle_name, daily_rate FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL",
+                    [vehicleId]
+                );
+                const vehicle = vehicles[0];
+                if (!vehicle) return res.status(404).json({ message: "Available vehicle not found." });
+                const amount = Number(vehicle.daily_rate) * days;
+                const { rows: customerRows } = await db.query("SELECT first_name, last_name, email, contact_number FROM account WHERE account_id = $1 AND deleted_at IS NULL", [req.user.accountId]);
+                const customer = customerRows[0];
+                if (!customer) return res.status(404).json({ message: "Customer account not found." });
+                const reference = `RBC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+                const [firstName = "Customer", ...lastNameParts] = String(customer.first_name || "Customer").trim().split(/\s+/);
+                const origin = clientOrigin();
+                const redirectUrls = /^https:\/\//i.test(origin)
+                    ? { success_return_url: `${origin}/payment/success?booking_reference=${reference}`, cancel_return_url: `${origin}/profile?payment=cancelled` }
+                    : {};
+                const session = await xenditRequest("/sessions", {
+                    reference_id: reference, session_type: "PAY", mode: "PAYMENT_LINK",
+                    amount: Math.round(amount * 100) / 100, currency: "PHP", country: "PH", locale: "en",
+                    customer: { reference_id: `account_${req.user.accountId}_${Date.now()}`, type: "INDIVIDUAL", email: customer.email, mobile_number: customer.contact_number || undefined, individual_detail: { given_names: firstName, surname: lastNameParts.join(" ") || firstName } },
+                    items: [{ reference_id: reference, name: vehicle.vehicle_name, description: `RABAS booking ${reference}`, type: "PHYSICAL_SERVICE", category: "TRAVEL_SERVICES", net_unit_amount: Math.round(amount * 100) / 100, quantity: 1, currency: "PHP" }],
+                    description: `RABAS booking ${reference}`, metadata: { booking_reference: reference, account_id: String(req.user.accountId), booking_type: "rental" },
+                    ...(configuredPaymentChannels().length ? { allowed_payment_channels: configuredPaymentChannels() } : {}), ...redirectUrls,
+                });
+                if (!session?.payment_link_url) throw Object.assign(new Error("Xendit did not return a payment link."), { status: 502 });
+                await db.query("INSERT INTO payment_checkout (session_id, account_id, booking_reference, payload) VALUES ($1, $2, $3, $4)", [session.payment_session_id, req.user.accountId, reference, JSON.stringify({ ...data, vehicleId, vehicleName: vehicle.vehicle_name, bookingReference: reference })]);
+                return res.json({ checkoutUrl: session.payment_link_url, sessionId: session.payment_session_id, bookingReference: reference });
+            }
+            const packageId = data.packageId && data.packageId !== "custom-package" ? Number(data.packageId) : null;
+            const guestsCount = Number(data.guestsCount);
+            const amount = Number(data.downpaymentAmount ?? data.totalPrice);
+            if (!data.tourDate || !Number.isInteger(guestsCount) || guestsCount < 1 || !Number.isFinite(amount) || amount <= 0) {
+                return res.status(422).json({ message: "Complete booking details are required before payment." });
+            }
+
+            let packageName = data.packageName || "RABAS Travel booking";
+            if (packageId) {
+                const { rows } = await db.query(
+                    "SELECT package_name FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL",
+                    [packageId]
+                );
+                if (!rows[0]) return res.status(404).json({ message: "Available tour package not found." });
+                packageName = rows[0].package_name;
+            }
+            const { rows: customerRows } = await db.query(
+                "SELECT first_name, last_name, email, contact_number FROM account WHERE account_id = $1 AND deleted_at IS NULL",
+                [req.user.accountId]
+            );
+            const customer = customerRows[0];
+            if (!customer) return res.status(404).json({ message: "Customer account not found." });
+            const reference = `RBT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+            const [firstName = "Customer", ...lastNameParts] = String(customer.first_name || "Customer").trim().split(/\s+/);
+            const origin = clientOrigin();
+            const redirectUrls = /^https:\/\//i.test(origin)
+                ? {
+                    success_return_url: `${origin}/payment/success?booking_reference=${reference}`,
+                    cancel_return_url: `${origin}/profile?payment=cancelled`,
+                }
+                : {};
+            const session = await xenditRequest("/sessions", {
+                reference_id: reference,
+                session_type: "PAY",
+                mode: "PAYMENT_LINK",
+                amount: Math.round(amount * 100) / 100,
+                currency: "PHP",
+                country: "PH",
+                locale: "en",
+                customer: {
+                    reference_id: `account_${req.user.accountId}_${Date.now()}`,
+                    type: "INDIVIDUAL",
+                    email: customer.email,
+                    mobile_number: customer.contact_number || undefined,
+                    individual_detail: { given_names: firstName, surname: lastNameParts.join(" ") || firstName },
+                },
+                items: [{
+                    reference_id: reference,
+                    name: packageName,
+                    description: `RABAS booking ${reference}`,
+                    type: "PHYSICAL_SERVICE",
+                    category: "TRAVEL_SERVICES",
+                    net_unit_amount: Math.round(amount * 100) / 100,
+                    quantity: 1,
+                    currency: "PHP",
+                }],
+                description: `RABAS booking ${reference}`,
+                metadata: { booking_reference: reference, account_id: String(req.user.accountId) },
+                ...(configuredPaymentChannels().length ? { allowed_payment_channels: configuredPaymentChannels() } : {}),
+                ...redirectUrls,
+            });
+            const checkoutUrl = session?.payment_link_url;
+            if (!checkoutUrl) throw Object.assign(new Error("Xendit did not return a payment link."), { status: 502 });
+            await db.query(
+                "INSERT INTO payment_checkout (session_id, account_id, booking_reference, payload) VALUES ($1, $2, $3, $4)",
+                [session.payment_session_id, req.user.accountId, reference, JSON.stringify({ ...data, packageId, packageName, bookingReference: reference })]
+            );
+            return res.json({ checkoutUrl, sessionId: session.payment_session_id, bookingReference: reference });
+        }
         const bookingId = Number(req.body.booking_id);
         if (!Number.isInteger(bookingId)) return res.status(422).json({ message: "A valid booking_id is required." });
 
@@ -62,7 +207,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
         const origin = clientOrigin();
         const redirectUrls = /^https:\/\//i.test(origin)
             ? {
-                success_return_url: `${origin}/profile?payment=success&booking_id=${booking.booking_id}`,
+                    success_return_url: `${origin}/payment/success?booking_id=${booking.booking_id}`,
                 cancel_return_url: `${origin}/profile?payment=cancelled&booking_id=${booking.booking_id}`,
             }
             : {};
@@ -114,6 +259,56 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
     } catch (error) { next(error); }
 });
 
+router.post("/xendit/finalize", requireAuth, async (req, res, next) => {
+    try {
+        await ensurePaymentCheckoutTable();
+        const reference = String(req.body?.booking_reference || "").trim();
+        if (!reference) return res.status(422).json({ message: "A booking reference is required." });
+        const { rows } = await db.query("SELECT * FROM payment_checkout WHERE booking_reference = $1 AND account_id = $2", [reference, req.user.accountId]);
+        const checkout = rows[0];
+        if (!checkout) return res.status(404).json({ message: "Payment checkout was not found." });
+        if (checkout.finalized_at) return res.json({ finalized: true });
+
+        const session = await xenditGet(`/sessions/${encodeURIComponent(checkout.session_id)}`);
+        if (session?.status !== "COMPLETED") return res.status(409).json({ message: "Payment has not been completed yet." });
+        const data = checkout.payload || {};
+        if (data.bookingType !== "rental") return res.json({ finalized: false });
+
+        const client = await db.connect();
+        try {
+            await client.query("BEGIN");
+            const claim = await client.query("UPDATE payment_checkout SET finalized_at = NOW() WHERE session_id = $1 AND finalized_at IS NULL RETURNING session_id", [checkout.session_id]);
+            if (claim.rows[0]) {
+                await client.query(
+                    `INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method)
+                     VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Confirmed', 'Xendit')`,
+                    [checkout.account_id, Number(data.vehicleId), checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, Number(session.amount || data.totalPrice || 0)]
+                );
+            }
+            await client.query("COMMIT");
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
+        }
+
+        const { rows: rentalRows } = await db.query(
+            `SELECT b.*, v.vehicle_name, v.plate_number, v.daily_rate,
+                    a.first_name, a.last_name, a.email, a.contact_number
+             FROM car_rental_booking b
+             JOIN vehicle v ON v.vehicle_id = b.vehicle_id
+             JOIN account a ON a.account_id = b.account_id
+             WHERE b.booking_reference = $1 AND b.deleted_at IS NULL`,
+            [checkout.booking_reference]
+        );
+        if (rentalRows[0]) {
+            await sendBookingConfirmation({ ...rentalRows[0], payment_status: "Paid", payment_transaction_reference: checkout.session_id }, "rental");
+        }
+        return res.json({ finalized: true });
+    } catch (error) { next(error); }
+});
+
 router.post("/xendit/webhook", async (req, res, next) => {
     try {
         const expectedToken = process.env.XENDIT_WEBHOOK_TOKEN;
@@ -125,6 +320,65 @@ router.post("/xendit/webhook", async (req, res, next) => {
         const event = req.body?.event;
         const session = req.body?.data;
         if (event === "payment_session.completed" && session?.status === "COMPLETED") {
+            await ensurePaymentCheckoutTable();
+            const sessionId = session.payment_session_id || session.payment_id;
+            const pending = await db.query("SELECT * FROM payment_checkout WHERE session_id = $1 AND finalized_at IS NULL", [sessionId]);
+            if (pending.rows[0]) {
+                const checkout = pending.rows[0];
+                const data = checkout.payload || {};
+                const packageId = data.packageId ? Number(data.packageId) : null;
+                const client = await db.connect();
+                try {
+                    await client.query("BEGIN");
+                    const claim = await client.query("UPDATE payment_checkout SET finalized_at = NOW() WHERE session_id = $1 AND finalized_at IS NULL RETURNING session_id", [sessionId]);
+                    if (claim.rows[0]) {
+                        if (data.bookingType === "rental") {
+                            const totalAmount = Number(session.amount || data.totalPrice || 0);
+                            await client.query(
+                                `INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method)
+                                 VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Confirmed', 'Xendit')`,
+                                [checkout.account_id, Number(data.vehicleId), checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, totalAmount]
+                            );
+                            await client.query("COMMIT");
+                            const { rows: rentalRows } = await db.query(
+                                `SELECT b.*, v.vehicle_name, v.plate_number, v.daily_rate,
+                                        a.first_name, a.last_name, a.email, a.contact_number
+                                 FROM car_rental_booking b
+                                 JOIN vehicle v ON v.vehicle_id = b.vehicle_id
+                                 JOIN account a ON a.account_id = b.account_id
+                                 WHERE b.booking_reference = $1 AND b.deleted_at IS NULL`,
+                                [checkout.booking_reference]
+                            );
+                            if (rentalRows[0]) {
+                                try {
+                                    await sendBookingConfirmation({
+                                        ...rentalRows[0],
+                                        payment_status: "Paid",
+                                        payment_transaction_reference: sessionId,
+                                    }, "rental");
+                                } catch (error) {
+                                    console.error("[payment] rental confirmation email error:", error.message);
+                                }
+                            }
+                            return res.status(200).json({ received: true });
+                        }
+                        const totalAmount = Number(data.totalPrice || session.amount || 0);
+                        const paymentAmount = Number(session.amount || data.downpaymentAmount || totalAmount);
+                        await client.query(
+                            `INSERT INTO booking (account_id, package_id, booking_reference, booking_date, travel_date, number_of_persons, total_amount, customized_details, participant_names, payment_method, payment_reference, payment_amount, payment_status, booking_status)
+                             VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, 'Xendit', $9, $10, 'Paid', 'Confirmed')`,
+                            [checkout.account_id, packageId, checkout.booking_reference, data.tourDate, Number(data.guestsCount), totalAmount, data.customizedDetails ? JSON.stringify(data.customizedDetails) : null, Array.isArray(data.participantNames) ? JSON.stringify(data.participantNames) : null, sessionId, paymentAmount]
+                        );
+                    }
+                    await client.query("COMMIT");
+                } catch (error) {
+                    await client.query("ROLLBACK");
+                    throw error;
+                } finally {
+                    client.release();
+                }
+                return res.status(200).json({ received: true });
+            }
             const bookingId = Number(session.metadata?.booking_id);
             const reference = session.metadata?.booking_reference || session.reference_id;
             await db.query(

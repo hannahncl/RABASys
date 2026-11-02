@@ -22,7 +22,9 @@ const bookingFromApi = (item) => {
     totalPrice: customizedDetails && item.booking_status === 'Pending' && !customizedDetails.quoteItinerary
       ? null
       : Number(item.total_amount),
-    status: item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
+    status: item.payment_method === 'Xendit' && item.payment_status === 'Paid'
+      ? 'Confirmed'
+      : item.booking_status === 'Pending' ? 'Pending Verification' : item.booking_status,
     createdAt: item.created_at,
     paymentRef: item.payment_transaction_reference || item.booking_reference,
     paymentMethod: item.payment_method || null,
@@ -91,9 +93,9 @@ export const bookingService = {
       participant_names: item.participantNames || [],
     }),
   })),
-  createXenditSession: async (bookingId) => api('/payments/xendit/checkout-session', {
+  createXenditSession: async (bookingData) => api('/payments/xendit/checkout-session', {
     method: 'POST',
-    body: JSON.stringify({ booking_id: Number(bookingId) }),
+    body: JSON.stringify({ booking_data: bookingData }),
   }),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {
     method: 'POST',

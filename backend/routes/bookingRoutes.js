@@ -29,6 +29,7 @@ const bookingSelect = `SELECT b.*,
 router.get("/", requireAuth, async (req, res, next) => {
     try {
         await db.query("UPDATE booking SET booking_status = 'Completed' WHERE travel_date < CURRENT_DATE AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
+        await db.query("UPDATE booking SET booking_status = 'Confirmed' WHERE payment_method = 'Xendit' AND payment_status = 'Paid' AND booking_status = 'Pending' AND deleted_at IS NULL");
         const admin = ["Admin", "Tour Guide"].includes(req.user.role);
         const { rows } = await db.query(`${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = $1"} ORDER BY b.created_at DESC`, admin ? [] : [req.user.accountId]);
         res.json(rows);
@@ -36,6 +37,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 router.get("/mine", requireAuth, async (req, res, next) => {
     try {
+        await db.query("UPDATE booking SET booking_status = 'Confirmed' WHERE payment_method = 'Xendit' AND payment_status = 'Paid' AND booking_status = 'Pending' AND deleted_at IS NULL");
         const { rows } = await db.query(`${bookingSelect} WHERE b.account_id = $1 AND b.deleted_at IS NULL ORDER BY b.created_at DESC`, [req.user.accountId]);
         res.json(rows);
     } catch (e) { next(e); }
@@ -303,6 +305,11 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
             [req.params.id]
         );
         if (!before[0]) return res.status(404).json({ message: "Booking not found." });
+        if (req.body.booking_status === "Confirmed"
+            && before[0].payment_method === "Xendit"
+            && String(before[0].package_type || "").toLowerCase() !== "joiner") {
+            return res.status(409).json({ message: "Xendit tour bookings are confirmed automatically after successful payment." });
+        }
         if (["Completed", "Cancelled"].includes(before[0].booking_status)) {
             return res.status(409).json({ message: `${before[0].booking_status} bookings cannot be updated.` });
         }
