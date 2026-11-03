@@ -338,8 +338,8 @@ router.post("/logout-all", requireAuth, async (req, res, next) => {
 });
 
 router.patch("/me", requireAuth, [
-    body("firstName").optional().trim().notEmpty(), body("lastName").optional().trim().notEmpty(),
-    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional().trim().notEmpty(),
+    body("firstName").optional().trim().notEmpty(), body("lastName").optional({ checkFalsy: true }).trim().notEmpty(),
+    body("email").optional().isEmail().normalizeEmail(), body("contactNumber").optional({ checkFalsy: true }).trim().notEmpty(),
     body("twoFactorEnabled").optional().isBoolean()
 ], validate, async (req, res, next) => {
     try {

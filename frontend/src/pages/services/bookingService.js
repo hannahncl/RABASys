@@ -97,6 +97,10 @@ export const bookingService = {
     method: 'POST',
     body: JSON.stringify({ booking_data: bookingData }),
   }),
+  createXenditBookingSession: async (bookingId) => api('/payments/xendit/checkout-session', {
+    method: 'POST',
+    body: JSON.stringify({ booking_id: Number(bookingId) }),
+  }),
   createRental: async (item) => rentalBookingFromApi(await api('/rental-bookings', {
     method: 'POST',
     body: JSON.stringify({
@@ -122,13 +126,10 @@ export const bookingService = {
     body: JSON.stringify({
       itinerary: quote.itinerary,
       price_breakdown: quote.priceBreakdown,
+      total_amount: quote.totalAmount,
     }),
   })),
   acceptCustomQuote: async (id) => bookingFromApi(await api(`/bookings/${id}/accept-quote`, { method: 'PATCH' })),
-  payCustomQuoteSample: async (id, paymentMethod) => bookingFromApi(await api(`/bookings/${id}/sample-payment`, {
-    method: 'POST',
-    body: JSON.stringify({ payment_method: paymentMethod }),
-  })),
   reschedule: async (id, date, type = 'Tour Packages') => {
     const endpoint = type === 'Car Rental' ? `/rental-bookings/${id}/reschedule` : `/bookings/${id}/reschedule`;
     const res = await api(endpoint, {

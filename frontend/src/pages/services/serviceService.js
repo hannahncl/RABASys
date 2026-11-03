@@ -173,7 +173,13 @@ export const packageService = {
     && (includePastJoiner || !hasPastJoinerDeparture(item))
   )),
   getById: async (id) => {
-    const item = await serviceService.getById(id);
+    let item;
+    try {
+      item = packageFromApi(await api(`/packages/${id}`));
+    } catch (error) {
+      if (/not found|unavailable/i.test(error?.message || '')) return null;
+      throw error;
+    }
     return String(item?.availabilityStatus ?? item?.availability_status ?? 'Available').trim().toLowerCase() === 'available'
       && !hasPastJoinerDeparture(item)
       ? item

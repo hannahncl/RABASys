@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Car, Clock, Compass, MapPin, Package, Search,
 import { packageService } from '../../services/packageService';
 import { api } from '../../services/api';
 import FavoriteButton from '../../components/ui/FavoriteButton';
+import DatePicker from '../../components/ui/DatePicker';
 
 const fallbackPackages = [
   { id: 'fallback-albay', title: 'Albay Escape', destination: 'Albay, Bicol', description: 'A relaxed route through volcano views, heritage stops, and local flavors.', price: 2500, image: '/ALBAY.jpg' },
@@ -26,7 +27,7 @@ const Home = () => {
   const [joinerAvailability, setJoinerAvailability] = useState({});
   const [searchDestination, setSearchDestination] = useState('');
   const [searchDate, setSearchDate] = useState('');
-  const [searchTravelers, setSearchTravelers] = useState('2');
+  const [searchTravelers, setSearchTravelers] = useState('1');
 
   useEffect(() => {
     let mounted = true;
@@ -62,14 +63,14 @@ const Home = () => {
 
   return (
     <main className="bg-[#fbfaf7] text-[#2d2a24]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <section className="overflow-hidden bg-[#4b0508] text-[#f5eee5] lg:min-h-[calc(100svh-12rem)]">
+      <section className="overflow-hidden bg-[#f0e2d8] text-[#4b0508] lg:min-h-[calc(100svh-12rem)]">
         <div className="mx-auto grid h-full max-w-[90rem] items-center gap-8 px-6 py-8 sm:px-8 sm:py-10 lg:min-h-[calc(100svh-12rem)] lg:grid-cols-[0.9fr_1.35fr] lg:gap-12 lg:px-12 lg:py-8">
           <div className="relative z-10">
-            <h1 className="max-w-2xl text-4xl font-normal uppercase leading-[0.98] tracking-[0.025em] text-[#f5eee5] sm:text-5xl lg:text-7xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>
+            <h1 className="max-w-2xl text-4xl font-normal uppercase leading-[0.98] tracking-[0.025em] text-[#4b0508] sm:text-5xl lg:text-7xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>
               Travel Bicol,<br />the RABAS way.
             </h1>
           </div>
-          <div className="relative overflow-hidden border border-[#f5eee5]/45 bg-[#2d1110] p-1.5 shadow-[0_28px_65px_rgba(15,0,0,0.42)] ring-1 ring-[#d7aa91]/30">
+          <div className="relative overflow-hidden border border-white/85 bg-[#e8ded2] p-1.5 shadow-[0_18px_42px_rgba(90,63,51,0.12)] ring-1 ring-[#c8b4a8]/40">
             <video
               className="h-[17rem] w-full object-cover sm:h-[22rem] lg:h-[60vh] lg:min-h-[25rem] lg:max-h-[38rem]"
               src="/rabas-travel-showcase.mov"
@@ -97,46 +98,45 @@ const Home = () => {
             query.set('travelers', searchTravelers);
             window.location.href = `/packages?${query.toString()}`;
           }}
-          className="grid gap-0 border border-[#d9c7b8] bg-[#fbf8f3] p-3 shadow-[0_12px_30px_rgba(32,10,8,0.16)] sm:grid-cols-[1.4fr_1fr_0.85fr_auto] sm:items-stretch sm:p-2"
+          className="grid gap-0 border border-[#ddc6b9] bg-[#fbf3ed] p-3 shadow-[0_10px_24px_rgba(74,51,38,0.12)] sm:grid-cols-[1.4fr_1fr_0.85fr_auto] sm:items-stretch sm:p-2"
         >
           <label className="flex min-w-0 items-center gap-3 px-4 py-3 sm:border-r sm:border-[#e3d8ce]">
-            <MapPin className="h-[18px] w-[18px] shrink-0 text-[#8b4a32]" />
+            <MapPin className="h-[18px] w-[18px] shrink-0 text-[#4b0508]" />
             <span className="min-w-0 flex-1">
               <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f8576]">Destination</span>
-              <input value={searchDestination} onChange={(event) => setSearchDestination(event.target.value)} placeholder="Search destinations, activities, or packages" className="mt-1 w-full bg-transparent text-sm font-medium text-[#294136] outline-none placeholder:text-[#aaa093]" />
+              <input value={searchDestination} onChange={(event) => setSearchDestination(event.target.value)} placeholder="Search destinations, activities, or packages" className="mt-1 w-full bg-transparent text-sm font-medium text-[#4b0508] outline-none placeholder:text-[#aaa093]" />
             </span>
           </label>
-          <label className="flex min-w-0 items-center gap-3 px-4 py-3 sm:border-r sm:border-[#e3d8ce]">
-            <CalendarDays className="h-[18px] w-[18px] shrink-0 text-[#8b4a32]" />
+          <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:border-r sm:border-[#e3d8ce]">
             <span className="min-w-0 flex-1">
-              <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8f8576]">Travel date</span>
-              <input type="date" value={searchDate} onChange={(event) => setSearchDate(event.target.value)} className="mt-1 w-full bg-transparent text-sm text-[#3f3933] outline-none" />
+              <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#4b0508]">Travel date</span>
+              <DatePicker value={searchDate} onChange={setSearchDate} label="Travel date" />
             </span>
-          </label>
+          </div>
           <label className="flex min-w-0 items-center gap-3 px-4 py-3">
-            <Users className="h-[18px] w-[18px] shrink-0 text-[#8b4a32]" />
+            <Users className="h-[18px] w-[18px] shrink-0 text-[#4b0508]" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8f8576]">Guests</span>
-              <select value={searchTravelers} onChange={(event) => setSearchTravelers(event.target.value)} className="mt-1 w-full bg-transparent text-sm text-[#3f3933] outline-none">
+              <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#4b0508]">No. of Travelers</span>
+              <select value={searchTravelers} onChange={(event) => setSearchTravelers(event.target.value)} className="mt-1 w-full bg-transparent text-sm text-[#4b0508] outline-none">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => <option key={count} value={count}>{count} {count === 1 ? 'Traveler' : 'Travelers'}</option>)}
               </select>
             </span>
           </label>
-          <button type="submit" aria-label="Search tours" className="inline-flex items-center justify-center gap-2 bg-[#4b0508] px-6 py-3.5 text-sm font-medium text-[#f5eee5] transition hover:bg-[#641317] sm:min-w-36">
+          <button type="submit" aria-label="Search tours" className="inline-flex items-center justify-center gap-2 border border-[#4b0508] bg-[#4b0508] px-6 py-3.5 text-sm font-medium text-white transition hover:bg-[#641317] sm:min-w-36">
             <Search className="h-4 w-4" />
             <span>Find a trip</span>
           </button>
         </form>
       </section>
 
-      <section className="relative overflow-hidden bg-[#f5eee5] text-[#4b0508]">
+      <section className="relative overflow-hidden bg-[#f6eee7] text-[#554742]">
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-12 lg:py-10">
         <div>
-          <div className="flex items-end justify-between gap-5 border-b border-[#b8957f] pb-4">
+          <div className="flex items-end justify-between gap-5 border-b border-[#dfd0c4] pb-4">
             <div>
               <h2 className="mt-0 text-3xl font-normal tracking-[0.01em] text-[#4b0508] sm:text-4xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>Featured Tour Package.</h2>
             </div>
-            <Link to="/packages" className="hidden items-center gap-2 text-xs font-medium text-[#4b0508] transition hover:text-[#8b4a32] sm:inline-flex">All tours <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/packages" className="hidden items-center gap-2 text-xs font-medium text-[#4b0508] transition hover:text-[#8b5e48] sm:inline-flex">All tours <ArrowRight className="h-4 w-4" /></Link>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-6 sm:grid-cols-2 xl:grid-cols-3 xl:gap-x-6">
             {packages.map((pkg, index) => {
@@ -149,7 +149,7 @@ const Home = () => {
               return (
                 <article
                   key={pkgId || index}
-                  className="group relative flex h-full w-full flex-col overflow-hidden border border-[#c9ab98] bg-[#fbf8f3]"
+                  className="group relative flex h-full w-full flex-col overflow-hidden border border-[#c7a899] bg-[#fffaf7] shadow-[0_5px_18px_rgba(96,53,36,0.06)]"
                   style={{ fontFamily: "'Inter', sans-serif" }}
                 >
                   <div className="relative h-[220px] w-full overflow-hidden bg-[#e6dfd3] sm:h-[240px]">
@@ -164,30 +164,30 @@ const Home = () => {
                     />
                   </div>
                   <div className="flex flex-1 flex-col px-5 pb-4 pt-4">
-                    <h3 className="text-base font-semibold leading-snug text-[#3d302b]">{packageTitle}</h3>
+                    <h3 className="text-base font-semibold leading-snug text-[#4b0508]">{packageTitle}</h3>
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <Star className="h-3.5 w-3.5 fill-[#b8957f] text-[#b8957f]" />
-                      <span className="text-xs font-semibold text-[#8b4a32]">{Number(pkg.rating) > 0 ? Number(pkg.rating).toFixed(1) : 'New'}</span>
+                      <span className="text-xs font-semibold text-[#4b0508]">{Number(pkg.rating) > 0 ? Number(pkg.rating).toFixed(1) : 'New'}</span>
                       <span className="text-xs text-[#655b52]">{Number(pkg.reviewsCount || pkg.reviews_count) > 0 ? `(${Number(pkg.reviewsCount || pkg.reviews_count)} reviews)` : 'No reviews yet'}</span>
                     </div>
                     <div className="mt-3 flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 border-y border-[#e1d4c8] py-3 text-xs leading-5 text-[#4d4943]">
                       <div className="flex items-center gap-2">
-                        {isJoiner ? <CalendarDays className="h-4 w-4 shrink-0 text-[#8b4a32]" /> : <Clock className="h-4 w-4 shrink-0 text-[#8b4a32]" />}
+                        {isJoiner ? <CalendarDays className="h-4 w-4 shrink-0 text-[#4b0508]" /> : <Clock className="h-4 w-4 shrink-0 text-[#4b0508]" />}
                         <span>{isJoiner ? packageDate(availability?.departureDate || pkg.joinerDate || pkg.joiner_date) : (pkg.duration || 'Duration TBA')}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 shrink-0 text-[#8b4a32]" />
+                        <Users className="h-4 w-4 shrink-0 text-[#4b0508]" />
                         <span>{isJoiner
                           ? (availability ? (availability.bookingOpen ? `${availability.remainingSlots} ${availability.remainingSlots === 1 ? 'spot' : 'spots'} left` : 'Booking closed') : 'Checking availability')
                           : (pkg.maximumCapacity ? `Up to ${pkg.maximumCapacity} guests` : 'Flexible group size')}</span>
                       </div>
                     </div>
-                    <div className="mt-auto flex w-full items-center justify-between gap-3 border-t border-[#e1d4c8] pt-3">
+                    <div className="-mx-5 -mb-4 mt-4 flex w-auto items-center justify-between gap-3 bg-[#4b0508] px-5 py-3">
                       <div>
-                        <span className="mr-1 text-lg font-semibold text-[#4b0508]">&#8369;{Number(pkg.price || 0).toLocaleString()}</span>
-                        <span className="text-[10px] font-medium tracking-[0.04em] text-[#655b52]">/ person</span>
+                        <span className="mr-1 text-lg font-semibold text-[#fffaf3]">&#8369;{Number(pkg.price || 0).toLocaleString()}</span>
+                        <span className="text-[10px] font-medium tracking-[0.04em] text-[#ead0ba]">/ person</span>
                       </div>
-                      <Link to={bookingLink} className="border border-[#8b4a32] px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#4b0508] transition hover:bg-[#4b0508] hover:text-[#f5eee5]" style={{ whiteSpace: 'nowrap' }}>
+                      <Link to={bookingLink} className="border border-[#ead0ba] px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#fffaf3] transition hover:bg-[#ead0ba] hover:text-[#4b0508]" style={{ whiteSpace: 'nowrap' }}>
                       {isJoiner ? 'Join this tour' : 'Book now'}
                     </Link>
                   </div>
@@ -233,7 +233,7 @@ const Home = () => {
             <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>Featured packages</h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#6b6255]">Simple itineraries, memorable destinations, and a little more time to enjoy the journey.</p>
           </div>
-          <Link to="/packages" className="inline-flex items-center gap-2 text-sm font-bold text-[#603524] hover:underline">View all packages <ArrowRight className="h-4 w-4" /></Link>
+          <Link to="/packages" className="inline-flex items-center gap-2 text-sm font-bold text-[#4b0508] hover:underline">View all packages <ArrowRight className="h-4 w-4" /></Link>
         </div>
 
         <div className="hidden mt-10 grid gap-6 md:grid-cols-3">
@@ -249,7 +249,7 @@ const Home = () => {
                     <p className="flex items-center gap-1.5 text-xs font-semibold text-[#8b5e48]"><MapPin className="h-3.5 w-3.5" /> {pkg.destination || 'Bicol, Philippines'}</p>
                     <h3 className="mt-2 text-xl font-semibold text-[#294136]" style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>{pkg.title || 'Bicol Discovery'}</h3>
                   </div>
-                  {pkg.price > 0 && <p className="whitespace-nowrap text-sm font-bold text-[#603524]">₱{Number(pkg.price).toLocaleString()}</p>}
+                  {pkg.price > 0 && <p className="whitespace-nowrap text-sm font-bold text-[#4b0508]">₱{Number(pkg.price).toLocaleString()}</p>}
                 </div>
                 <p className="mt-3 min-h-12 text-sm leading-6 text-[#6b6255]">{pkg.description || 'A carefully planned escape made for discovering something new.'}</p>
                 <Link to={`/booking/${pkg.id || pkg.package_id}`} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8b5e48] hover:text-[#294136] hover:underline">Explore package <ArrowRight className="h-4 w-4" /></Link>
@@ -261,43 +261,43 @@ const Home = () => {
       </section>
 
 
-      <section className="border-y border-[#4b0508] bg-[#4b0508]">
+      <section className="border-y border-[#d8bfb0] bg-[#ead9cc]">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-12 lg:py-20">
-          <div className="max-w-md">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d0ad82]">How can we help?</p>
-              <h2 className="mt-3 text-3xl font-normal leading-tight tracking-[0.01em] text-[#f5eee5] sm:text-4xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>Choose your way to travel.</h2>
-              <p className="mt-4 text-sm leading-6 text-[#f5eee5]/75">Whether you want a ready-made adventure, a reliable ride, or a trip built around you, RABAS has an option for every journey.</p>
+          <div className="max-w-md rounded-sm bg-[#4b0508] p-6 text-[#fffaf3] shadow-[0_10px_28px_rgba(96,53,36,0.14)] lg:p-8">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ead0ba]">How can we help?</p>
+              <h2 className="mt-3 text-3xl font-normal leading-tight tracking-[0.01em] text-[#fffaf3] sm:text-4xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>Choose your way to travel.</h2>
+              <p className="mt-4 text-sm leading-6 text-[#f3e8df]">Whether you want a ready-made adventure, a reliable ride, or a trip built around you, RABAS has an option for every journey.</p>
           </div>
-          <div className="divide-y divide-[#d0ad82]/35 border-y border-[#d0ad82]/45">
+          <div className="divide-y divide-[#cbb7a9]/55 border-y border-[#cbb7a9]/75">
             <Link to="/packages" onClick={() => window.scrollTo(0, 0)} className="group grid grid-cols-[1.5rem_1.5rem_1fr] items-center gap-2 py-5 sm:gap-4 lg:grid-cols-[2.5rem_2rem_1fr_auto]">
-              <span className="font-serif text-sm text-[#d0ad82]">01</span>
-              <Package className="h-5 w-5 text-[#e4c5ab]" />
-              <span><span className="block text-sm font-semibold text-[#f5eee5]">Tour Packages</span><span className="mt-1 block text-xs leading-5 text-[#f5eee5]/75">Explore curated Bicol destinations with thoughtfully planned itineraries.</span></span>
-              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#f5eee5] transition group-hover:text-[#d0ad82] lg:col-span-1 lg:ml-0">Explore tours <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+              <span className="font-serif text-sm text-[#4b0508]">01</span>
+              <Package className="h-5 w-5 text-[#4b0508]" />
+              <span><span className="block text-sm font-semibold text-[#4b0508]">Tour Packages</span><span className="mt-1 block text-xs leading-5 text-[#665952]">Explore curated Bicol destinations with thoughtfully planned itineraries.</span></span>
+              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#4b0508] transition group-hover:text-[#8b5e48] lg:col-span-1 lg:ml-0">Explore tours <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
             </Link>
             <Link to="/car-rentals" onClick={() => window.scrollTo(0, 0)} className="group grid grid-cols-[1.5rem_1.5rem_1fr] items-center gap-2 py-5 sm:gap-4 lg:grid-cols-[2.5rem_2rem_1fr_auto]">
-              <span className="font-serif text-sm text-[#d0ad82]">02</span>
-              <Car className="h-5 w-5 text-[#e4c5ab]" />
-              <span><span className="block text-sm font-semibold text-[#f5eee5]">Car Rentals</span><span className="mt-1 block text-xs leading-5 text-[#f5eee5]/75">Get around Bicol comfortably with flexible rental options for your plans.</span></span>
-              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#f5eee5] transition group-hover:text-[#d0ad82] lg:col-span-1 lg:ml-0">Browse rentals <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+              <span className="font-serif text-sm text-[#4b0508]">02</span>
+              <Car className="h-5 w-5 text-[#4b0508]" />
+              <span><span className="block text-sm font-semibold text-[#4b0508]">Car Rentals</span><span className="mt-1 block text-xs leading-5 text-[#665952]">Get around Bicol comfortably with flexible rental options for your plans.</span></span>
+              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#4b0508] transition group-hover:text-[#8b5e48] lg:col-span-1 lg:ml-0">Browse rentals <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
             </Link>
             <Link to="/customize" onClick={() => window.scrollTo(0, 0)} className="group grid grid-cols-[1.5rem_1.5rem_1fr] items-center gap-2 py-5 sm:gap-4 lg:grid-cols-[2.5rem_2rem_1fr_auto]">
-              <span className="font-serif text-sm text-[#d0ad82]">03</span>
-              <SlidersHorizontal className="h-5 w-5 text-[#e4c5ab]" />
-              <span><span className="block text-sm font-semibold text-[#f5eee5]">Customize Trip</span><span className="mt-1 block text-xs leading-5 text-[#f5eee5]/75">Tell us what you want to experience and we&rsquo;ll help shape the journey.</span></span>
-              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#f5eee5] transition group-hover:text-[#d0ad82] lg:col-span-1 lg:ml-0">Plan your trip <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+              <span className="font-serif text-sm text-[#4b0508]">03</span>
+              <SlidersHorizontal className="h-5 w-5 text-[#4b0508]" />
+              <span><span className="block text-sm font-semibold text-[#4b0508]">Customize Trip</span><span className="mt-1 block text-xs leading-5 text-[#665952]">Tell us what you want to experience and we&rsquo;ll help shape the journey.</span></span>
+              <span className="col-span-3 ml-12 inline-flex items-center gap-2 text-xs font-semibold text-[#4b0508] transition group-hover:text-[#8b5e48] lg:col-span-1 lg:ml-0">Plan your trip <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="bg-[#f5eee5] px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
+      <section className="bg-[#f4e8dd] px-6 py-12 sm:px-8 lg:px-12 lg:py-16">
         <div className="mx-auto grid max-w-7xl border-y border-[#c9ab98] lg:grid-cols-[0.8fr_1.2fr]">
           <div className="flex flex-col items-start justify-center py-9 sm:py-12 lg:px-10 lg:py-14">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b4a32]">Around Bicol</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#4b0508]">Around Bicol</p>
             <h2 className="mt-3 text-4xl font-normal leading-tight text-[#4b0508] sm:text-5xl" style={{ fontFamily: "'Bodoni MT', 'Didot', 'Times New Roman', serif" }}>Take a Tuktrip.</h2>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-[#5f554b]">See Bicol from the side roads, with time for the stops along the way.</p>
-            <Link to="/packages?search=tuktrip" className="mt-6 inline-flex items-center gap-2 border-b border-[#4b0508] pb-1 text-sm font-medium text-[#4b0508] transition hover:text-[#8b4a32]">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-[#665952]">See Bicol from the side roads, with time for the stops along the way.</p>
+            <Link to="/packages?search=tuktrip" className="mt-6 inline-flex items-center gap-2 border-b border-[#9e7668] pb-1 text-sm font-medium text-[#4b0508] transition hover:text-[#8b5e48]">
               Find a Tuktrip <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

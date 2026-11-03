@@ -6,6 +6,7 @@ const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
 const { isJoinerDeadlineValid } = require("../utils/joinerSchedule");
 const { createInAppNotification } = require("../utils/notification");
+const { ensurePaymentCheckoutTable } = require("../utils/paymentCheckout");
 const router = express.Router();
 
 
@@ -14,8 +15,12 @@ const bookingSelect = `SELECT b.*,
     COALESCE(p.destination, b.customized_details->>'destination') AS destination,
     COALESCE(p.package_type, CASE WHEN b.customized_details IS NOT NULL THEN 'customization' ELSE NULL END) AS package_type,
     p.itinerary, p.duration, p.meeting_location, p.inclusion, p.joiner_date, p.joiner_slots, p.joiner_booking_deadline, p.joiner_downpayment_percent,
-    a.first_name, a.last_name, a.email, a.contact_number,
-    CONCAT(a.first_name, ' ', a.last_name) AS customer_name, g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
+    COALESCE(b.customized_details->>'contactFirstName', a.first_name) AS first_name,
+    COALESCE(b.customized_details->>'contactLastName', a.last_name) AS last_name,
+    COALESCE(b.customized_details->>'contactEmail', a.email) AS email,
+    COALESCE(b.customized_details->>'contactPhone', a.contact_number) AS contact_number,
+    CONCAT(COALESCE(b.customized_details->>'contactFirstName', a.first_name), ' ', COALESCE(b.customized_details->>'contactLastName', a.last_name)) AS customer_name,
+    g.guide_id, CONCAT(ga.first_name, ' ', ga.last_name) AS guide_name,
     b.payment_method AS payment_method,
     b.payment_status AS payment_status,
     b.payment_amount AS payment_amount,
@@ -44,10 +49,12 @@ router.get("/mine", requireAuth, async (req, res, next) => {
 });
 router.get("/joiner-availability/:packageId", async (req, res, next) => {
     try {
+        await ensurePaymentCheckoutTable();
         const { rows } = await db.query(
             `SELECT p.package_id, p.joiner_date::text AS joiner_date, p.joiner_booking_deadline::text AS joiner_booking_deadline,
                     p.joiner_slots, p.max_capacity, p.joiner_downpayment_percent,
-                    COALESCE(SUM(b.number_of_persons) FILTER (WHERE b.booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND b.deleted_at IS NULL), 0)::int AS reserved_slots
+                    (COALESCE(SUM(b.number_of_persons) FILTER (WHERE b.booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND b.deleted_at IS NULL), 0)
+                    + COALESCE((SELECT SUM(pc.guests_count) FROM payment_checkout pc WHERE pc.package_id = p.package_id AND pc.finalized_at IS NULL AND pc.released_at IS NULL AND pc.expires_at > NOW()), 0))::int AS reserved_slots
              FROM tour_package p
              LEFT JOIN booking b ON b.package_id = p.package_id AND b.travel_date = p.joiner_date
              WHERE p.package_id = $1 AND LOWER(p.package_type) = 'joiner' AND p.availability_status = 'Available' AND p.deleted_at IS NULL
@@ -86,16 +93,24 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 });
 router.post("/", requireAuth, async (req, res, next) => {
     try {
+        await ensurePaymentCheckoutTable();
         const { package_id, travel_date, number_of_persons, payment_method, payment_reference, participant_names } = req.body;
         const customizedDetails = req.body.customized_details;
         const isCustomTrip = !package_id
             && customizedDetails
             && typeof customizedDetails === "object"
             && !Array.isArray(customizedDetails)
-            && typeof customizedDetails.destination === "string";
+            && typeof customizedDetails.destination === "string"
+            && customizedDetails.destination.trim().length > 0;
 
         if ((!package_id && !isCustomTrip) || !travel_date || !Number.isInteger(Number(number_of_persons)) || Number(number_of_persons) < 1) {
             return res.status(422).json({ message: "A package or customized trip, travel_date, and a positive number_of_persons are required." });
+        }
+        if (isCustomTrip) {
+            const parsedTravelDate = new Date(`${travel_date}T00:00:00Z`);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(travel_date)) || Number.isNaN(parsedTravelDate.getTime()) || parsedTravelDate.toISOString().slice(0, 10) !== travel_date) {
+                return res.status(422).json({ message: "A valid travel date is required for a customized trip." });
+            }
         }
         // Safety migration for environments where the backend was started
         // before the Joiner pricing/roster columns were introduced.
@@ -112,6 +127,10 @@ router.post("/", requireAuth, async (req, res, next) => {
         let isJoiner = false;
         try {
             await client.query("BEGIN");
+            if (isCustomTrip) {
+                const { rows: [{ travel_date_valid: travelDateValid }] } = await client.query("SELECT $1::date >= CURRENT_DATE AS travel_date_valid", [travel_date]);
+                if (!travelDateValid) throw Object.assign(new Error("The customized trip travel date must be today or later."), { status: 422 });
+            }
             if (package_id) {
                 const { rows: packages } = await client.query(
                     "SELECT price, max_capacity, package_type, joiner_date, joiner_slots, joiner_booking_deadline, joiner_downpayment_percent FROM tour_package WHERE package_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
@@ -164,7 +183,11 @@ router.post("/", requireAuth, async (req, res, next) => {
                     "SELECT COALESCE(SUM(number_of_persons), 0)::int AS reserved FROM booking WHERE package_id = $1 AND travel_date = $2 AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL",
                     [package_id, scheduledDate]
                 );
-                const seatsRemaining = Math.max(0, seatLimit - Number(reservation.reserved));
+                const { rows: [activeHolds] } = await client.query(
+                    "SELECT COALESCE(SUM(guests_count), 0)::int AS held FROM payment_checkout WHERE package_id = $1 AND finalized_at IS NULL AND released_at IS NULL AND expires_at > NOW()",
+                    [package_id]
+                );
+                const seatsRemaining = Math.max(0, seatLimit - Number(reservation.reserved) - Number(activeHolds.held));
                 if (guestCount > seatsRemaining) {
                     throw Object.assign(new Error(`Only ${seatsRemaining} Joiner spot${seatsRemaining === 1 ? '' : 's'} remain for this departure.`), { status: 409 });
                 }
@@ -249,6 +272,140 @@ router.post("/", requireAuth, async (req, res, next) => {
         res.status(201).json(booking);
     } catch (e) { next(e); }
 });
+router.patch("/:id/quote", requireAuth, allowRoles("Admin"), async (req, res, next) => {
+    try {
+        const itinerary = String(req.body?.itinerary || "").trim();
+        const requestedBreakdown = req.body?.price_breakdown;
+        if (!itinerary || itinerary.length > 20000 || !Array.isArray(requestedBreakdown) || requestedBreakdown.length > 50) {
+            return res.status(422).json({ message: "A complete itinerary and valid optional additional charges are required." });
+        }
+        const priceBreakdown = requestedBreakdown.map((line) => ({
+            description: String(line?.description || "").trim(),
+            amount: Math.round(Number(line?.amount) * 100) / 100,
+        }));
+        if (priceBreakdown.some((line, index) => {
+            const rawAmount = requestedBreakdown[index]?.amount;
+            return !line.description || line.description.length > 200 || rawAmount == null || String(rawAmount).trim() === "" || !Number.isFinite(line.amount) || line.amount < 0;
+        })) {
+            return res.status(422).json({ message: "Each quote item needs a description and a valid non-negative amount." });
+        }
+        const additionalTotal = Math.round(priceBreakdown.reduce((sum, line) => sum + line.amount, 0) * 100) / 100;
+        const submittedTotal = req.body?.total_amount;
+        const totalAmount = Math.round(Number(submittedTotal == null ? additionalTotal : submittedTotal) * 100) / 100;
+        if (!Number.isFinite(totalAmount) || totalAmount <= 0 || totalAmount > 10000000 || additionalTotal > totalAmount) {
+            return res.status(422).json({ message: "The quote total must be greater than zero and within the supported amount." });
+        }
+
+        const client = await db.connect();
+        let existing;
+        try {
+            await client.query("BEGIN");
+            const { rows: existingRows } = await client.query(
+                "SELECT booking_id, booking_status, customized_details FROM booking WHERE booking_id = $1 AND deleted_at IS NULL FOR UPDATE",
+                [req.params.id]
+            );
+            existing = existingRows[0];
+            if (!existing || !existing.customized_details) {
+                throw Object.assign(new Error("Customized booking not found."), { status: 404 });
+            }
+            // Older customized bookings may store the display status directly,
+            // while newer bookings store "Pending" and map it in the frontend.
+            if (!["Pending", "Pending Verification", "Quote Sent"].includes(existing.booking_status)) {
+                throw Object.assign(new Error("This customized trip can no longer be quoted."), { status: 409 });
+            }
+
+            const { rows: updatedRows } = await client.query(
+                `UPDATE booking
+                 SET customized_details = COALESCE(customized_details::jsonb, '{}'::jsonb) || $1::jsonb,
+                     total_amount = $2, payment_amount = NULL, payment_method = NULL,
+                     payment_reference = NULL, payment_status = NULL, booking_status = 'Quote Sent'
+                 WHERE booking_id = $3 AND deleted_at IS NULL
+                 RETURNING booking_id`,
+                [JSON.stringify({ quoteItinerary: itinerary, priceBreakdown }), totalAmount, req.params.id]
+            );
+            if (!updatedRows[0]) {
+                throw Object.assign(new Error("Customized booking not found."), { status: 404 });
+            }
+            await client.query("COMMIT");
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
+        }
+
+        const { rows: updatedRows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
+        const updatedBooking = updatedRows[0];
+        try {
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "SEND_CUSTOM_QUOTE", tableName: "booking", recordId: req.params.id, oldValues: existing, newValues: updatedBooking, req });
+        } catch (error) {
+            console.error("[booking] custom quote audit logging failed:", error.message);
+        }
+        try {
+            await sendBookingConfirmation(updatedBooking, "custom-quote");
+        } catch (error) {
+            console.error("[booking] custom quote email error:", error.message);
+        }
+        try {
+            await createInAppNotification({ accountId: updatedBooking.account_id, bookingId: updatedBooking.booking_id, title: "Your custom trip quote is ready", message: `The final itinerary and quote for booking ${updatedBooking.booking_reference} are ready for review.`, type: "Booking" });
+        } catch (error) {
+            console.error("[booking] custom quote notification failed:", error.message);
+        }
+        res.json(updatedBooking);
+    } catch (error) {
+        console.error("[booking] custom quote save failed:", error.message, error.code || "");
+        next(error);
+    }
+});
+
+router.patch("/:id/accept-quote", requireAuth, async (req, res, next) => {
+    try {
+        const client = await db.connect();
+        let booking;
+        try {
+            await client.query("BEGIN");
+            const { rows } = await client.query(
+                "SELECT booking_id, account_id, booking_reference, booking_status, customized_details FROM booking WHERE booking_id = $1 AND deleted_at IS NULL FOR UPDATE",
+                [req.params.id]
+            );
+            booking = rows[0];
+            if (!booking) throw Object.assign(new Error("Customized booking not found."), { status: 404 });
+            if (String(booking.account_id) !== String(req.user.accountId)) throw Object.assign(new Error("Forbidden."), { status: 403 });
+            if (booking.booking_status !== "Quote Sent" || !booking.customized_details?.quoteItinerary || !Array.isArray(booking.customized_details?.priceBreakdown)) {
+                throw Object.assign(new Error("This quote is not ready to accept."), { status: 409 });
+            }
+            await client.query("UPDATE booking SET booking_status = 'Quote Accepted' WHERE booking_id = $1", [req.params.id]);
+            await client.query("COMMIT");
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
+        }
+        const { rows } = await db.query(`${bookingSelect} WHERE b.booking_id = $1`, [req.params.id]);
+        const acceptedBooking = rows[0];
+        try {
+            await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "ACCEPT_CUSTOM_QUOTE", tableName: "booking", recordId: req.params.id, oldValues: booking, newValues: acceptedBooking, req });
+        } catch (error) {
+            console.error("[booking] quote acceptance audit logging failed:", error.message);
+        }
+        try {
+            await sendBookingConfirmation(acceptedBooking, "custom-accepted");
+        } catch (error) {
+            console.error("[booking] quote acceptance email error:", error.message);
+        }
+        try {
+            const { rows: admins } = await db.query("SELECT account_id FROM account WHERE role = 'Admin' AND deleted_at IS NULL");
+            for (const admin of admins) {
+                await createInAppNotification({ accountId: admin.account_id, bookingId: acceptedBooking.booking_id, title: "Custom quote accepted", message: `The customer accepted quote ${acceptedBooking.booking_reference}. Payment is pending.`, type: "Booking" });
+            }
+        } catch (error) {
+            console.error("[booking] quote acceptance notification failed:", error.message);
+        }
+        res.json(acceptedBooking);
+    } catch (error) { next(error); }
+});
+
 router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
     try {
         const { requested_schedule_date } = req.body;
@@ -264,7 +421,9 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         const booking = existingRows[0];
         if (!booking) return res.status(404).json({ message: "Booking not found." });
         if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
-        if (["Completed"].includes(booking.booking_status)) return res.status(422).json({ message: "Completed bookings cannot be rescheduled." });
+        if (!["Confirmed", "Rescheduled"].includes(booking.booking_status)) {
+            return res.status(422).json({ message: "Only confirmed trips can be rescheduled." });
+        }
         if (String(booking.package_type || "").toLowerCase() === "joiner") {
             return res.status(422).json({ message: "Joiner bookings are tied to their published departure date. Please choose another Joiner departure to change dates." });
         }

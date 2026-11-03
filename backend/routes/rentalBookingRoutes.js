@@ -181,7 +181,9 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         const booking = existingRows[0];
         if (!booking) return res.status(404).json({ message: "Booking not found." });
         if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
-        if (["Completed"].includes(booking.booking_status)) return res.status(422).json({ message: "Completed bookings cannot be rescheduled." });
+        if (!["Confirmed", "Rescheduled"].includes(booking.booking_status)) {
+            return res.status(422).json({ message: "Only confirmed rentals can be rescheduled." });
+        }
 
         const oldStart = new Date(booking.pickup_date);
         const oldEnd = new Date(booking.return_date);

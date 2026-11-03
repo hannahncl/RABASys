@@ -145,18 +145,18 @@ const ActivityPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h3 id="activity-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Request a different activity</h3>
-          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>Tell us what you’d like to do. Our team will review your request.</p>
+          <h3 id="activity-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Request activities</h3>
+          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>Add as many as you like. Put each activity on a separate line and our team will review them.</p>
         </div>
         <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close activity request">×</button>
       </div>
-      <label htmlFor="other-activity-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What activity would you like?</label>
+      <label htmlFor="other-activity-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What activities would you like?</label>
       <textarea
         id="other-activity-preference"
         autoFocus
         value={value}
         onChange={event => onChange(event.target.value)}
-        placeholder="For example, a cooking class or a guided nature walk"
+        placeholder={'For example:\nCooking class\nGuided nature walk'}
         rows={4}
         className="w-full resize-y rounded-md border border-[#d6cfc2] px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
       />
@@ -400,38 +400,52 @@ const CustomPlanner = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [savedDraft] = useState(() => {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('rabas_customize_trip_draft') || 'null');
+      if (!stored || Date.now() - stored.savedAt > 2 * 60 * 60 * 1000) {
+        try { sessionStorage.removeItem('rabas_customize_trip_draft'); } catch { /* Storage may be unavailable. */ }
+        return {};
+      }
+      return stored.draft || {};
+    } catch {
+      try { sessionStorage.removeItem('rabas_customize_trip_draft'); } catch { /* Storage may be unavailable. */ }
+      return {};
+    }
+  });
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [numDays, setNumDays] = useState('');
-  const [numNights, setNumNights] = useState('');
-  const [adultCount, setAdultCount] = useState(1);
-  const [childCount, setChildCount] = useState(0);
-  const [selectedDates, setSelectedDates] = useState([]);
+  const [numDays, setNumDays] = useState(savedDraft.numDays || '');
+  const [numNights, setNumNights] = useState(savedDraft.numNights || '');
+  const [adultCount, setAdultCount] = useState(savedDraft.adultCount ?? 1);
+  const [childCount, setChildCount] = useState(savedDraft.childCount ?? 0);
+  const [selectedDates, setSelectedDates] = useState(savedDraft.selectedDates || []);
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [firstName, setFirstName] = useState(savedDraft.firstName || '');
+  const [lastName, setLastName] = useState(savedDraft.lastName || '');
+  const [email, setEmail] = useState(savedDraft.email || '');
+  const [phone, setPhone] = useState(savedDraft.phone || '');
 
-  const [destination, setDestination] = useState('');
-  const [dayDestinations, setDayDestinations] = useState([]);
-  const [dayHotels, setDayHotels] = useState([]);
-  const [dayActivities, setDayActivities] = useState([]);
-  const [dayOtherAccommodationPreferences, setDayOtherAccommodationPreferences] = useState([]);
-  const [dayOtherActivityPreferences, setDayOtherActivityPreferences] = useState([]);
-  const [dayPreferredGuideIds, setDayPreferredGuideIds] = useState([]);
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [summaryDayIndex, setSummaryDayIndex] = useState(0);
+  const [destination, setDestination] = useState(savedDraft.destination || '');
+  const [dayDestinations, setDayDestinations] = useState(savedDraft.dayDestinations || []);
+  const [dayHotels, setDayHotels] = useState(savedDraft.dayHotels || []);
+  const [dayActivities, setDayActivities] = useState(savedDraft.dayActivities || []);
+  const [dayOtherAccommodationPreferences, setDayOtherAccommodationPreferences] = useState(savedDraft.dayOtherAccommodationPreferences || []);
+  const [dayOtherActivityPreferences, setDayOtherActivityPreferences] = useState(savedDraft.dayOtherActivityPreferences || []);
+  const [dayPreferredGuideIds, setDayPreferredGuideIds] = useState(savedDraft.dayPreferredGuideIds || []);
+  const [activeDayIndex, setActiveDayIndex] = useState(savedDraft.activeDayIndex || 0);
+  const [summaryDayIndex, setSummaryDayIndex] = useState(savedDraft.summaryDayIndex || 0);
   const [openDestinationDay, setOpenDestinationDay] = useState(null);
-  const [selectedHotel, setSelectedHotel] = useState(null);
-  const [otherAccommodationPreference, setOtherAccommodationPreference] = useState('');
+  const [selectedHotel, setSelectedHotel] = useState(savedDraft.selectedHotel || null);
+  const [otherAccommodationPreference, setOtherAccommodationPreference] = useState(savedDraft.otherAccommodationPreference || '');
   const [accommodationPreferenceDraft, setAccommodationPreferenceDraft] = useState('');
-  const [selectedActivities, setSelectedActivities] = useState([]);
-  const [otherActivityPreference, setOtherActivityPreference] = useState('');
+  const [selectedActivities, setSelectedActivities] = useState(savedDraft.selectedActivities || []);
+  const [otherActivityPreference, setOtherActivityPreference] = useState(savedDraft.otherActivityPreference || '');
   const [activityPreferenceDraft, setActivityPreferenceDraft] = useState('');
   const [tourGuides, setTourGuides] = useState([]);
-  const [preferredGuideId, setPreferredGuideId] = useState('');
+  const [preferredGuideId, setPreferredGuideId] = useState(savedDraft.preferredGuideId || '');
   const [showGuidePicker, setShowGuidePicker] = useState(false);
   const [showAccommodationPicker, setShowAccommodationPicker] = useState(false);
   const [showAccommodationPreferenceDialog, setShowAccommodationPreferenceDialog] = useState(false);
@@ -446,9 +460,34 @@ const CustomPlanner = () => {
   const [requestReference, setRequestReference] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
 
+  const savePlannerDraft = () => {
+    try {
+      sessionStorage.setItem('rabas_customize_trip_draft', JSON.stringify({
+        savedAt: Date.now(),
+        draft: {
+          numDays, numNights, adultCount, childCount, selectedDates,
+          firstName, lastName, email, phone, destination, dayDestinations,
+          dayHotels, dayActivities, dayOtherAccommodationPreferences,
+          dayOtherActivityPreferences, dayPreferredGuideIds, activeDayIndex,
+          summaryDayIndex, selectedHotel, otherAccommodationPreference,
+          selectedActivities, otherActivityPreference, preferredGuideId,
+        },
+      }));
+      return true;
+    } catch {
+      showNotification('Your trip selections could not be saved for sign-in. Please sign in before continuing.', 'warning');
+      return false;
+    }
+  };
+
   const redirectToLogin = () => {
+    if (!savePlannerDraft()) return;
     navigate('/login', { state: { from: { pathname: '/customize' } } });
   };
+
+  useEffect(() => {
+    try { sessionStorage.removeItem('rabas_customize_trip_draft'); } catch { /* Storage may be unavailable. */ }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -492,7 +531,11 @@ const CustomPlanner = () => {
   };
 
   const saveActivityPreference = () => {
-    const preference = activityPreferenceDraft.trim();
+    const preference = activityPreferenceDraft
+      .split('\n')
+      .map(activity => activity.trim())
+      .filter(Boolean)
+      .join('\n');
     setOtherActivityPreference(preference);
     setDayOtherActivityPreferences(prev => {
       const next = [...prev];
@@ -517,11 +560,14 @@ const CustomPlanner = () => {
   }, [numDays, numNights]);
 
   const handleDurationChange = (value) => {
-    const nextNights = value === '' ? '' : String(Math.max(Number(value) - 1, 0));
-    setNumDays(value);
+    const normalizedDays = value === ''
+      ? ''
+      : String(Math.min(30, Math.max(1, Math.trunc(Number(value) || 1))));
+    const nextNights = normalizedDays === '' ? '' : String(Math.max(Number(normalizedDays) - 1, 0));
+    setNumDays(normalizedDays);
     setNumNights(nextNights);
 
-    const dayCount = Math.max(1, Number(value) || 1);
+    const dayCount = Math.max(1, Number(normalizedDays) || 1);
     setDayDestinations(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || []));
     setDayHotels(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || null));
     setDayActivities(prev => Array.from({ length: dayCount }, (_, index) => prev[index] || []));
@@ -532,7 +578,7 @@ const CustomPlanner = () => {
     setSummaryDayIndex(current => Math.min(current, dayCount - 1));
 
     if (selectedDates.length) {
-      const durationEndDate = getDurationEndDate(selectedDates[0], value, nextNights);
+      const durationEndDate = getDurationEndDate(selectedDates[0], normalizedDays, nextNights);
       setSelectedDates(durationEndDate ? [selectedDates[0], durationEndDate] : [selectedDates[0]]);
     }
   };
@@ -665,7 +711,7 @@ const CustomPlanner = () => {
               </div>
               <div className="border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Updates sent to</p>
-                <p className="mt-2 truncate text-sm font-semibold" style={{ color: colors.textPrimary }}>{user?.email || email}</p>
+                <p className="mt-2 truncate text-sm font-semibold" style={{ color: colors.textPrimary }}>{email || user?.email}</p>
               </div>
             </div>
 
@@ -706,8 +752,11 @@ const CustomPlanner = () => {
     const activityNames = (dayActivities[index] || [])
       .map(activityId => activities.find(activity => activity.id === activityId)?.name)
       .filter(Boolean);
-    const otherActivity = dayOtherActivityPreferences[index]?.trim();
-    if (otherActivity) activityNames.push(`Other: ${otherActivity}`);
+    const otherActivities = (dayOtherActivityPreferences[index] || '')
+      .split('\n')
+      .map(activity => activity.trim())
+      .filter(Boolean);
+    activityNames.push(...otherActivities.map(activity => `Other request: ${activity}`));
     const hotel = dayHotels[index];
     const accommodation = hotel?.id === '__other__'
       ? dayOtherAccommodationPreferences[index]?.trim() || 'Other preference (not specified)'
@@ -735,16 +784,25 @@ const CustomPlanner = () => {
 
   const handleBook = async (e) => {
     e.preventDefault();
-    if (!(await confirm('Are you sure you want to submit this customized trip request?'))) return;
     if (!user) {
-      navigate('/login', { state: { from: { pathname: '/customize' } } });
+      redirectToLogin();
       return;
     }
-    if (!firstName || !lastName || !email || !phone) { showNotification('Please fill in all contact fields.', 'warning'); return; }
-    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) { showNotification('First Name must only contain letters.', 'warning'); return; }
-    if (!/^[A-Za-z\s]+$/.test(lastName.trim())) { showNotification('Last Name must only contain letters.', 'warning'); return; }
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone) { showNotification('Please fill in all contact fields.', 'warning'); return; }
+    const validName = /^[\p{L}\p{M}][\p{L}\p{M}\s.'’\-]*$/u;
+    if (!validName.test(firstName.trim())) { showNotification('Please enter a valid first name.', 'warning'); return; }
+    if (!validName.test(lastName.trim())) { showNotification('Please enter a valid last name.', 'warning'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { showNotification('Please enter a valid email address.', 'warning'); return; }
     if (!/^\d{11}$/.test(phone)) { showNotification('Contact Number must be exactly 11 digits.', 'warning'); return; }
     if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
+    if (!Number.isInteger(Number(numDays)) || Number(numDays) < 1 || Number(numDays) > 30) {
+      showNotification('Please choose a trip duration from 1 to 30 days.', 'warning'); return;
+    }
+    if (!selectedDates[0]) { showNotification('Please select your preferred travel date.', 'warning'); return; }
+    if (dayDestinations.slice(0, Number(numDays)).some(day => !day?.length)) {
+      showNotification('Please select a destination for each day of your trip.', 'warning'); return;
+    }
+    if (!(await confirm('Are you sure you want to submit this customized trip request?'))) return;
 
     const selectedActNames = [...new Set(daySelectionSummary.flatMap(day => day.activities))];
     const guideSchedule = dayPreferredGuideIds.map((guideId, index) => {
@@ -760,7 +818,7 @@ const CustomPlanner = () => {
     try {
       const request = await bookingService.create({
         packageId: 'custom-package',
-        tourDate: selectedDates[0] || new Date().toISOString().split('T')[0],
+        tourDate: selectedDates[0],
         guestsCount: Math.max(1, guestCount),
         customizedDetails: {
           destination,
@@ -783,8 +841,13 @@ const CustomPlanner = () => {
           preferredGuideId: preferredGuide?.guideId || null,
           preferredGuideName: preferredGuide?.name || null,
           guideSchedule,
+          contactFirstName: firstName.trim(),
+          contactLastName: lastName.trim(),
+          contactEmail: email.trim(),
+          contactPhone: phone,
         },
       });
+      try { sessionStorage.removeItem('rabas_customize_trip_draft'); } catch { /* Submission already succeeded. */ }
       setRequestReference(request.paymentRef || request.id);
     } catch (error) {
       showNotification(error.message || 'Failed to submit your custom trip request.', 'error');
@@ -906,9 +969,7 @@ const CustomPlanner = () => {
           </div>
           <button
             type="button"
-            onClick={() => user
-              ? openActivityPreferenceDialog()
-              : navigate('/login', { state: { from: { pathname: '/customize' } } })}
+            onClick={() => user ? openActivityPreferenceDialog() : redirectToLogin()}
             className="shrink-0 rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#332e2a]"
           >
             {otherActivityPreference ? 'Edit activity request' : 'Request another activity'}
@@ -923,9 +984,7 @@ const CustomPlanner = () => {
               price={`PHP ${Number(activity.price || 0).toLocaleString()}`}
               multiSelect
               compact
-              onClick={() => user
-                ? toggleDayActivity(activityDayBeingEdited, activity.id)
-                : navigate('/login', { state: { from: { pathname: '/customize' } } })}
+              onClick={() => user ? toggleDayActivity(activityDayBeingEdited, activity.id) : redirectToLogin()}
             />
           ))}
         </div>
@@ -985,6 +1044,7 @@ const CustomPlanner = () => {
                     type="number"
                     min="1"
                     max="30"
+                    step="1"
                     value={numDays}
                     onChange={e => handleDurationChange(e.target.value)}
                     className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all"
@@ -1075,7 +1135,7 @@ const CustomPlanner = () => {
                       id="input-firstname"
                       type="text"
                       value={firstName}
-                      onChange={e => setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                      onChange={e => setFirstName(e.target.value)}
                       className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                       style={inputStyle}
                       {...inputFocusHandlers}
@@ -1089,7 +1149,7 @@ const CustomPlanner = () => {
                       id="input-lastname"
                       type="text"
                       value={lastName}
-                      onChange={e => setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                      onChange={e => setLastName(e.target.value)}
                       className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                       style={inputStyle}
                       {...inputFocusHandlers}
@@ -1274,7 +1334,7 @@ const CustomPlanner = () => {
                   <div className="mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textMuted }}>Custom activity request</p>
-                      <p className="mt-1 break-words text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>{otherActivityPreference}</p>
+                      <p className="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>{otherActivityPreference}</p>
                     </div>
                     <button
                       type="button"
@@ -1494,8 +1554,8 @@ const CustomPlanner = () => {
                     ))}
                     <div>
                       <p style={{ color: colors.textMuted }}>Activities</p>
-                      <p className="mt-1 break-words font-medium" style={{ color: colors.textPrimary }}>
-                        {selectedSummaryDay.activities.join(', ') || 'None selected'}
+                      <p className="mt-1 break-words whitespace-pre-line font-medium" style={{ color: colors.textPrimary }}>
+                        {selectedSummaryDay.activities.join('\n') || 'None selected'}
                       </p>
                     </div>
                   </div>

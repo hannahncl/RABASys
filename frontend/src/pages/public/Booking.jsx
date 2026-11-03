@@ -54,18 +54,24 @@ const Booking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const stateData = location.state || {};
+  const bookingSearchParams = new URLSearchParams(location.search);
+  const requestedTravelers = Number(bookingSearchParams.get('travelers'));
+  const initialTravelerCount = Number.isInteger(requestedTravelers) && requestedTravelers >= 1 && requestedTravelers <= 8
+    ? requestedTravelers
+    : 1;
 
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joinerAvailability, setJoinerAvailability] = useState(null);
+  const [joinerAvailabilityError, setJoinerAvailabilityError] = useState(false);
 
   // Form fields
   const [firstName, setFirstName] = useState(stateData.firstName || (user?.name ? user.name.split(' ')[0] : ''));
   const [lastName, setLastName] = useState(stateData.lastName || (user?.name ? user.name.split(' ').slice(1).join(' ') : ''));
   const [email, setEmail] = useState(stateData.email || user?.email || '');
-  const [phone, setPhone] = useState(stateData.phone || '');
-  const [tourDate, setTourDate] = useState(stateData.tourDate || '');
-  const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || 1)));
+  const [phone, setPhone] = useState(stateData.phone || user?.contactNumber || user?.contact_number || '');
+  const [tourDate, setTourDate] = useState(stateData.tourDate || bookingSearchParams.get('date') || '');
+  const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || initialTravelerCount)));
   const [childrenCount, setChildrenCount] = useState(Math.max(0, Math.floor(Number(stateData.childrenCount) || 0)));
   const [participantNames, setParticipantNames] = useState([]);
 
@@ -101,6 +107,7 @@ const Booking = () => {
     const loadPkg = async () => {
       setLoading(true);
       setJoinerAvailability(null);
+      setJoinerAvailabilityError(false);
 
       try {
         const guides = await api('/tour-guides/public');
@@ -119,28 +126,36 @@ const Booking = () => {
         return;
       }
 
-      const data = await packageService.getById(packageId);
-      if (!data) {
-        showNotification('Invalid package selected.', 'error');
-        navigate('/packages');
-        return;
-      }
-      setPkg(data);
-      if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
-        try {
-          const availability = await api(`/bookings/joiner-availability/${packageId}`);
-          setJoinerAvailability(availability);
-          const departureDate = availability.departureDate || data.joinerDate;
-          if (departureDate) {
-            const fixedDate = String(departureDate).slice(0, 10);
-            setTourDate(fixedDate);
-            setCalendarDate(new Date(`${fixedDate}T00:00:00`));
-          }
-        } catch {
-          if (data.joinerDate) setTourDate(String(data.joinerDate).slice(0, 10));
+      try {
+        const data = await packageService.getById(packageId);
+        if (!data) {
+          showNotification('Invalid package selected.', 'error');
+          navigate('/packages');
+          return;
         }
+        setPkg(data);
+        if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
+          try {
+            const availability = await api(`/bookings/joiner-availability/${packageId}`);
+            setJoinerAvailability(availability);
+            const departureDate = availability.departureDate || data.joinerDate;
+            if (departureDate) {
+              const fixedDate = String(departureDate).slice(0, 10);
+              setTourDate(fixedDate);
+              setCalendarDate(new Date(`${fixedDate}T00:00:00`));
+            }
+          } catch {
+            setJoinerAvailabilityError(true);
+            if (data.joinerDate) setTourDate(String(data.joinerDate).slice(0, 10));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load booking package:', err);
+        showNotification('We could not load this package. Please return to the package list and try again.', 'error');
+        navigate('/packages');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadPkg();
   }, [packageId, navigate, showNotification]);
@@ -259,12 +274,13 @@ const Booking = () => {
       showNotification('Please enter the full name of every Joiner traveler.', 'warning');
       return;
     }
-    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) {
-      showNotification('First Name must only contain letters.', 'warning');
+    const validName = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u;
+    if (!validName.test(firstName.trim())) {
+      showNotification('Please enter a valid first name.', 'warning');
       return;
     }
-    if (!/^[A-Za-z\s]+$/.test(lastName.trim())) {
-      showNotification('Last Name must only contain letters.', 'warning');
+    if (!validName.test(lastName.trim())) {
+      showNotification('Please enter a valid last name.', 'warning');
       return;
     }
     if (!/^\d{11}$/.test(phone)) {
@@ -482,8 +498,9 @@ const Booking = () => {
                             <p className="text-sm font-semibold text-[#2d2a24]">
                               {tourDate ? new Date(`${tourDate}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Departure date not set'}
                             </p>
-                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your spots are reserved automatically when you submit your booking.</p>
-                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked. Please refresh.'}</p>
+                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your spots are reserved after successful payment.</p>
+                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked.'}</p>
+                            {joinerAvailabilityError && <button type="button" onClick={() => { setJoinerAvailabilityError(false); api(`/bookings/joiner-availability/${packageId}`).then((availability) => { setJoinerAvailability(availability); if (availability.departureDate) setTourDate(String(availability.departureDate).slice(0, 10)); }).catch(() => setJoinerAvailabilityError(true)); }} className="mt-2 text-[11px] font-semibold text-[#7b1717] underline">Retry availability check</button>}
                             {joinerAvailability?.scheduleValid !== false && (joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline) && <p className="mt-2 text-[11px] text-[#6b6255]">Booking closes {new Date(`${String(joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}, at least 3 days before departure.</p>}
                           </div>
                         </div>
@@ -761,7 +778,7 @@ const Booking = () => {
                               value={participantNames[index] || ''}
                               onChange={(event) => setParticipantNames((current) => {
                                 const next = [...current];
-                                next[index] = event.target.value.replace(/[^a-zA-Z .'-]/g, '');
+                                next[index] = event.target.value;
                                 return next;
                               })}
                               placeholder="Full name"
@@ -791,7 +808,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={firstName}
-                            onChange={(e) => setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                            onChange={(e) => setFirstName(e.target.value)}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -808,7 +825,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={lastName}
-                            onChange={(e) => setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                            onChange={(e) => setLastName(e.target.value)}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -873,7 +890,7 @@ const Booking = () => {
                 <div className="mb-8 flex items-start justify-between gap-6">
                   <div>
                     <h2 className="text-3xl font-semibold tracking-[-0.04em]" style={{ color: colors.textPrimary, fontFamily: "'Outfit', Georgia, serif" }}>Complete your payment</h2>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed" style={{ color: colors.textSecondary }}>Your trip details are saved. Choose a secure payment option to confirm your booking.</p>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed" style={{ color: colors.textSecondary }}>Review your trip details, then continue to Xendit secure checkout. Your booking will be created after Xendit confirms payment.</p>
                   </div>
                 </div>
                 <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-5">

@@ -5,23 +5,10 @@ import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { compressPackageImage } from '../../utils/compressPackageImage';
 import {
-  Building2,
-  CheckCircle2,
-  Compass,
   Edit,
   Eye,
-  Hotel,
   Loader,
-  Mail,
-  MapPin,
-  Phone,
-  Plus,
-  CalendarDays,
-  ReceiptText,
-  Save,
   Trash2,
-  UserRound,
-  Users,
   X
 } from 'lucide-react';
 
@@ -151,8 +138,11 @@ const ManageCustomizations = () => {
 
   const handleBookingStatus = async (booking, quote) => {
     const totalAmount = Number(quote.totalAmount);
-    if (!quote.itinerary.trim() || !quote.priceBreakdown.length || !Number.isFinite(totalAmount) || totalAmount <= 0) {
-      showNotification('Add an itinerary and price breakdown before sending the quote.', 'warning');
+    const additionalTotal = quote.priceBreakdown.reduce((sum, line) => sum + Number(line.amount || 0), 0);
+    if (!quote.itinerary.trim() || !Number.isFinite(totalAmount) || totalAmount <= 0
+      || quote.priceBreakdown.some(line => !line.description.trim() || !Number.isFinite(Number(line.amount)) || Number(line.amount) < 0)
+      || additionalTotal > totalAmount) {
+      showNotification('Add an itinerary and valid total. Extra charges must be complete and cannot exceed the final quote.', 'warning');
       return;
     }
     if (!window.confirm(`Send the itinerary and PHP ${totalAmount.toLocaleString()} itemized quote to the customer?`)) return;
@@ -163,8 +153,8 @@ const ManageCustomizations = () => {
       setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
       showNotification('Itinerary and itemized quote emailed to the customer', 'success');
-    } catch {
-      showNotification('Failed to update customized booking', 'error');
+    } catch (error) {
+      showNotification(error?.message || 'Failed to send the quote. Please try again.', 'error');
     } finally {
       setUpdatingBookingId(null);
     }
@@ -425,13 +415,6 @@ const ManageCustomizations = () => {
 
   return (
     <div className="space-y-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Helper Banner */}
-      <div className="bg-white border border-[#e0dbd0] rounded-md p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-        <div>
-          <h1 className="text-xl font-bold text-[#1a1a1a]">Custom Trip Options & Customer Approvals</h1>
-        </div>
-
-      </div>
 
       <div className="flex gap-2 border-b border-[#e0dbd0]">
         <button
@@ -439,29 +422,27 @@ const ManageCustomizations = () => {
           onClick={() => setActiveSection('manage')}
           className={`px-4 py-3 text-xs font-semibold border-b-2 ${activeSection === 'manage' ? 'border-[#2d2a24] text-[#1a1a1a]' : 'border-transparent text-[#6b6255]'}`}
         >
-          Trip Options
+          Catalog
         </button>
         <button
           type="button"
           onClick={() => setActiveSection('review')}
           className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 ${activeSection === 'review' ? 'border-[#2d2a24] text-[#1a1a1a]' : 'border-transparent text-[#6b6255]'}`}
         >
-          Review Requests
+          Quote requests
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-800">{pendingCustomBookings.length}</span>
         </button>
       </div>
 
       {activeSection === 'manage' && <div className="flex justify-between items-center bg-white p-4 rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div>
-            <h2 className="text-xs font-bold text-[#1a1a1a] uppercase tracking-wider">Configure Catalog Options</h2>
-            <p className="text-xs text-[#6b6255]">Select a destination on the left sidebar to add hotel choices and tour add-ons.</p>
+            <h2 className="text-sm font-medium text-[#514b43]">Trip catalog</h2>
           </div>
           <button
             onClick={handleAddDestination}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-[#2d2a24] text-[#f7f4ef] text-xs font-semibold uppercase tracking-[0.12em] hover:bg-transparent hover:text-[#2d2a24] border border-[#2d2a24] transition-all cursor-pointer whitespace-nowrap shrink-0"
+            className="flex items-center gap-2 px-4 py-2 rounded bg-[#45413a] text-white text-xs font-medium hover:bg-[#35322d] border border-[#45413a] transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Plus className="h-4 w-4" />
-            + Add New Destination
+            Add destination
           </button>
           </div>}
 
@@ -470,10 +451,9 @@ const ManageCustomizations = () => {
           <div className="bg-white rounded-md border border-[#e0dbd0] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-[#eae5db]">
               <div>
-                <h2 className="text-lg font-bold text-[#1a1a1a]">Customization Review & Approval</h2>
-                <p className="text-xs text-[#6b6255] mt-0.5">Review requests, then email the final quote for customer approval.</p>
+                <h2 className="text-base font-semibold text-[#302c27]">Quote requests</h2>
               </div>
-              <div className="flex gap-2 text-[10px] font-bold uppercase">
+              <div className="flex flex-wrap gap-2 text-[10px] font-medium text-[#625c54]">
                 <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
                   {pendingCustomBookings.length} Pending
                 </span>
@@ -493,8 +473,8 @@ const ManageCustomizations = () => {
                 {customBookings.map(booking => (
                   <div key={booking.id} className="grid grid-cols-1 md:grid-cols-[1fr_0.8fr_0.7fr_auto] gap-4 px-5 py-4 items-center hover:bg-[#fcfbf9] transition-colors">
                     <div>
-                      <p className="font-mono text-[10px] text-[#c49b27] font-bold">{booking.id}</p>
-                      <h3 className="text-sm font-bold text-[#1a1a1a] mt-0.5">{booking.packageName}</h3>
+                      <p className="font-mono text-[10px] text-[#8a7550]">{booking.id}</p>
+                      <h3 className="text-sm font-semibold text-[#302c27] mt-0.5">{booking.packageName}</h3>
                       <p className="text-xs text-[#6b6255] mt-0.5">{booking.customizedDetails?.destination || booking.destination || 'Customized trip'}</p>
                     </div>
                     <div>
@@ -502,10 +482,10 @@ const ManageCustomizations = () => {
                       <p className="text-xs text-[#6b6255]">{formatDate(booking.tourDate)}</p>
                     </div>
                     <div>
-                      <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-extrabold uppercase ${statusStyle(booking.status)}`}>
+                      <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-medium ${statusStyle(booking.status)}`}>
                         {statusLabel(booking.status)}
                       </span>
-                      <p className="text-xs text-[#1a1a1a] font-bold mt-1.5">
+                      <p className="text-xs text-[#514b43] font-medium mt-1.5">
                         {booking.status === 'Pending Verification'
                           ? 'Awaiting final quote'
                           : booking.status === 'Quote Sent'
@@ -540,7 +520,7 @@ const ManageCustomizations = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedBooking(null)}
-                  className="absolute right-4 top-4 z-10 rounded-full border border-[#e0dbd0] bg-white p-2 text-[#6b6255] transition-colors hover:bg-[#f7f4ef] hover:text-[#1a1a1a]"
+                  className="absolute right-3 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[#e0dbd0] bg-white text-[#6b6255] transition-colors hover:bg-[#f7f4ef] hover:text-[#1a1a1a]"
                   aria-label="Close customized booking review"
                 >
                   <X className="h-4 w-4" />
@@ -548,6 +528,7 @@ const ManageCustomizations = () => {
                 <CustomBookingReview
                   key={selectedBooking.id}
                   booking={selectedBooking}
+                  catalog={data}
                   updatingId={updatingBookingId}
                   onConfirm={handleBookingStatus}
                 />
@@ -556,9 +537,13 @@ const ManageCustomizations = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 mt-6">
-          <aside className="space-y-3">
-            <div className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold px-1">Tourist Spots</div>
+        <div className="grid grid-cols-1 items-start gap-5 mt-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="overflow-hidden rounded-md border border-[#e0dbd0] bg-white">
+            <div className="flex items-center justify-between border-b border-[#eae5db] px-4 py-3">
+              <h3 className="text-xs font-medium text-[#514b43]">Destinations</h3>
+              <span className="text-[11px] text-[#8a8275]">{destinationNames.length}</span>
+            </div>
+            <div className="max-h-[70vh] space-y-2 overflow-y-auto p-3">
             {destinationNames.map(name => (
               <button
                 key={name}
@@ -568,13 +553,15 @@ const ManageCustomizations = () => {
                     : 'bg-white border-[#e0dbd0] text-[#4a453b] hover:border-[#b0a68e]'
                   }`}
               >
-                <span className="block text-sm font-bold">{name}</span>
+                <span className="block text-sm font-medium text-[#39352f]">{name}</span>
                 <span className="block text-[11px] text-[#6b6255] mt-0.5">{data.destinations[name]?.category || 'Custom Destination'}</span>
               </button>
             ))}
+            {destinationNames.length === 0 && <p className="px-2 py-4 text-xs text-[#8a8275]">No destinations yet.</p>}
+            </div>
           </aside>
 
-          <section className="space-y-6">
+          <section className="min-w-0 space-y-5">
             {editingDestination && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1715]/40 p-4 backdrop-blur-[2px]" onMouseDown={() => setEditingDestination(null)}>
                 <div className="w-full max-w-2xl overflow-y-auto border border-[#e0dbd0] bg-white p-6 shadow-2xl" onMouseDown={event => event.stopPropagation()}>
@@ -611,7 +598,7 @@ const ManageCustomizations = () => {
                 <div className="flex justify-end gap-2 mt-2">
                   <button onClick={() => setEditingDestination(null)} className="px-4 py-2 rounded bg-white border border-[#e0dbd0] text-[#4a453b] text-xs font-semibold uppercase tracking-[0.1em] cursor-pointer">Cancel</button>
                   <button disabled={isCompressingDestinationImage} onClick={handleSaveDestination} className="px-4 py-2 rounded bg-[#2d2a24] text-[#f7f4ef] text-xs font-semibold uppercase tracking-[0.1em] flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                    <Save className="h-4 w-4" /> Save
+                    Save
                   </button>
                 </div>
                 </div>
@@ -622,24 +609,24 @@ const ManageCustomizations = () => {
               <>
                 <div className="bg-white border border-[#e0dbd0] rounded-md shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
                   {activeDetails.image && (
-                    <div className="h-48 bg-slate-100">
-                      <img src={activeDetails.image} alt={activeDestination} className="w-full h-full object-cover" />
+                    <div data-destination-image className="h-40 bg-[#f7f4ef]">
+                      <img src={activeDetails.image} alt={activeDestination} className="h-full w-full object-cover" onError={event => event.currentTarget.closest('[data-destination-image]')?.remove()} />
                     </div>
                   )}
                   <div className="p-5 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-[#c49b27] font-bold">
-                          <MapPin className="h-3.5 w-3.5" /> {activeDetails.category || 'Custom Destination'}
+                        <div className="text-[11px] tracking-wide text-[#927943] font-medium">
+                          {activeDetails.category || 'Custom Destination'}
                         </div>
-                        <h2 className="text-xl font-bold text-[#1a1a1a] mt-1">{activeDestination}</h2>
-                        <p className="text-xs text-[#1a1a1a] font-bold mt-1">Base Cost: PHP {Number(activeDetails.base || 0).toLocaleString()}</p>
+                        <h2 className="text-lg font-semibold text-[#302c27] mt-1">{activeDestination}</h2>
+                        {Number(activeDetails.base) > 0 && <p className="mt-1 text-xs text-[#6b6255]">Starting cost <span className="font-semibold text-[#1a1a1a]">PHP {Number(activeDetails.base).toLocaleString()}</span></p>}
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEditDestination(activeDestination)} className="p-2 rounded bg-[#fcfbf9] border border-[#e0dbd0] text-[#6b6255] hover:text-[#1a1a1a] cursor-pointer">
+                      <div className="flex gap-2 self-end sm:self-start">
+                        <button aria-label="Edit destination" title="Edit destination" onClick={() => handleEditDestination(activeDestination)} className="p-2 rounded bg-[#fcfbf9] border border-[#e0dbd0] text-[#6b6255] hover:text-[#1a1a1a] cursor-pointer">
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDeleteDestination(activeDestination)} className="p-2 rounded bg-[#fcfbf9] border border-[#e0dbd0] text-[#6b6255] hover:text-rose-600 cursor-pointer">
+                        <button aria-label="Delete destination" title="Delete destination" onClick={() => handleDeleteDestination(activeDestination)} className="p-2 rounded bg-[#fcfbf9] border border-[#e0dbd0] text-[#6b6255] hover:text-rose-600 cursor-pointer">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -649,14 +636,14 @@ const ManageCustomizations = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  <div className="bg-white border border-[#e0dbd0] rounded-md p-4 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                     <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
-                      <h3 className="text-sm font-bold text-[#1a1a1a] flex items-center gap-2">
-                        <Compass className="h-4 w-4 text-[#c49b27]" /> Tours Offered
+                      <h3 className="text-sm font-semibold text-[#39352f] flex items-center gap-2">
+                        Activities & tours
                       </h3>
-                      <button onClick={handleAddTour} className="text-xs bg-[#2d2a24] text-[#f7f4ef] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer">
-                        <Plus className="h-3 w-3" /> Add
+                      <button onClick={handleAddTour} className="text-xs bg-[#45413a] text-white font-medium px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer">
+                        Add
                       </button>
                     </div>
 
@@ -671,7 +658,6 @@ const ManageCustomizations = () => {
                         ) : (
                           <ManageRow
                             key={tour.id}
-                            icon={Compass}
                             title={tour.name}
                             subtitle={tour.details}
                             image={tour.image}
@@ -685,13 +671,13 @@ const ManageCustomizations = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white border border-[#e0dbd0] rounded-md p-5 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+                  <div className="bg-white border border-[#e0dbd0] rounded-md p-4 space-y-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
                     <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
-                      <h3 className="text-sm font-bold text-[#1a1a1a] flex items-center gap-2">
-                        <Hotel className="h-4 w-4 text-[#c49b27]" /> Accommodations
+                      <h3 className="text-sm font-semibold text-[#39352f] flex items-center gap-2">
+                        Stay options
                       </h3>
-                      <button onClick={handleAddHotel} className="text-xs bg-[#2d2a24] text-[#f7f4ef] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer">
-                        <Plus className="h-3 w-3" /> Add
+                      <button onClick={handleAddHotel} className="text-xs bg-[#45413a] text-white font-medium px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer">
+                        Add
                       </button>
                     </div>
 
@@ -706,7 +692,6 @@ const ManageCustomizations = () => {
                         ) : (
                           <ManageRow
                             key={hotel.id}
-                            icon={Building2}
                             title={hotel.name}
                             subtitle={hotel.details}
                             image={hotel.image}
@@ -731,20 +716,22 @@ const ManageCustomizations = () => {
   );
 };
 
-const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
+const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
   const [quoteItinerary, setQuoteItinerary] = useState('');
-  const [priceLines, setPriceLines] = useState([{ description: '', amount: '' }]);
+  const [priceLines, setPriceLines] = useState([]);
 
   useEffect(() => {
-    const activities = booking?.customizedDetails?.activities || [];
-    setQuoteItinerary(booking?.customizedDetails?.quoteItinerary || activities.map((activity, index) => `Day ${index + 1}: ${activity}`).join('\n'));
-    setPriceLines([{ description: '', amount: '' }]);
+    const details = booking?.customizedDetails || {};
+    const requestedItinerary = buildRequestedItinerary(details);
+    setQuoteItinerary(booking?.status === 'Pending Verification'
+      ? requestedItinerary || details.quoteItinerary || ''
+      : details.quoteItinerary || requestedItinerary);
+    setPriceLines(buildCustomChargeLines(details));
   }, [booking?.id]);
 
   if (!booking) {
     return (
       <aside className="bg-white rounded-md border border-[#e0dbd0] p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] xl:sticky xl:top-24">
-        <ReceiptText className="h-10 w-10 text-[#b0a68e] mx-auto mb-3" />
         <h3 className="text-sm font-bold text-[#1a1a1a]">Select a customized booking</h3>
             <p className="text-xs text-[#6b6255] mt-2">Review custom-trip details and prepare the final quote here.</p>
       </aside>
@@ -752,117 +739,115 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
   }
 
   const details = booking.customizedDetails || {};
-  const activities = Array.isArray(details.activities) ? details.activities : [];
   const destinationSchedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
+  const uniqueScheduleValues = (key) => [...new Set(destinationSchedule.map(day => String(day?.[key] || '').trim()).filter(Boolean))];
+  const accommodations = uniqueScheduleValues('accommodation');
+  const guides = uniqueScheduleValues('guide');
+  const sharedAccommodation = accommodations.length === 1 ? accommodations[0] : accommodations.length === 0 ? details.hotel || '' : '';
+  const sharedGuide = guides.length === 1 ? guides[0] : guides.length === 0 ? details.preferredGuideName || '' : '';
+  const specialRequests = details.specialRequests || details.notes || '';
   const isPending = booking.status === 'Pending Verification';
-  const totalAmount = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
+  const completePriceLines = priceLines.every(line => line.description.trim() && line.amount !== '' && Number.isFinite(Number(line.amount)) && Number(line.amount) >= 0);
+  const additionalTotal = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
+  const catalogTotal = calculateCatalogTotal(booking, catalog);
+  const totalAmount = catalogTotal + additionalTotal;
 
   return (
     <aside className="overflow-hidden bg-white font-sans" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
-      <div className="border-b border-[#ded6c9] bg-[#f7f3ec] px-6 py-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a8275]">Customized trip itinerary</p>
-            <h2 className="mt-2 font-sans text-xl font-semibold tracking-tight text-[#1a1a1a]">{booking.packageName}</h2>
+      <div className="border-b border-[#ded6c9] bg-[#f7f3ec] px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 pr-10">
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            <h2 className="truncate text-base font-semibold tracking-tight text-[#1a1a1a]">{booking.packageName}</h2>
+            <span className="shrink-0 text-[11px] text-[#8a8275]">#{booking.id}</span>
           </div>
+          <span className="rounded-full border border-[#ded6c9] bg-white px-2.5 py-1 text-[10px] font-semibold text-[#6b6255]">{booking.status}</span>
         </div>
       </div>
 
       <div className="space-y-6 p-6">
         <div className="grid grid-cols-1 gap-3 border border-[#ded6c9] bg-[#fcfbf9] p-4 sm:grid-cols-2 sm:items-center">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Trip origin</p>
-            <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">Custom request</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Trip overview</p>
+            <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">
+              {formatDate(booking.tourDate)} <span className="mx-1 text-[#c8bfae]">·</span> {details.duration || booking.duration || 'Duration not set'}
+            </p>
           </div>
           <div className="sm:text-right">
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destination</p>
             <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">{details.destination || booking.destination || 'Not set'}</p>
           </div>
           {destinationSchedule.length > 0 && (
-            <div className="border-t border-[#eae5db] pt-3 sm:col-span-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Selections by day</p>
+            <div className="hidden border-t border-[#eae5db] pt-3 sm:col-span-2">
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Requested plan</p>
               <div className="mt-2 grid grid-cols-1 gap-3 text-xs text-[#1a1a1a] sm:grid-cols-2">
-                {destinationSchedule.map(item => (
-                  <div key={item.day} className="rounded border border-[#eae5db] bg-white p-3">
-                    <p className="font-semibold">Day {item.day}</p>
-                    <p className="mt-1"><span className="text-[#6b6255]">Destinations:</span> {(item.destinations || []).join(', ') || 'Not set'}</p>
-                    <p className="mt-1"><span className="text-[#6b6255]">Accommodation:</span> {item.accommodation || 'Not selected'}</p>
-                    <p className="mt-1"><span className="text-[#6b6255]">Activities:</span> {(item.activities || []).join(', ') || 'None selected'}</p>
-                    <p className="mt-1"><span className="text-[#6b6255]">Tour guide:</span> {item.guide || 'No preference'}</p>
+                {destinationSchedule.map((item, index) => (
+                  <div key={item.day || index} className="rounded border border-[#eae5db] bg-white p-3">
+                    <p className="font-semibold">Day {item.day || index + 1}</p>
+                    {!!item.destinations?.length && <p className="mt-1"><span className="text-[#8a8275]">Places:</span> {item.destinations.join(' · ')}</p>}
+                    {!!item.activities?.length && <p className="mt-1 text-[#6b6255]"><span className="text-[#8a8275]">Activities:</span> {item.activities.join(' · ')}</p>}
+                    {accommodations.length > 1 && item.accommodation && <p className="mt-1 text-[#6b6255]">Stay: {item.accommodation}</p>}
+                    {guides.length > 1 && item.guide && <p className="mt-1 text-[#6b6255]">Guide: {item.guide}</p>}
                   </div>
                 ))}
               </div>
+              {(sharedAccommodation || sharedGuide) && (
+                <p className="mt-2 text-[11px] text-[#6b6255]">
+                  {sharedAccommodation && <>Stay: <span className="font-semibold text-[#1a1a1a]">{sharedAccommodation}</span></>}
+                  {sharedAccommodation && sharedGuide && <span className="mx-2 text-[#c8bfae]">·</span>}
+                  {sharedGuide && <>Guide: <span className="font-semibold text-[#1a1a1a]">{sharedGuide}</span></>}
+                </p>
+              )}
             </div>
           )}
-          <div className="flex items-center gap-2 border-t border-[#eae5db] pt-3 text-[11px] text-[#6b6255] sm:col-span-2">
-            <CalendarDays className="h-4 w-4 text-[#b08a38]" />
-            <span className="font-semibold">Travel date:</span> {formatDate(booking.tourDate)}
-            <span className="mx-1 text-[#c8bfae]">•</span>
-            <span className="font-semibold">Duration:</span> {details.duration || booking.duration || 'Not set'}
-          </div>
+          {(details.budget || details.travelStyle) && (
+            <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-[#eae5db] pt-3 text-[11px] text-[#6b6255] sm:col-span-2">
+              {details.budget && <span>Budget: <strong className="font-semibold text-[#1a1a1a]">{details.budget}</strong></span>}
+              {details.travelStyle && <span>Travel style: <strong className="font-semibold text-[#1a1a1a]">{details.travelStyle}</strong></span>}
+            </div>
+          )}
+          {specialRequests && (
+            <p className="border-t border-[#eae5db] pt-3 text-[11px] leading-relaxed text-[#6b6255] sm:col-span-2">
+              <span className="font-semibold text-[#1a1a1a]">Special request:</span> {specialRequests}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="space-y-6">
-        <section className="space-y-3">
-          <h3 className="border-b border-[#eae5db] pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b6255]">Passenger details</h3>
-          <ReviewRow icon={UserRound} label="Name" value={booking.customerName} />
-          <ReviewRow icon={Mail} label="Email" value={booking.customerEmail} />
-          <ReviewRow icon={Phone} label="Phone" value={booking.customerPhone} />
-          <ReviewRow icon={Users} label="Guests" value={`${booking.guestsCount} guest(s)`} />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="border-b border-[#eae5db] pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b6255]">Trip details</h3>
-          <DetailLine label="Accommodation" value={details.hotel || 'None'} />
-          <DetailLine label="Preferred guide" value={details.preferredGuideName || 'No preference'} />
-          {activities.length > 0 && (
-            <div className="bg-[#fcfbf9] border border-[#e0dbd0] rounded p-3">
-              <p className="text-[#6b6255] text-xs font-semibold mb-2">Selected Tours</p>
-              <div className="space-y-1">
-                {activities.map(activity => (
-                  <p key={activity} className="text-xs text-[#1a1a1a] font-medium leading-relaxed">• {activity}</p>
-                ))}
-              </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[0.85fr_1.5fr]">
+          <section className="h-fit rounded border border-[#e0dbd0] bg-white p-4">
+            <div className="mb-3 flex items-center justify-between border-b border-[#eae5db] pb-3">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Customer</p><h3 className="mt-1 text-sm font-semibold text-[#1a1a1a]">{booking.customerName || 'Customer details'}</h3></div>
             </div>
-          )}
-        </section>
+            <div className="space-y-3">
+              <ReviewRow label="Email" value={booking.customerEmail} />
+              <ReviewRow label="Phone" value={booking.customerPhone} />
+              <ReviewRow label="Travelers" value={details.adultCount != null || details.childCount != null ? `${details.adultCount || 0} adults${Number(details.childCount) ? `, ${details.childCount} children` : ''}` : `${booking.guestsCount} guest(s)`} />
+            </div>
+          </section>
+          <div className="space-y-5">
 
+        <section className="rounded border border-[#e0dbd0] bg-white p-4 space-y-2">
+          <h3 className="text-[10px] uppercase tracking-[0.16em] text-[#6b6255] font-bold">Proposed itinerary</h3>
+          <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3 text-xs leading-relaxed text-[#1a1a1a] whitespace-pre-line">
+            {quoteItinerary || 'No itinerary details provided.'}
           </div>
-          <div className="space-y-6">
-
-        <section className="space-y-2">
-          <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Proposed itinerary</h3>
-          {isPending ? (
-            <textarea
-              rows={5}
-              value={quoteItinerary}
-              onChange={event => setQuoteItinerary(event.target.value)}
-              className="w-full resize-y rounded border border-[#e0dbd0] px-3 py-2 text-sm text-[#1a1a1a] focus:border-[#b0a68e] focus:outline-none"
-              placeholder="Add the day-by-day itinerary to include in the quote email"
-            />
-          ) : (
-            <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3 text-xs leading-relaxed text-[#1a1a1a] whitespace-pre-line">
-              {details.quoteItinerary || 'No proposed itinerary saved.'}
-            </div>
-          )}
         </section>
 
-        <section className="space-y-2">
+        <section className="rounded border border-[#e0dbd0] bg-white p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] uppercase tracking-wider text-[#6b6255] font-bold">Itemized price breakdown</h3>
+            <h3 className="text-[10px] uppercase tracking-[0.16em] text-[#6b6255] font-bold">Quote pricing</h3>
             {isPending && (
               <button
                 type="button"
                 onClick={() => setPriceLines(lines => [...lines, { description: '', amount: '' }])}
                 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase text-[#6b6255] hover:text-[#1a1a1a]"
               >
-                <Plus className="h-3 w-3" /> Add line
+                Add line
               </button>
             )}
           </div>
           {isPending ? (
             <div className="space-y-2">
+              {priceLines.length === 0 && <p className="rounded border border-dashed border-[#d6cfc2] px-3 py-2 text-xs text-[#8a8275]">No extra charges added.</p>}
               {priceLines.map((line, index) => (
                 <div key={index} className="grid grid-cols-[1fr_105px_28px] gap-2">
                   <input
@@ -884,7 +869,7 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
                   />
                   <button
                     type="button"
-                    onClick={() => setPriceLines(lines => lines.length > 1 ? lines.filter((_, itemIndex) => itemIndex !== index) : lines)}
+                    onClick={() => setPriceLines(lines => lines.filter((_, itemIndex) => itemIndex !== index))}
                     className="flex items-center justify-center text-[#8a8275] hover:text-rose-700"
                     aria-label={`Remove cost item ${index + 1}`}
                   >
@@ -893,34 +878,33 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : details.priceBreakdown?.length ? (
             <div className="space-y-2">
               {(details.priceBreakdown || []).map((line, index) => (
                 <DetailLine key={`${line.description}-${index}`} label={line.description} value={`PHP ${Number(line.amount).toLocaleString()}`} />
               ))}
             </div>
-          )}
-          <div className="flex justify-between border-t border-[#e0dbd0] pt-2 text-xs font-bold text-[#1a1a1a]">
-            <span>Final quote</span>
-            <span>PHP {isPending ? totalAmount.toLocaleString() : Number(booking.totalPrice || 0).toLocaleString()}</span>
+          ) : <p className="text-xs text-[#8a8275]">No additional catalog-external charges.</p>}
+          <div className="flex items-end justify-between gap-3 border-t border-[#e0dbd0] pt-3 text-xs font-bold text-[#1a1a1a]">
+            <span>{isPending ? 'Total trip price' : 'Quoted total'}</span>
+            <span className="text-lg">PHP {isPending ? totalAmount.toLocaleString() : Number(booking.totalPrice || 0).toLocaleString()}</span>
           </div>
-          {isPending && <p className="text-[11px] text-[#6b6255]">The complete itinerary and breakdown will be emailed for customer approval.</p>}
         </section>
 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+        <div className="flex flex-col-reverse gap-3 border-t border-[#eae5db] pt-4 sm:flex-row sm:items-center sm:justify-between">
           <button
             onClick={() => onConfirm(booking, {
               itinerary: quoteItinerary,
               priceBreakdown: priceLines.map(line => ({ description: line.description.trim(), amount: Number(line.amount) })),
               totalAmount,
             })}
-            disabled={!isPending || updatingId === booking.id || !quoteItinerary.trim() || !priceLines.length || priceLines.some(line => !line.description.trim() || !Number.isFinite(Number(line.amount)) || Number(line.amount) < 0) || totalAmount <= 0}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!isPending || updatingId === booking.id || !quoteItinerary.trim() || !Number.isFinite(totalAmount) || totalAmount <= 0 || totalAmount > 10000000 || !completePriceLines || additionalTotal > totalAmount}
+            className="flex shrink-0 items-center justify-center gap-2 rounded bg-[#176b50] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-[#10563f] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <CheckCircle2 className="h-4 w-4" /> Send final quote
+            Send final quote
           </button>
         </div>
       </div>
@@ -928,9 +912,78 @@ const CustomBookingReview = ({ booking, updatingId, onConfirm }) => {
   );
 };
 
-const ReviewRow = ({ icon: Icon, label, value }) => (
+const buildRequestedItinerary = (details = {}) => {
+  const schedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
+  const days = schedule.map((day, index) => {
+    const rows = [`Day ${day.day || index + 1}`];
+    const destinations = Array.isArray(day.destinations) ? day.destinations.filter(Boolean) : [];
+    const activities = Array.isArray(day.activities) ? day.activities.filter(Boolean) : [];
+    if (destinations.length) rows.push(destinations.join(', '));
+    const listedActivities = activities.filter(activity => !String(activity).startsWith('Other request:'));
+    const otherActivities = activities.filter(activity => String(activity).startsWith('Other request:')).map(activity => String(activity).replace(/^Other request:\s*/i, '').trim());
+    String(day.otherActivityPreference || '').split('\n').map(activity => activity.trim()).filter(Boolean).forEach(activity => otherActivities.push(activity));
+    if (listedActivities.length) rows.push(`Activities: ${listedActivities.join(', ')}`);
+    const uniqueOtherActivities = [...new Set(otherActivities)];
+    if (uniqueOtherActivities.length) rows.push(`Other activities: ${uniqueOtherActivities.join(', ')}`);
+    const stay = day.accommodation || day.otherAccommodationPreference || details.hotel;
+    if (stay && stay !== 'None' && stay !== 'Not selected') rows.push(`Stay: ${stay}`);
+    const guide = day.guide || details.preferredGuideName;
+    if (guide) rows.push(`Guide: ${guide}`);
+    return rows.join('\n');
+  });
+  const requests = String(details.specialRequests || details.notes || '').trim();
+  if (requests) days.push(`Additional requests: ${requests}`);
+  return days.join('\n\n');
+};
+
+const calculateCatalogTotal = (booking, catalog = {}) => {
+  const details = booking?.customizedDetails || {};
+  const schedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
+  const travelers = Math.max(1, Number(details.adultCount || 0) + Number(details.childCount || 0) || Number(booking?.guestsCount) || 1);
+  const nightsMatch = String(details.duration || booking?.duration || '').match(/(\d+)\s*nights?/i);
+  const nights = Math.max(0, Number(nightsMatch?.[1] ?? Math.max(schedule.length - 1, 0)));
+
+  const activityTotal = schedule.reduce((dayTotal, day) => {
+    const names = Array.isArray(day.activities) ? day.activities : [];
+    const dayActivities = (day.destinations || []).flatMap(destination => catalog.destinations?.[destination]?.activities || []);
+    return dayTotal + names.reduce((total, name) => {
+      if (String(name).startsWith('Other request:')) return total;
+      const match = dayActivities.find(activity => activity.name === name);
+      return total + (Number(match?.price) || 0);
+    }, 0);
+  }, 0);
+
+  const accommodationTotal = schedule.slice(0, nights).reduce((nightTotal, day) => {
+    const stayName = String(day.accommodation || '').trim();
+    if (!stayName || ['None', 'Not selected'].includes(stayName) || stayName.startsWith('Other')) return nightTotal;
+    const hotels = (day.destinations || []).flatMap(destination => catalog.hotels?.[destination] || []);
+    const match = hotels.find(hotel => hotel.name === stayName);
+    return nightTotal + (Number(match?.pricePerGuest) || 0) * travelers;
+  }, 0);
+
+  return activityTotal + accommodationTotal;
+};
+
+const buildCustomChargeLines = (details = {}) => {
+  const schedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
+  const requested = schedule.flatMap((day, index) => {
+    const activities = (Array.isArray(day.activities) ? day.activities : [])
+      .filter(activity => String(activity).startsWith('Other request:'))
+      .map(activity => String(activity).replace(/^Other request:\s*/i, '').trim());
+    String(day.otherActivityPreference || '').split('\n').map(activity => activity.trim()).filter(Boolean).forEach(activity => activities.push(activity));
+    const accommodation = String(day.otherAccommodationPreference || '').trim();
+    const dayLabel = `Day ${day.day || index + 1}`;
+    const uniqueActivities = [...new Set(activities)];
+    return [
+      ...uniqueActivities.map(description => `${dayLabel} · Other activity: ${description}`),
+      ...(accommodation ? [`${dayLabel} · Other accommodation: ${accommodation}`] : []),
+    ];
+  });
+  return requested.map(description => ({ description, amount: '' }));
+};
+
+const ReviewRow = ({ label, value }) => (
   <div className="flex items-center gap-2.5 text-xs">
-    <Icon className="h-3.5 w-3.5 text-[#b08a38] shrink-0" />
     <div className="min-w-0">
       <p className="text-[9px] uppercase tracking-wide text-[#8a8275] font-bold">{label}</p>
       <p className="text-[13px] text-[#1a1a1a] font-medium truncate">{value || 'Not set'}</p>
@@ -1010,24 +1063,23 @@ const EditorForm = ({ form, setForm, priceKey, priceLabel = 'Price', onSave, onC
           Cancel
         </button>
         <button type="button" onClick={onSave} className="flex items-center gap-2 bg-[#2d2a24] px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[#f7f4ef] hover:bg-[#1a1715] cursor-pointer">
-          <Save className="h-4 w-4" /> Save
+          Save
         </button>
       </div>
     </div>
   </div>
 );
 
-const ManageRow = ({ icon: Icon, title, subtitle, price, image, onEdit, onDelete }) => (
+const ManageRow = ({ title, subtitle, price, image, onEdit, onDelete }) => (
   <div className="bg-[#fcfbf9] border border-[#e0dbd0] rounded p-4">
     <div className="flex items-start justify-between gap-3">
       {image ? <img src={image} alt="" className="h-16 w-20 shrink-0 rounded object-cover" /> : null}
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-[#c49b27] shrink-0" />
-          <h4 className="text-sm font-bold text-[#1a1a1a] leading-snug">{title}</h4>
+          <h4 className="text-sm font-medium text-[#39352f] leading-snug">{title}</h4>
         </div>
         {subtitle && <p className="text-xs text-[#6b6255] leading-relaxed mt-1">{subtitle}</p>}
-        <p className="text-xs text-[#1a1a1a] font-bold mt-2">{price}</p>
+        <p className="text-xs text-[#514b43] font-medium mt-2">{price}</p>
       </div>
       <div className="flex gap-1 shrink-0">
         <button onClick={onEdit} className="p-1.5 rounded text-[#6b6255] hover:text-[#1a1a1a] hover:bg-white cursor-pointer">

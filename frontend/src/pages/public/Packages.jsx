@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { api } from '../../services/api';
-import { Compass, Clock, SlidersHorizontal, Tags, Users, CalendarDays, Star, ChevronDown } from 'lucide-react';
+import { Clock, SlidersHorizontal, Tags, Users, CalendarDays, Star, ChevronDown } from 'lucide-react';
 import FavoriteButton from '../../components/ui/FavoriteButton';
 
 const packageCategories = [
@@ -72,6 +72,11 @@ const getPackageSearchText = (pkg = {}) => packageSearchFields
   .join(' ')
   .toLowerCase();
 
+const normalizeTravelerCount = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? Math.min(8, Math.max(1, parsed)) : 1;
+};
+
 const formatPackageDate = (date) => date
   ? new Date(`${String(date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })
   : 'Date not set';
@@ -80,41 +85,57 @@ const Packages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [joinerAvailability, setJoinerAvailability] = useState({});
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [travelDate, setTravelDate] = useState(searchParams.get('date') || '');
+  const [travelerCount, setTravelerCount] = useState(() => normalizeTravelerCount(searchParams.get('travelers')));
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState([0, 100000]);
 
   useEffect(() => {
     const loadPackages = async () => {
       setLoading(true);
-      const allPkgs = await packageService.getAll();
-      setPackages(allPkgs);
-      const joiners = allPkgs.filter((pkg) => getPackageVisualCategory(pkg) === 'joiner');
-      const availability = await Promise.all(joiners.map(async (pkg) => {
-        try {
-          return [String(pkg.id), await api(`/bookings/joiner-availability/${pkg.id}`)];
-        } catch {
-          return [String(pkg.id), null];
-        }
-      }));
-      setJoinerAvailability(Object.fromEntries(availability));
-      setLoading(false);
+      setLoadError('');
+      try {
+        const allPkgs = await packageService.getAll();
+        setPackages(allPkgs);
+        const joiners = allPkgs.filter((pkg) => getPackageVisualCategory(pkg) === 'joiner');
+        const availability = await Promise.all(joiners.map(async (pkg) => {
+          try {
+            return [String(pkg.id), await api(`/bookings/joiner-availability/${pkg.id}`)];
+          } catch {
+            return [String(pkg.id), null];
+          }
+        }));
+        setJoinerAvailability(Object.fromEntries(availability));
+      } catch (error) {
+        setPackages([]);
+        setLoadError(error?.message || 'We could not load tour packages. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
     loadPackages();
-  }, []);
+  }, [loadAttempt]);
 
   // Update searchQuery state if url params change
   useEffect(() => {
     setSearchQuery(searchParams.get('search') || '');
+    setTravelDate(searchParams.get('date') || '');
+    setTravelerCount(normalizeTravelerCount(searchParams.get('travelers')));
   }, [searchParams]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    setSearchParams(value ? { search: value } : {});
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set('search', value);
+    else nextParams.delete('search');
+    setSearchParams(nextParams);
   };
 
   // Perform filtering
@@ -126,8 +147,16 @@ const Packages = () => {
     const matchesSearch = searchWords.every((word) => searchableText.includes(word));
     const matchesCategory = selectedCategory === 'all' || getPackageVisualCategory(pkg) === selectedCategory;
     const matchesPrice = pkg.price >= priceRange[0] && pkg.price <= priceRange[1];
+    const packageCapacity = Number(pkg.maximumCapacity ?? pkg.max_capacity ?? 0);
+    const category = getPackageVisualCategory(pkg);
+    const availability = joinerAvailability[String(pkg.id ?? pkg.package_id)];
+    const packageDate = String(availability?.departureDate || pkg.joinerDate || pkg.joiner_date || '').slice(0, 10);
+    const matchesDate = !travelDate || category !== 'joiner' || packageDate === travelDate;
+    const matchesCapacity = category === 'joiner' && availability
+      ? availability.bookingOpen && Number(availability.remainingSlots) >= travelerCount
+      : packageCapacity <= 0 || packageCapacity >= travelerCount;
 
-    return matchesSearch && matchesCategory && matchesPrice;
+    return matchesSearch && matchesCategory && matchesPrice && matchesCapacity && matchesDate;
   });
 
   const selectedCategoryConfig = packageCategories.find((category) => category.key === selectedCategory) || packageCategories[0];
@@ -284,6 +313,12 @@ const Packages = () => {
                   />
                 ))}
               </div>
+            ) : loadError ? (
+              <div className="rounded-lg border border-[#e0dbd0] bg-white px-6 py-12 text-center">
+                <h3 className="mb-2 text-sm font-semibold text-[#3d3a34]">Packages could not be loaded</h3>
+                <p className="mb-5 text-sm text-[#6b6255]">{loadError}</p>
+                <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="rounded border border-[#2d2a24] px-5 py-2 text-xs font-semibold text-[#2d2a24]">Try again</button>
+              </div>
             ) : filteredPackages.length > 0 ? (
               <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {filteredPackages.map((pkg) => (
@@ -331,9 +366,9 @@ const Packages = () => {
                       <div className="mb-2 flex items-center gap-1.5">
                         <div className="flex items-center gap-1">
                           <Star className="h-3.5 w-3.5 fill-[#c4b99a] text-[#c4b99a]" />
-                          <span className="text-xs font-bold text-[#1a1a1a]">New</span>
+                          <span className="text-xs font-bold text-[#1a1a1a]">{Number(pkg.rating || 0) > 0 ? Number(pkg.rating).toFixed(1) : 'No rating'}</span>
                         </div>
-                        <span className="text-[10px] font-medium text-[#8f8576]">No reviews yet</span>
+                        <span className="text-[10px] font-medium text-[#8f8576]">{Number(pkg.reviewsCount || 0)} {Number(pkg.reviewsCount || 0) === 1 ? 'review' : 'reviews'}</span>
                       </div>
                       <div
                         className="mt-auto grid grid-cols-2 gap-x-2 gap-y-3.5 pt-4 text-[11px] font-medium"
@@ -371,11 +406,11 @@ const Packages = () => {
                               letterSpacing: '0.04em',
                             }}
                           >
-                            / person
+                            {getPackageVisualCategory(pkg) === 'joiner' ? '/ person' : '/ package'}
                           </span>
                         </div>
                         <Link
-                          to={`/packages/${pkg.id}`}
+                          to={`/packages/${pkg.id}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
                           className="rounded-[2px] border border-[#2d2a24] bg-transparent px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2d2a24] transition-all duration-300 hover:bg-[#2d2a24] hover:text-[#f7f4ef]"
                           style={{
                             whiteSpace: 'nowrap',
@@ -397,10 +432,6 @@ const Packages = () => {
                   borderRadius: '6px',
                 }}
               >
-                <Compass
-                  className="h-10 w-10 mx-auto mb-4 animate-spin"
-                  style={{ color: '#6b6255' }}
-                />
                 <h3
                   className="font-semibold mb-2 text-[14px]"
                   style={{
