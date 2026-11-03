@@ -419,7 +419,7 @@ const CustomPlanner = () => {
 
   const [numDays, setNumDays] = useState(savedDraft.numDays || '');
   const [numNights, setNumNights] = useState(savedDraft.numNights || '');
-  const [adultCount, setAdultCount] = useState(savedDraft.adultCount ?? 1);
+  const [adultCount, setAdultCount] = useState(Math.max(1, Number(savedDraft.adultCount) || 1));
   const [childCount, setChildCount] = useState(savedDraft.childCount ?? 0);
   const [selectedDates, setSelectedDates] = useState(savedDraft.selectedDates || []);
 
@@ -794,6 +794,7 @@ const CustomPlanner = () => {
     if (!validName.test(lastName.trim())) { showNotification('Please enter a valid last name.', 'warning'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { showNotification('Please enter a valid email address.', 'warning'); return; }
     if (!/^\d{11}$/.test(phone)) { showNotification('Contact Number must be exactly 11 digits.', 'warning'); return; }
+    if (adultCount < 1 || guestCount < 1) { showNotification('At least one adult traveler is required.', 'warning'); return; }
     if (!destination) { showNotification('Please select a destination.', 'warning'); return; }
     if (!Number.isInteger(Number(numDays)) || Number(numDays) < 1 || Number(numDays) > 30) {
       showNotification('Please choose a trip duration from 1 to 30 days.', 'warning'); return;
@@ -819,7 +820,7 @@ const CustomPlanner = () => {
       const request = await bookingService.create({
         packageId: 'custom-package',
         tourDate: selectedDates[0],
-        guestsCount: Math.max(1, guestCount),
+        guestsCount: guestCount,
         customizedDetails: {
           destination,
           destinations: scheduledDestinationNames,
@@ -1090,7 +1091,7 @@ const CustomPlanner = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[
-                    { label: 'Adult', count: adultCount, setCount: setAdultCount, minimum: guestCount > 1 ? 0 : 1 },
+                    { label: 'Adult', count: adultCount, setCount: setAdultCount, minimum: 1 },
                     { label: 'Child (6-10)', count: childCount, setCount: setChildCount, minimum: 0 },
                   ].map(({ label, count, setCount, minimum }) => (
                     <div key={label} className="flex items-center justify-between rounded-sm border px-5 py-4" style={{ ...inputStyle, borderColor: colors.border }}>
@@ -1560,10 +1561,6 @@ const CustomPlanner = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="mb-5 p-3 text-[11px] leading-relaxed" style={{ background: colors.subtleBg, border: `1px solid ${colors.borderLight}`, color: colors.textSecondary }}>
-                Pricing is not final yet. An admin will review your selections and confirm the price.
               </div>
 
               <button

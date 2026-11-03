@@ -145,14 +145,16 @@ const ManageCustomizations = () => {
       showNotification('Add an itinerary and valid total. Extra charges must be complete and cannot exceed the final quote.', 'warning');
       return;
     }
-    if (!window.confirm(`Send the itinerary and PHP ${totalAmount.toLocaleString()} itemized quote to the customer?`)) return;
+    if (!window.confirm(`Send the itinerary and PHP ${totalAmount.toLocaleString()} quote to the customer?`)) return;
 
     setUpdatingBookingId(booking.id);
     try {
       const updated = await bookingService.updateCustomQuote(booking.id, quote);
       setCustomBookings(prev => prev.map(item => item.id === booking.id ? updated : item));
       setSelectedBooking(current => current?.id === booking.id ? updated : current);
-      showNotification('Itinerary and itemized quote emailed to the customer', 'success');
+      showNotification(updated.quoteEmailSent === false
+        ? 'Quote saved, but the email could not be sent. Retry from this request.'
+        : 'Final quote emailed to the customer', updated.quoteEmailSent === false ? 'warning' : 'success');
     } catch (error) {
       showNotification(error?.message || 'Failed to send the quote. Please try again.', 'error');
     } finally {
@@ -726,7 +728,9 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
     setQuoteItinerary(booking?.status === 'Pending Verification'
       ? requestedItinerary || details.quoteItinerary || ''
       : details.quoteItinerary || requestedItinerary);
-    setPriceLines(buildCustomChargeLines(details));
+    setPriceLines(booking?.status === 'Quote Sent' && Array.isArray(details.priceBreakdown)
+      ? details.priceBreakdown.map(line => ({ description: line.description || '', amount: line.amount == null ? '' : String(line.amount) }))
+      : buildCustomChargeLines(details));
   }, [booking?.id]);
 
   if (!booking) {
@@ -739,18 +743,12 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
   }
 
   const details = booking.customizedDetails || {};
-  const destinationSchedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
-  const uniqueScheduleValues = (key) => [...new Set(destinationSchedule.map(day => String(day?.[key] || '').trim()).filter(Boolean))];
-  const accommodations = uniqueScheduleValues('accommodation');
-  const guides = uniqueScheduleValues('guide');
-  const sharedAccommodation = accommodations.length === 1 ? accommodations[0] : accommodations.length === 0 ? details.hotel || '' : '';
-  const sharedGuide = guides.length === 1 ? guides[0] : guides.length === 0 ? details.preferredGuideName || '' : '';
   const specialRequests = details.specialRequests || details.notes || '';
-  const isPending = booking.status === 'Pending Verification';
+  const canSendQuote = ['Pending Verification', 'Quote Sent'].includes(booking.status);
   const completePriceLines = priceLines.every(line => line.description.trim() && line.amount !== '' && Number.isFinite(Number(line.amount)) && Number(line.amount) >= 0);
   const additionalTotal = priceLines.reduce((total, line) => total + (Number(line.amount) || 0), 0);
   const catalogTotal = calculateCatalogTotal(booking, catalog);
-  const totalAmount = catalogTotal + additionalTotal;
+  const totalAmount = Math.round((catalogTotal + additionalTotal) * 100) / 100;
 
   return (
     <aside className="overflow-hidden bg-white font-sans" style={{ fontFamily: "Inter, Arial, sans-serif" }}>
@@ -776,29 +774,6 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Destination</p>
             <p className="mt-1 text-sm font-semibold text-[#1a1a1a]">{details.destination || booking.destination || 'Not set'}</p>
           </div>
-          {destinationSchedule.length > 0 && (
-            <div className="hidden border-t border-[#eae5db] pt-3 sm:col-span-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a8275]">Requested plan</p>
-              <div className="mt-2 grid grid-cols-1 gap-3 text-xs text-[#1a1a1a] sm:grid-cols-2">
-                {destinationSchedule.map((item, index) => (
-                  <div key={item.day || index} className="rounded border border-[#eae5db] bg-white p-3">
-                    <p className="font-semibold">Day {item.day || index + 1}</p>
-                    {!!item.destinations?.length && <p className="mt-1"><span className="text-[#8a8275]">Places:</span> {item.destinations.join(' · ')}</p>}
-                    {!!item.activities?.length && <p className="mt-1 text-[#6b6255]"><span className="text-[#8a8275]">Activities:</span> {item.activities.join(' · ')}</p>}
-                    {accommodations.length > 1 && item.accommodation && <p className="mt-1 text-[#6b6255]">Stay: {item.accommodation}</p>}
-                    {guides.length > 1 && item.guide && <p className="mt-1 text-[#6b6255]">Guide: {item.guide}</p>}
-                  </div>
-                ))}
-              </div>
-              {(sharedAccommodation || sharedGuide) && (
-                <p className="mt-2 text-[11px] text-[#6b6255]">
-                  {sharedAccommodation && <>Stay: <span className="font-semibold text-[#1a1a1a]">{sharedAccommodation}</span></>}
-                  {sharedAccommodation && sharedGuide && <span className="mx-2 text-[#c8bfae]">·</span>}
-                  {sharedGuide && <>Guide: <span className="font-semibold text-[#1a1a1a]">{sharedGuide}</span></>}
-                </p>
-              )}
-            </div>
-          )}
           {(details.budget || details.travelStyle) && (
             <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-[#eae5db] pt-3 text-[11px] text-[#6b6255] sm:col-span-2">
               {details.budget && <span>Budget: <strong className="font-semibold text-[#1a1a1a]">{details.budget}</strong></span>}
@@ -835,7 +810,7 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
         <section className="rounded border border-[#e0dbd0] bg-white p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[10px] uppercase tracking-[0.16em] text-[#6b6255] font-bold">Quote pricing</h3>
-            {isPending && (
+            {canSendQuote && (
               <button
                 type="button"
                 onClick={() => setPriceLines(lines => [...lines, { description: '', amount: '' }])}
@@ -845,7 +820,7 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
               </button>
             )}
           </div>
-          {isPending ? (
+          {canSendQuote ? (
             <div className="space-y-2">
               {priceLines.length === 0 && <p className="rounded border border-dashed border-[#d6cfc2] px-3 py-2 text-xs text-[#8a8275]">No extra charges added.</p>}
               {priceLines.map((line, index) => (
@@ -886,8 +861,8 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
             </div>
           ) : <p className="text-xs text-[#8a8275]">No additional catalog-external charges.</p>}
           <div className="flex items-end justify-between gap-3 border-t border-[#e0dbd0] pt-3 text-xs font-bold text-[#1a1a1a]">
-            <span>{isPending ? 'Total trip price' : 'Quoted total'}</span>
-            <span className="text-lg">PHP {isPending ? totalAmount.toLocaleString() : Number(booking.totalPrice || 0).toLocaleString()}</span>
+            <span>{canSendQuote ? 'Total trip price' : 'Quoted total'}</span>
+            <span className="text-lg">PHP {canSendQuote ? totalAmount.toLocaleString() : Number(booking.totalPrice || 0).toLocaleString()}</span>
           </div>
         </section>
 
@@ -901,10 +876,10 @@ const CustomBookingReview = ({ booking, catalog, updatingId, onConfirm }) => {
               priceBreakdown: priceLines.map(line => ({ description: line.description.trim(), amount: Number(line.amount) })),
               totalAmount,
             })}
-            disabled={!isPending || updatingId === booking.id || !quoteItinerary.trim() || !Number.isFinite(totalAmount) || totalAmount <= 0 || totalAmount > 10000000 || !completePriceLines || additionalTotal > totalAmount}
+            disabled={!canSendQuote || updatingId === booking.id || !quoteItinerary.trim() || !Number.isFinite(totalAmount) || totalAmount <= 0 || totalAmount > 10000000 || !completePriceLines || additionalTotal > totalAmount}
             className="flex shrink-0 items-center justify-center gap-2 rounded bg-[#176b50] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-[#10563f] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Send final quote
+            {booking.status === 'Quote Sent' ? 'Resend final quote' : 'Send final quote'}
           </button>
         </div>
       </div>
@@ -939,6 +914,7 @@ const buildRequestedItinerary = (details = {}) => {
 const calculateCatalogTotal = (booking, catalog = {}) => {
   const details = booking?.customizedDetails || {};
   const schedule = Array.isArray(details.destinationSchedule) ? details.destinationSchedule : [];
+  const destinations = [...new Set(schedule.flatMap(day => Array.isArray(day.destinations) ? day.destinations : []))];
   const travelers = Math.max(1, Number(details.adultCount || 0) + Number(details.childCount || 0) || Number(booking?.guestsCount) || 1);
   const nightsMatch = String(details.duration || booking?.duration || '').match(/(\d+)\s*nights?/i);
   const nights = Math.max(0, Number(nightsMatch?.[1] ?? Math.max(schedule.length - 1, 0)));
@@ -961,7 +937,8 @@ const calculateCatalogTotal = (booking, catalog = {}) => {
     return nightTotal + (Number(match?.pricePerGuest) || 0) * travelers;
   }, 0);
 
-  return activityTotal + accommodationTotal;
+  const destinationTotal = destinations.reduce((total, destination) => total + (Number(catalog.destinations?.[destination]?.base) || 0), 0);
+  return destinationTotal + activityTotal + accommodationTotal;
 };
 
 const buildCustomChargeLines = (details = {}) => {
