@@ -315,7 +315,7 @@ const Bookings = () => {
                             <Eye className="h-3.5 w-3.5" />
                             <span>View</span>
                           </button>
-                          {(booking.status === 'Pending Verification' || booking.status === 'Pending') && (
+                          {isCar && (booking.status === 'Pending Verification' || booking.status === 'Pending') && (
                             <button
                               onClick={() => handleStatusUpdate(booking, 'Confirmed')}
                               disabled={updatingId === booking.id}
@@ -392,8 +392,8 @@ const SummaryCard = ({ label, value, icon: Icon, tone = 'text-yellow-700', bgTon
 );
 
 const BookingDetailModal = ({ booking, updatingId, onClose, onConfirm }) => {
-  const isPending = booking.status === 'Pending Verification' || booking.status === 'Pending';
   const isCarRental = booking.type === 'Car Rental';
+  const isPending = isCarRental && (booking.status === 'Pending Verification' || booking.status === 'Pending');
   const isJoiner = !isCarRental && String(booking.package_type || '').toLowerCase() === 'joiner';
 
   return (

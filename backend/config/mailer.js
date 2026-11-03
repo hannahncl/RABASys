@@ -113,7 +113,7 @@ function readRgbPng(filePath) {
     return { width, height, data: zlib.deflateSync(rows, { level: 9 }) };
 }
 
-function createSimplePdf(lines) {
+function createSimplePdf(lines, type) {
     const entries = lines.map((line) => {
         if (line.startsWith("SECTION|")) return { type: "section", text: line.slice(8) };
         if (line.startsWith("ITEM|")) return { type: "item", text: line.slice(5) };
@@ -147,10 +147,10 @@ function createSimplePdf(lines) {
     for (const page of pages) {
         const commands = [];
         if (logoId) commands.push("q", "125 0 0 50 36 765 cm", "/Logo Do", "Q");
-        commands.push("BT", "/F2 17 Tf", "175 798 Td", "(RABAS TRAVEL & TOURS SERVICES) Tj", "/F2 11 Tf", "0 -21 Td", "(TOUR ITINERARY) Tj", "ET");
+        commands.push("BT", "/F2 17 Tf", "175 798 Td", "(RABAS TRAVEL & TOURS SERVICES) Tj", "/F2 11 Tf", "0 -21 Td", type === "custom-quote" ? "(CUSTOM TRIP QUOTE) Tj" : "(TOUR ITINERARY) Tj", "ET");
         const reference = entries.find(entry => entry.type === "row" && entry.label === "Reference")?.value || "-";
         const status = entries.find(entry => entry.type === "row" && entry.label === "Status")?.value || "-";
-        commands.push("BT", "/F1 9 Tf", "390 798 Td", `(${pdfEscape(`Reference: ${reference}`)}) Tj`, "0 -18 Td", `(${pdfEscape(`Status: ${status}`)}) Tj`, "ET");
+        commands.push("BT", "/F1 9 Tf", "390 798 Td", `(${pdfEscape(`Reference: ${reference}`)}) Tj`, ...(type === "custom-quote" ? [] : ["0 -18 Td", `(${pdfEscape(`Status: ${status}`)}) Tj`]), "ET");
 
         let y = 728;
         for (const entry of page) {
@@ -168,7 +168,7 @@ function createSimplePdf(lines) {
             }
             y -= 18;
         }
-        commands.push("0.55 0.55 0.55 RG", "0.6 w", `36 48 m 559 48 l S`, "0 0 0 rg", "BT", "/F1 8 Tf", "36 32 Td", "(This document is an automated booking itinerary for your records.) Tj", "ET");
+        commands.push("0.55 0.55 0.55 RG", "0.6 w", `36 48 m 559 48 l S`, "0 0 0 rg", "BT", "/F1 8 Tf", "36 32 Td", type === "custom-quote" ? "(Prepared by RABAS Travel & Tours Services.) Tj" : "(This document is an automated booking itinerary for your records.) Tj", "ET");
         const stream = commands.join("\n");
         const contentId = addObject(`<< /Length ${Buffer.byteLength(stream, "ascii")} >>\nstream\n${stream}\nendstream`);
         const xObjects = logoId ? ` /XObject << /Logo ${logoId} 0 R >>` : "";
@@ -195,6 +195,18 @@ function formatReceiptDate(value) {
 }
 
 function createBookingReceiptPdf(booking, type, details, itineraryLines = [], breakdownLines = []) {
+    if (type === "custom-quote") {
+        const quoteLines = [
+            `ROW|Reference|${booking.booking_reference || "-"}`,
+            `ROW|Customer|${`${booking.first_name || ""} ${booking.last_name || ""}`.trim() || "-"}`,
+            "SECTION|TRIP SUMMARY",
+            ...details.map(([label, value]) => `ROW|${label}|${value || "-"}`),
+        ];
+        if (itineraryLines.length) quoteLines.push("SECTION|ITINERARY", ...itineraryLines.map(line => `ITEM|${line}`));
+        if (breakdownLines.length) quoteLines.push("SECTION|ADDITIONAL SERVICES", ...breakdownLines.map(line => `ROW|Item|${line}`));
+        quoteLines.push(`ROW|TOTAL TRIP PRICE|PHP ${Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`);
+        return createSimplePdf(quoteLines, type);
+    }
     const lines = [
         `ROW|Reference|${booking.booking_reference || "-"}`,
         `ROW|Status|${booking.booking_status || "Pending"}`,
@@ -209,7 +221,7 @@ function createBookingReceiptPdf(booking, type, details, itineraryLines = [], br
     if (itineraryLines.length) lines.push("SECTION|ITINERARY", ...itineraryLines.map((line, index) => `ITEM|${index + 1}. ${line}`));
     if (breakdownLines.length) lines.push("SECTION|PRICE SUMMARY", ...breakdownLines.map(line => `ROW|Item|${line}`));
     lines.push(`ROW|Total amount|PHP ${Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`);
-    return createSimplePdf(lines);
+    return createSimplePdf(lines, type);
 }
 
 function normalizeItineraryLines(value) {
@@ -253,8 +265,9 @@ async function sendBookingConfirmation(booking, type = "tour") {
         && booking.booking_status === "Confirmed";
     const isCustomQuote = type === "custom-quote";
     const isCustomAccepted = type === "custom-accepted";
+    const isCustomPayment = type === "custom-payment";
     const isCustomSamplePayment = type === "custom-sample-payment";
-    const hasQuote = isCustomQuote || isCustomAccepted || isCustomSamplePayment;
+    const hasQuote = isCustomQuote || isCustomAccepted || isCustomPayment || isCustomSamplePayment;
     let customDetails = booking.customized_details;
     if (typeof customDetails === "string") {
         try { customDetails = JSON.parse(customDetails); } catch { customDetails = {}; }
@@ -265,6 +278,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
         ? "Car Rental Booking Confirmation"
         : isCustomSamplePayment
             ? "Customized Trip Sample Payment Receipt"
+            : isCustomPayment
+            ? "Customized Trip Payment Receipt"
             : isCustomAccepted
             ? "Customized Trip Quote Accepted"
             : isCustomQuote
@@ -282,6 +297,13 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ["Pickup location", booking.pickup_location],
             ["Payment method", booking.payment_method],
         ]
+        : isCustomQuote
+            ? [
+                ["Destination", booking.destination || customDetails.destination],
+                ["Travel date", formatReceiptDate(booking.travel_date)],
+                ["Duration", customDetails.duration],
+                ["Travelers", booking.number_of_persons],
+            ]
         : isCustomTrip
             ? [
                 ["Destination", booking.destination || customDetails.destination],
@@ -290,7 +312,7 @@ async function sendBookingConfirmation(booking, type = "tour") {
                         `Day ${item.day}`,
                         `Destinations: ${(item.destinations || []).join(", ") || "Not set"}`,
                         `Accommodation: ${item.accommodation || "Not selected"}`,
-                        `Activities: ${(item.activities || []).join(", ") || "None selected"}`,
+                        `Activities: ${(item.activities || []).join("\n") || "None selected"}`,
                         `Tour guide: ${item.guide || "No preference"}`,
                     ].join(" | ")).join("; ")
                     : "-"],
@@ -299,7 +321,7 @@ async function sendBookingConfirmation(booking, type = "tour") {
                 ["Duration", customDetails.duration],
                 ["Accommodation", customDetails.hotel],
                 ["Preferred guide", customDetails.preferredGuideName || "No preference"],
-                ["Activities", Array.isArray(customDetails.activities) ? customDetails.activities.join(", ") : "None"],
+                ["Activities", Array.isArray(customDetails.activities) ? customDetails.activities.join("\n") : "None"],
                 ["Budget", customDetails.budget],
                 ["Travel style", customDetails.travelStyle],
                 ["Special requests", customDetails.specialRequests || customDetails.notes],
@@ -321,20 +343,24 @@ async function sendBookingConfirmation(booking, type = "tour") {
         details.push(["Payment mode", `${booking.payment_method || "Sample Payment"} (simulation)`]);
         details.push(["Payment reference", booking.payment_transaction_reference]);
     }
+    if (isCustomPayment) {
+        details.push(["Payment method", booking.payment_method || "Xendit"]);
+        details.push(["Payment reference", booking.payment_transaction_reference || booking.payment_reference]);
+    }
 
     const detailsText = details.map(([label, value]) => `${label}: ${value || "-"}`).join("\n");
-    const detailsHtml = details.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(label)}</td><td style="padding:7px 12px;font-weight:bold">${escapeHtml(value || "-")}</td></tr>`).join("");
+    const detailsHtml = details.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(label)}</td><td style="padding:7px 12px;font-weight:bold;white-space:pre-line">${escapeHtml(value || "-")}</td></tr>`).join("");
     const priceBreakdown = hasQuote && Array.isArray(customDetails.priceBreakdown) ? customDetails.priceBreakdown : [];
     const itinerary = hasQuote ? String(customDetails.quoteItinerary || "").trim() : "";
-    const itineraryText = hasQuote ? `\n\nProposed itinerary:\n${itinerary || "-"}` : "";
+    const itineraryText = hasQuote ? `\n\nItinerary:\n${itinerary || "-"}` : "";
     const itineraryHtml = hasQuote
-        ? `<h3 style="margin:18px 0 6px">Proposed itinerary</h3><p style="white-space:pre-line">${escapeHtml(itinerary || "-")}</p>`
+        ? `<h3 style="margin:18px 0 6px">Itinerary</h3><p style="white-space:pre-line">${escapeHtml(itinerary || "-")}</p>`
         : "";
-    const breakdownText = hasQuote
-        ? `\n\nPrice breakdown:\n${priceBreakdown.map(line => `${line.description}: PHP ${Number(line.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`).join("\n")}`
+    const breakdownText = hasQuote && priceBreakdown.length
+        ? `\n\n${isCustomQuote ? "Additional services" : "Price breakdown"}:\n${priceBreakdown.map(line => `${line.description}: PHP ${Number(line.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`).join("\n")}`
         : "";
-    const breakdownHtml = hasQuote
-        ? `<h3 style="margin:18px 0 6px">Price breakdown</h3><table style="width:100%;border-collapse:collapse">${priceBreakdown.map(line => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(line.description)}</td><td style="padding:7px 12px;text-align:right;font-weight:bold">PHP ${Number(line.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td></tr>`).join("")}</table>`
+    const breakdownHtml = hasQuote && priceBreakdown.length
+        ? `<h3 style="margin:18px 0 6px">${isCustomQuote ? "Additional services" : "Price breakdown"}</h3><table style="width:100%;border-collapse:collapse">${priceBreakdown.map(line => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(line.description)}</td><td style="padding:7px 12px;text-align:right;font-weight:bold">PHP ${Number(line.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td></tr>`).join("")}</table>`
         : "";
     const total = Number(booking.total_amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 });
     const priceText = isCustomTrip && !hasQuote
@@ -345,6 +371,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
         : `<p style="font-size:16px"><strong>Final quote total: PHP ${escapeHtml(total)}</strong></p>`;
     const message = isCustomSamplePayment
         ? "Your customized trip sample payment has been recorded."
+        : isCustomPayment
+        ? "Your payment for the customized trip quote has been confirmed."
         : isCustomAccepted
         ? "Your acceptance of the customized trip quote is confirmed."
         : isCustomQuote
@@ -356,6 +384,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
                     : "Your booking has been received.";
     const followUp = isCustomSamplePayment
         ? "This is a sample payment receipt only. No real payment was processed or money transferred."
+        : isCustomPayment
+        ? "Your payment was securely processed. Please keep this receipt for your records."
         : isCustomAccepted
         ? "Your acceptance has been recorded. Our team will contact you with next steps and payment instructions."
         : isCustomQuote
@@ -366,8 +396,12 @@ async function sendBookingConfirmation(booking, type = "tour") {
                     ? "Your Joiner departure is confirmed. Please keep this email for your records."
                 : "Please keep this email for your records. We will contact you with any updates.";
     const status = isCustomTrip && !hasQuote ? "Under review" : booking.booking_status || "Pending";
-    const html = `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>${escapeHtml(message)}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>Status:</strong> ${escapeHtml(status)}</p><table style="width:100%;border-collapse:collapse">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}${priceHtml}</div><p>${escapeHtml(followUp)}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`;
-    const text = `Dear ${booking.first_name || "Customer"},\n\n${message}\n\nBooking reference: ${booking.booking_reference}\nStatus: ${status}\n${detailsText}${itineraryText}${breakdownText}\n\n${priceText}\n\n${followUp}\n\nRABAS Travel & Tours Services`;
+    const html = isCustomQuote
+        ? `<div style="font-family:Arial,sans-serif;color:#24303b;line-height:1.55;max-width:600px;margin:auto;padding:24px"><h2 style="margin:0;color:#0B4F6C">RABAS Travel & Tours Services</h2><p style="margin:20px 0 4px">Dear ${escapeHtml(booking.first_name || "Customer")},</p><p style="margin:0 0 18px">Your customized trip quote is ready.</p><p style="margin:0 0 12px;color:#64748b;font-size:13px">Booking reference <strong style="color:#24303b">${escapeHtml(booking.booking_reference)}</strong></p><table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}<p style="margin:18px 0;padding:14px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:18px"><strong>Total trip price</strong><strong style="float:right">PHP ${escapeHtml(total)}</strong></p><p style="font-size:13px">Sign in to your RABAS account to review and accept the quote. No payment has been taken.</p><p style="margin-top:24px">RABAS Travel & Tours Services</p></div>`
+        : `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>${escapeHtml(message)}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>Status:</strong> ${escapeHtml(status)}</p><table style="width:100%;border-collapse:collapse">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}${priceHtml}</div><p>${escapeHtml(followUp)}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`;
+    const text = isCustomQuote
+        ? `Dear ${booking.first_name || "Customer"},\n\nYour customized trip quote is ready.\n\nBooking reference: ${booking.booking_reference}\n${detailsText}${itineraryText}${breakdownText}\n\nTotal trip price: PHP ${total}\n\nSign in to your RABAS account to review and accept the quote. No payment has been taken.\n\nRABAS Travel & Tours Services`
+        : `Dear ${booking.first_name || "Customer"},\n\n${message}\n\nBooking reference: ${booking.booking_reference}\nStatus: ${status}\n${detailsText}${itineraryText}${breakdownText}\n\n${priceText}\n\n${followUp}\n\nRABAS Travel & Tours Services`;
     const receiptDetails = [
         ...details,
         ["Booking date", formatReceiptDate(booking.booking_date)],
@@ -381,7 +415,7 @@ async function sendBookingConfirmation(booking, type = "tour") {
         : normalizeItineraryLines(booking.itinerary);
     const receiptBreakdown = priceBreakdown.map(line => `${line.description || "Item"}: PHP ${Number(line.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`);
     const receiptPdf = createBookingReceiptPdf(booking, type, receiptDetails, itineraryLines, receiptBreakdown);
-    const receiptFilename = `RABAS-Booking-Receipt-${String(booking.booking_reference || "booking").replace(/[^a-z0-9_-]/gi, "-")}.pdf`;
+    const receiptFilename = `${isCustomQuote ? "RABAS-Trip-Quote" : "RABAS-Booking-Receipt"}-${String(booking.booking_reference || "booking").replace(/[^a-z0-9_-]/gi, "-")}.pdf`;
     return sendEmail(email, `${title} - ${booking.booking_reference}`, text, html, "Booking email", [{
         filename: receiptFilename,
         content: receiptPdf,

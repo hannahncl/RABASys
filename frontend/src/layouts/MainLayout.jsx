@@ -41,10 +41,17 @@ const MainLayout = () => {
     };
 
     loadNotifications();
-    const interval = setInterval(loadNotifications, 30000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadNotifications();
+    };
+    const interval = setInterval(loadNotifications, 10000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [user]);
 
@@ -71,6 +78,7 @@ const MainLayout = () => {
         setNotifications(current => current.map(item => item.notification_id === notification.notification_id ? { ...item, is_read: 1 } : item));
       }
       setNotificationsOpen(false);
+      navigate('/profile?view=history');
     } catch {
       // Keep the notification visible if marking it read fails.
     }

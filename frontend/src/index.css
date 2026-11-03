@@ -97,6 +97,11 @@
   }
 }
 
+@keyframes success-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 /* Text selection highlight — standard blue */
 ::selection {
   background: #7a7a7a !important;

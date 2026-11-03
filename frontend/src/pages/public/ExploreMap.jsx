@@ -243,11 +243,11 @@ const MapLiveNavigationController = ({ userLocation, followUser, navigationTarge
   const hasCenteredInitiallyRef = useRef(false);
 
   useEffect(() => {
-    if (!hasCenteredInitiallyRef.current && userLocation) {
+    if (!hasCenteredInitiallyRef.current && userLocation && followUser) {
       hasCenteredInitiallyRef.current = true;
       map.setView([userLocation.lat, userLocation.lng], 13, { animate: true });
     }
-  }, [userLocation, map]);
+  }, [userLocation, followUser, map]);
 
   useEffect(() => {
     if (fitBoundsTrigger && fitBoundsTrigger !== lastFitRef.current && userLocation && navigationTarget) {
@@ -306,6 +306,7 @@ const ExploreMap = () => {
   const [followUser, setFollowUser] = useState(true);
   const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
   const lastRouteOriginRef = useRef(null);
+  const arrivalNotifiedForRef = useRef(null);
 
   // Gallery filter state
   const [galleryFilterValue, setGalleryFilterValue] = useState('All');
@@ -456,6 +457,7 @@ const ExploreMap = () => {
     setMapSearchResults([]);
     setMapSearchError('');
     setHasSearchedMap(false);
+    setIsMapSearching(true);
 
     const elapsedSinceSearch = Date.now() - lastMapSearchAtRef.current;
     const delay = Math.max(500, 1000 - elapsedSinceSearch);
@@ -626,31 +628,6 @@ const ExploreMap = () => {
     loadSpotUploads();
   }, [selectedSpot, showNotification]);
 
-  // Auto-progress timer for Story Viewer
-  useEffect(() => {
-    let timer;
-    if (storyViewerOpen && uploads.length > 0) {
-      setStoryProgress(0);
-      const interval = 50;
-      const totalTime = 5000;
-      timer = setInterval(() => {
-        setStoryProgress(prev => {
-          if (prev >= 100) {
-            if (activeStoryIndex < uploads.length - 1) {
-              setActiveStoryIndex(idx => idx + 1);
-              return 0;
-            } else {
-              setStoryViewerOpen(false);
-              return 0;
-            }
-          }
-          return prev + (interval / totalTime) * 100;
-        });
-      }, interval);
-    }
-    return () => clearInterval(timer);
-  }, [storyViewerOpen, activeStoryIndex, uploads.length]);
-
   const handleSpotClick = (spot) => {
     const namedSpot = { ...spot, name: getSpotDisplayName(spot) };
     setHasSearchedMap(false);
@@ -662,41 +639,21 @@ const ExploreMap = () => {
     setDestinationSearchQuery(namedSpot.name);
   };
 
-  const handleDestinationSearch = async (event) => {
+  const handleDestinationSearch = (event) => {
     event.preventDefault();
-    const query = destinationSearchQuery.trim();
-    if (!query || isMapSearching) return;
+    if (!destinationSearchQuery.trim() || isMapSearching) return;
+
+    if (destinationSearchMatches.length) {
+      const query = normalizeDestinationName(destinationSearchQuery);
+      const exactMatch = destinationSearchMatches.find(spot =>
+        normalizeDestinationName(getSpotDisplayName(spot)) === query
+      );
+      handleSpotClick(exactMatch || destinationSearchMatches[0]);
+      return;
+    }
 
     if (mapSearchResults.length) {
       handleMapSearchResultClick(mapSearchResults[0]);
-      return;
-    }
-
-    if (destinationSearchMatches.length) {
-      handleSpotClick(destinationSearchMatches[0]);
-      return;
-    }
-
-    const remainingWait = 1000 - (Date.now() - lastMapSearchAtRef.current);
-    if (remainingWait > 0) {
-      setMapSearchError('Please wait a moment before searching again.');
-      return;
-    }
-
-    lastMapSearchAtRef.current = Date.now();
-    setMapSearchResults([]);
-    setMapSearchError('');
-    setHasSearchedMap(true);
-    setIsMapSearching(true);
-
-    try {
-      const results = await searchPhilippineLocations(query);
-      setMapSearchResults(results);
-    } catch (error) {
-      console.error('Could not search map locations:', error);
-      setMapSearchError('Location search is unavailable right now. Please try again.');
-    } finally {
-      setIsMapSearching(false);
     }
   };
 
@@ -719,11 +676,19 @@ const ExploreMap = () => {
     setMapSearchResults([]);
     setMapSearchError('');
     setHasSearchedMap(false);
+    activeMapSearchRef.current?.abort();
+    setIsMapSearching(false);
   };
 
   const handleBackToAll = () => {
     setSelectedSpot(null);
     setGalleryFilterValue('All');
+    setDestinationSearchQuery('');
+    setMapSearchResults([]);
+    setMapSearchError('');
+    setHasSearchedMap(false);
+    activeMapSearchRef.current?.abort();
+    setIsMapSearching(false);
     setMapCenter([13.4, 123.6]);
     setMapZoom(8.5);
   };
@@ -774,7 +739,8 @@ const ExploreMap = () => {
         // Arrival alert if within 50 meters of destination
         if (navigationTarget) {
           const distKm = calculateDistanceKm(latitude, longitude, navigationTarget.coords[0], navigationTarget.coords[1]);
-          if (distKm <= 0.05) {
+          if (distKm <= 0.05 && arrivalNotifiedForRef.current !== navigationTarget.id) {
+            arrivalNotifiedForRef.current = navigationTarget.id;
             showNotification(`🎉 You have arrived at ${getSpotShortName(navigationTarget)}!`, 'success');
           }
         }
@@ -851,6 +817,7 @@ const ExploreMap = () => {
   const startNavigationToSpot = (spot) => {
     setSelectedSpot(spot);
     setNavigationTarget(spot);
+    arrivalNotifiedForRef.current = null;
     setFollowUser(true);
     setFitBoundsTrigger(prev => prev + 1);
     if (!userLocation) {
@@ -938,6 +905,8 @@ const ExploreMap = () => {
       finalImageUrl = deviceFilePreview;
     } else if (uploadTab === 'camera' && capturedPhoto) {
       finalImageUrl = capturedPhoto;
+    } else if (uploadTab === 'gallery' && selectedPresetImage) {
+      finalImageUrl = selectedPresetImage;
     } else if (uploadTab === 'url' && customImageUrl.trim()) {
       finalImageUrl = customImageUrl.trim();
     } else {
@@ -945,6 +914,8 @@ const ExploreMap = () => {
         ? 'Take a photo with your camera before sharing.'
         : uploadTab === 'file'
           ? 'Choose a photo from your device before sharing.'
+          : uploadTab === 'gallery'
+            ? 'Choose a preset photo before sharing.'
           : 'Enter a valid photo URL before sharing.');
       setUploading(false);
       return;
@@ -984,6 +955,7 @@ const ExploreMap = () => {
       setTouristName('');
       setCaption('');
       setCustomImageUrl('');
+      setSelectedPresetImage(PRESET_UPLOAD_IMAGES[0].url);
       setCapturedPhoto(null);
       setDeviceFile(null);
       setDeviceFilePreview('');
@@ -1088,6 +1060,30 @@ const ExploreMap = () => {
     const matchesSearch = !query || [up.caption, up.touristName, spot?.name, up.locationName].some(value => String(value || '').toLowerCase().includes(query));
     return matchesProvince && matchesSearch;
   });
+
+  // Keep story playback aligned with the photos currently shown in the gallery.
+  useEffect(() => {
+    let timer;
+    if (storyViewerOpen && galleryUploads.length > 0) {
+      setStoryProgress(0);
+      const interval = 50;
+      const totalTime = 5000;
+      timer = setInterval(() => {
+        setStoryProgress(prev => {
+          if (prev >= 100) {
+            if (activeStoryIndex < galleryUploads.length - 1) {
+              setActiveStoryIndex(idx => idx + 1);
+              return 0;
+            }
+            setStoryViewerOpen(false);
+            return 0;
+          }
+          return prev + (interval / totalTime) * 100;
+        });
+      }, interval);
+    }
+    return () => clearInterval(timer);
+  }, [storyViewerOpen, activeStoryIndex, galleryUploads.length]);
 
   // Calculate live navigation metrics
   const remainingDistanceKm = (userLocation && navigationTarget)
@@ -1219,7 +1215,7 @@ const ExploreMap = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
                   {galleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
-                    const uploadsIdx = uploads.findIndex(u => u.id === up.id);
+                    const uploadsIdx = galleryUploads.findIndex(u => u.id === up.id);
                     return (
                       <div
                         key={up.id}
@@ -1274,7 +1270,7 @@ const ExploreMap = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {galleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
-                    const uploadsIdx = uploads.findIndex(u => u.id === up.id);
+                    const uploadsIdx = galleryUploads.findIndex(u => u.id === up.id);
                     return (
                       <div
                         key={up.id}
@@ -1784,7 +1780,7 @@ const ExploreMap = () => {
       </div>
 
       {/* ── STORY VIEWER MODAL ── */}
-      {storyViewerOpen && uploads.length > 0 && uploads[activeStoryIndex] && (
+      {storyViewerOpen && galleryUploads.length > 0 && galleryUploads[activeStoryIndex] && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(29,26,20,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(6px)' }}
           onClick={() => setStoryViewerOpen(false)}
@@ -1801,7 +1797,7 @@ const ExploreMap = () => {
           >
             {/* Progress bars */}
             <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', right: '0.75rem', zIndex: 30, display: 'flex', gap: '0.25rem' }}>
-              {uploads.map((_, i) => (
+              {galleryUploads.map((_, i) => (
                 <div key={i} style={{ height: '2px', flex: 1, background: 'rgba(247,244,239,0.25)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', background: '#f7f4ef', transition: 'width 0.05s linear', width: i === activeStoryIndex ? `${storyProgress}%` : i < activeStoryIndex ? '100%' : '0%' }} />
                 </div>
@@ -1810,36 +1806,36 @@ const ExploreMap = () => {
             {/* Header */}
             <div style={{ position: 'absolute', top: '1.5rem', left: '1rem', right: '1rem', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                <img src={uploads[activeStoryIndex].avatar} alt={uploads[activeStoryIndex].touristName} style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #c4b99a' }} />
+                <img src={galleryUploads[activeStoryIndex].avatar} alt={galleryUploads[activeStoryIndex].touristName} style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #c4b99a' }} />
                 <div>
-                  <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f7f4ef', lineHeight: 1.2 }}>{uploads[activeStoryIndex].touristName}</h4>
-                  <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.6)' }}>{getTimeAgo(uploads[activeStoryIndex].date)}</span>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f7f4ef', lineHeight: 1.2 }}>{galleryUploads[activeStoryIndex].touristName}</h4>
+                  <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.6)' }}>{getTimeAgo(galleryUploads[activeStoryIndex].date)}</span>
                 </div>
               </div>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#f7f4ef', background: 'rgba(29,26,20,0.6)', border: '1px solid rgba(196,185,154,0.3)', padding: '0.25rem 0.625rem', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '0.25rem', backdropFilter: 'blur(4px)' }}>
                 <MapPin style={{ width: '0.625rem', height: '0.625rem', color: '#c4b99a' }} />
-                {(spots.find(s => s.id === uploads[activeStoryIndex].spotId)?.name || uploads[activeStoryIndex].locationName || 'Bicol Spot').split(',')[0]}
+                {(spots.find(s => s.id === galleryUploads[activeStoryIndex].spotId)?.name || galleryUploads[activeStoryIndex].locationName || 'Bicol Spot').split(',')[0]}
               </span>
             </div>
             {/* Image & Nav */}
             <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0c0a' }}>
-              <img src={uploads[activeStoryIndex].imageUrl} alt={uploads[activeStoryIndex].caption} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={galleryUploads[activeStoryIndex].imageUrl} alt={galleryUploads[activeStoryIndex].caption} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               <div onClick={() => { if (activeStoryIndex > 0) setActiveStoryIndex(i => i - 1); }} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '33%', cursor: 'pointer' }} />
-              <div onClick={() => { if (activeStoryIndex < uploads.length - 1) setActiveStoryIndex(i => i + 1); else setStoryViewerOpen(false); }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '67%', cursor: 'pointer' }} />
+              <div onClick={() => { if (activeStoryIndex < galleryUploads.length - 1) setActiveStoryIndex(i => i + 1); else setStoryViewerOpen(false); }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '67%', cursor: 'pointer' }} />
             </div>
             {/* Caption & Actions */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to top, rgba(10,9,7,0.92) 0%, rgba(10,9,7,0.5) 60%, transparent 100%)', zIndex: 30 }}>
-              <p style={{ fontSize: '0.7rem', color: '#f7f4ef', lineHeight: 1.5, marginBottom: '0.75rem' }}>{uploads[activeStoryIndex].caption}</p>
+              <p style={{ fontSize: '0.7rem', color: '#f7f4ef', lineHeight: 1.5, marginBottom: '0.75rem' }}>{galleryUploads[activeStoryIndex].caption}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <button
-                  onClick={e => handleLike(e, uploads[activeStoryIndex].id)}
+                  onClick={e => handleLike(e, galleryUploads[activeStoryIndex].id)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 700, background: 'none', border: 'none', color: '#f7f4ef', cursor: 'pointer' }}
                 >
-                  <Heart style={{ width: '1.125rem', height: '1.125rem', fill: uploads[activeStoryIndex].isLiked ? '#f7f4ef' : 'none' }} />
-                  {uploads[activeStoryIndex].likesCount || 0} Likes
+                  <Heart style={{ width: '1.125rem', height: '1.125rem', fill: galleryUploads[activeStoryIndex].isLiked ? '#f7f4ef' : 'none' }} />
+                  {galleryUploads[activeStoryIndex].likesCount || 0} Likes
                 </button>
                 <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.5)', letterSpacing: '0.04em' }}>
-                  {activeStoryIndex + 1} of {uploads.length}
+                  {activeStoryIndex + 1} of {galleryUploads.length}
                 </span>
               </div>
             </div>

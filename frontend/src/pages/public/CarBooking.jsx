@@ -73,11 +73,6 @@ const CarBooking = () => {
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('gcash');
-  const [gcashRef, setGcashRef] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
 
   // Calendar state
   const [showPickupCal, setShowPickupCal] = useState(false);
@@ -162,32 +157,18 @@ const CarBooking = () => {
       return;
     }
 
-    if (paymentMethod === 'gcash') {
-      if (!gcashRef.trim()) {
-        showNotification('Please enter your GCash reference number.', 'warning');
-        return;
-      }
-    } else if (!cardNumber || !expiryDate || !cvv) {
-      showNotification('Please fill in the card details.', 'warning');
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const referenceNumber = paymentMethod === 'gcash'
-        ? gcashRef.trim()
-        : `CARD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-      await bookingService.createRental({
+      const checkout = await bookingService.createXenditSession({
+        bookingType: 'rental',
         vehicleId: id,
         pickupDate,
         returnDate,
         pickupLocation,
-        paymentMethod: paymentMethod === 'gcash' ? 'GCash' : 'Credit Card',
-        paymentRef: referenceNumber,
+        totalPrice: total,
+        packageName: car.vehicleName,
       });
-      showNotification('Car booking submitted successfully and is pending admin approval.', 'success');
-      navigate('/profile');
+      window.location.assign(checkout.checkoutUrl);
     } catch (error) {
       showNotification(error?.message || error.response?.data?.message || 'Failed to book car', 'error');
     } finally {
@@ -758,8 +739,20 @@ const CarBooking = () => {
                 </div>
               )}
 
-              <div
-                className="p-6 space-y-5"
+              <div className="rounded-2xl border border-[#d9e5f5] bg-[#f7faff] p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e6efff] text-[#2d6cdf]">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#17233d]">Secure online payment</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#61708a]">You’ll be redirected to our payment gateway after reviewing your rental details. Your rental is confirmed only after payment is completed.</p>
+                  </div>
+                </div>
+              </div>
+
+              {false && (<div
+                className="hidden p-6 space-y-5"
                 style={{
                   background: colors.subtleBg,
                   border: `1px solid ${colors.borderLight}`,
@@ -874,7 +867,7 @@ const CarBooking = () => {
                     </div>
                   </div>
                 )}
-              </div>
+              </div>)}
 
               {/* Submit Button */}
               <div className="flex justify-end pt-2">

@@ -5,7 +5,7 @@ import { bookingService } from '../../services/bookingService';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useNotification } from '../../hooks/useNotification';
-import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Mail, Phone, User, Landmark, ShieldCheck, Sparkles, Globe, ArrowRight, CheckCircle2 } from 'lucide-react';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
 import { api } from '../../services/api';
 import { weatherService } from '../../services/weatherService';
@@ -54,18 +54,24 @@ const Booking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const stateData = location.state || {};
+  const bookingSearchParams = new URLSearchParams(location.search);
+  const requestedTravelers = Number(bookingSearchParams.get('travelers'));
+  const initialTravelerCount = Number.isInteger(requestedTravelers) && requestedTravelers >= 1 && requestedTravelers <= 8
+    ? requestedTravelers
+    : 1;
 
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joinerAvailability, setJoinerAvailability] = useState(null);
+  const [joinerAvailabilityError, setJoinerAvailabilityError] = useState(false);
 
   // Form fields
   const [firstName, setFirstName] = useState(stateData.firstName || (user?.name ? user.name.split(' ')[0] : ''));
   const [lastName, setLastName] = useState(stateData.lastName || (user?.name ? user.name.split(' ').slice(1).join(' ') : ''));
   const [email, setEmail] = useState(stateData.email || user?.email || '');
-  const [phone, setPhone] = useState(stateData.phone || '');
-  const [tourDate, setTourDate] = useState(stateData.tourDate || '');
-  const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || 1)));
+  const [phone, setPhone] = useState(stateData.phone || user?.contactNumber || user?.contact_number || '');
+  const [tourDate, setTourDate] = useState(stateData.tourDate || bookingSearchParams.get('date') || '');
+  const [adultsCount, setAdultsCount] = useState(Math.max(1, Math.floor(Number(stateData.adultsCount) || initialTravelerCount)));
   const [childrenCount, setChildrenCount] = useState(Math.max(0, Math.floor(Number(stateData.childrenCount) || 0)));
   const [participantNames, setParticipantNames] = useState([]);
 
@@ -88,6 +94,8 @@ const Booking = () => {
   const [paymentMethod, setPaymentMethod] = useState('Xendit');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [policyModal, setPolicyModal] = useState(null);
 
   // Credit Card Form State (mock)
   const [cardNumber, setCardNumber] = useState('');
@@ -99,6 +107,7 @@ const Booking = () => {
     const loadPkg = async () => {
       setLoading(true);
       setJoinerAvailability(null);
+      setJoinerAvailabilityError(false);
 
       try {
         const guides = await api('/tour-guides/public');
@@ -117,28 +126,36 @@ const Booking = () => {
         return;
       }
 
-      const data = await packageService.getById(packageId);
-      if (!data) {
-        showNotification('Invalid package selected.', 'error');
-        navigate('/packages');
-        return;
-      }
-      setPkg(data);
-      if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
-        try {
-          const availability = await api(`/bookings/joiner-availability/${packageId}`);
-          setJoinerAvailability(availability);
-          const departureDate = availability.departureDate || data.joinerDate;
-          if (departureDate) {
-            const fixedDate = String(departureDate).slice(0, 10);
-            setTourDate(fixedDate);
-            setCalendarDate(new Date(`${fixedDate}T00:00:00`));
-          }
-        } catch {
-          if (data.joinerDate) setTourDate(String(data.joinerDate).slice(0, 10));
+      try {
+        const data = await packageService.getById(packageId);
+        if (!data) {
+          showNotification('Invalid package selected.', 'error');
+          navigate('/packages');
+          return;
         }
+        setPkg(data);
+        if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
+          try {
+            const availability = await api(`/bookings/joiner-availability/${packageId}`);
+            setJoinerAvailability(availability);
+            const departureDate = availability.departureDate || data.joinerDate;
+            if (departureDate) {
+              const fixedDate = String(departureDate).slice(0, 10);
+              setTourDate(fixedDate);
+              setCalendarDate(new Date(`${fixedDate}T00:00:00`));
+            }
+          } catch {
+            setJoinerAvailabilityError(true);
+            if (data.joinerDate) setTourDate(String(data.joinerDate).slice(0, 10));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load booking package:', err);
+        showNotification('We could not load this package. Please return to the package list and try again.', 'error');
+        navigate('/packages');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadPkg();
   }, [packageId, navigate, showNotification]);
@@ -257,12 +274,13 @@ const Booking = () => {
       showNotification('Please enter the full name of every Joiner traveler.', 'warning');
       return;
     }
-    if (!/^[A-Za-z\s]+$/.test(firstName.trim())) {
-      showNotification('First Name must only contain letters.', 'warning');
+    const validName = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u;
+    if (!validName.test(firstName.trim())) {
+      showNotification('Please enter a valid first name.', 'warning');
       return;
     }
-    if (!/^[A-Za-z\s]+$/.test(lastName.trim())) {
-      showNotification('Last Name must only contain letters.', 'warning');
+    if (!validName.test(lastName.trim())) {
+      showNotification('Please enter a valid last name.', 'warning');
       return;
     }
     if (!/^\d{11}$/.test(phone)) {
@@ -278,6 +296,10 @@ const Booking = () => {
 
   const handleFinalSubmit = (e) => {
     e.preventDefault();
+    if (!termsAccepted) {
+      showNotification('Please agree to the General Terms of Use and Privacy Policy before continuing.', 'warning');
+      return;
+    }
     handlePaymentSuccess();
   }
 
@@ -303,8 +325,7 @@ const Booking = () => {
         ...(pkg.customizedDetails && { customizedDetails: pkg.customizedDetails })
       };
 
-      const booking = await bookingService.create(bookingData);
-      const checkout = await bookingService.createXenditSession(booking.id);
+      const checkout = await bookingService.createXenditSession(bookingData);
       window.location.assign(checkout.checkoutUrl);
     } catch (error) {
       showNotification(error.message || 'Failed to save booking. Please try again.', 'error');
@@ -477,8 +498,9 @@ const Booking = () => {
                             <p className="text-sm font-semibold text-[#2d2a24]">
                               {tourDate ? new Date(`${tourDate}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Departure date not set'}
                             </p>
-                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your spots are reserved automatically when you submit your booking.</p>
-                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked. Please refresh.'}</p>
+                            <p className="mt-1 text-xs leading-relaxed text-[#777064]">Join this scheduled departure with other travelers. Your spots are reserved after successful payment.</p>
+                            <p className="mt-2 text-[11px] font-medium text-[#6b6255]">{joinerAvailability?.scheduleValid === false ? 'The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.' : joinerAvailability ? (joinerAvailability.bookingOpen ? `${joinerAvailability.remainingSlots} spots remaining` : 'Booking is closed for this departure') : 'Availability could not be checked.'}</p>
+                            {joinerAvailabilityError && <button type="button" onClick={() => { setJoinerAvailabilityError(false); api(`/bookings/joiner-availability/${packageId}`).then((availability) => { setJoinerAvailability(availability); if (availability.departureDate) setTourDate(String(availability.departureDate).slice(0, 10)); }).catch(() => setJoinerAvailabilityError(true)); }} className="mt-2 text-[11px] font-semibold text-[#7b1717] underline">Retry availability check</button>}
                             {joinerAvailability?.scheduleValid !== false && (joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline) && <p className="mt-2 text-[11px] text-[#6b6255]">Booking closes {new Date(`${String(joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })}, at least 3 days before departure.</p>}
                           </div>
                         </div>
@@ -756,7 +778,7 @@ const Booking = () => {
                               value={participantNames[index] || ''}
                               onChange={(event) => setParticipantNames((current) => {
                                 const next = [...current];
-                                next[index] = event.target.value.replace(/[^a-zA-Z .'-]/g, '');
+                                next[index] = event.target.value;
                                 return next;
                               })}
                               placeholder="Full name"
@@ -786,7 +808,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={firstName}
-                            onChange={(e) => setFirstName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                            onChange={(e) => setFirstName(e.target.value)}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -803,7 +825,7 @@ const Booking = () => {
                             type="text"
                             required
                             value={lastName}
-                            onChange={(e) => setLastName(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                            onChange={(e) => setLastName(e.target.value)}
                             className="w-full py-3 px-4 text-[14px] focus:outline-none transition-all capitalize"
                             style={inputStyle}
                             {...inputFocusHandlers}
@@ -865,19 +887,32 @@ const Booking = () => {
             ) : (
               // STEP 2: Payment UI
               <>
-                <h2
-                  className="text-[13px] font-semibold mb-10"
-                  style={{
-                    color: colors.textPrimary,
-                    fontFamily: "'Outfit', Georgia, serif",
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Complete Payment
-                </h2>
-                <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-6">
-                  <div className="rounded border border-[#e0dbd0] bg-[#faf9f6] p-6 space-y-3">
+                <div className="mb-8 flex items-start justify-between gap-6">
+                  <div>
+                    <h2 className="text-3xl font-semibold tracking-[-0.04em]" style={{ color: colors.textPrimary, fontFamily: "'Outfit', Georgia, serif" }}>Complete your payment</h2>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed" style={{ color: colors.textSecondary }}>Review your trip details, then continue to Xendit secure checkout. Your booking will be created after Xendit confirms payment.</p>
+                  </div>
+                </div>
+                <form id="payment-form" onSubmit={handleFinalSubmit} className="space-y-5">
+                  <div className="overflow-hidden rounded-2xl border bg-white shadow-[0_18px_50px_rgba(45,42,36,0.08)]" style={{ borderColor: colors.border }}>
+                    <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: colors.borderLight, background: '#fcfbf8' }}>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: colors.textPrimary }}>Pay securely with Xendit</p>
+                        <p className="mt-1 text-[11px]" style={{ color: colors.textSecondary }}>Protected payment · No card details stored by RABASys</p>
+                      </div>
+                      <div className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: '#eef3ff', color: '#3557a7' }}>PHP</div>
+                    </div>
+                    <div className="grid gap-3 p-5 sm:grid-cols-3">
+                      {[['1', 'Review'], ['2', 'Choose method'], ['3', 'Confirm']].map(([number, label], index) => (
+                        <div key={label} className="flex items-center gap-2.5 rounded-xl border px-3 py-3" style={{ borderColor: index === 0 ? '#d6e5ff' : colors.borderLight, background: index === 0 ? '#f5f8ff' : '#fff' }}>
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: index === 0 ? '#2d6cdf' : '#f0ede7', color: index === 0 ? '#fff' : colors.textSecondary }}>{number}</span>
+                          <span className="text-[11px] font-semibold" style={{ color: colors.textPrimary }}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mx-5 mb-5 rounded-xl px-4 py-3 text-[11px] leading-relaxed" style={{ background: '#f8f6f1', color: colors.textSecondary }}>You’ll be redirected to Xendit’s secure checkout page to choose GCash, cards, or another available method.</div>
+                  </div>
+                  <div className="hidden rounded border border-[#e0dbd0] bg-[#faf9f6] p-6 space-y-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: colors.textPrimary }}>Pay securely with Xendit</p>
                     <p className="text-[12px] leading-relaxed" style={{ color: colors.textSecondary }}>
                       You’ll be redirected to Xendit’s secure checkout page to choose GCash, card, or another payment method enabled for this account. Your booking is confirmed only after Xendit verifies payment.
@@ -1047,40 +1082,38 @@ const Booking = () => {
                   </div>
 
                   {/* Final T&C and Submit */}
-                  <div className="flex items-center justify-between pt-12">
+                  <div className="flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: colors.border, background: '#fff' }}>
                     <label className="flex items-start gap-2.5 cursor-pointer max-w-[280px]">
                       <input
                         type="checkbox"
-                        className="w-3 h-3 mt-0.5"
-                        style={{ accentColor: colors.accentDark }}
+                        required
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                        className="mt-0.5 h-3.5 w-3.5"
+                        style={{ accentColor: '#2d6cdf' }}
                       />
-                      <span className="text-[9px] leading-tight" style={{ color: colors.textSecondary }}>
-                        By continuing, you acknowledge and agree to <span className="underline cursor-pointer">General Terms of Use</span> and <span className="underline cursor-pointer">Privacy Policy</span>
+                      <span className="text-[10px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                        By continuing, you acknowledge and agree to <button type="button" onClick={() => setPolicyModal('terms')} className="font-semibold underline hover:text-[#2d6cdf]">General Terms of Use</button> and <button type="button" onClick={() => setPolicyModal('privacy')} className="font-semibold underline hover:text-[#2d6cdf]">Privacy Policy</button>.
                       </span>
                     </label>
 
                     <button
                       type="submit"
-                      disabled={submitting}
-                      className="py-2.5 px-8 text-[11px] font-semibold active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                      disabled={submitting || !termsAccepted}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-xs font-bold text-white shadow-[0_10px_22px_rgba(45,108,223,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[#1f59c7] disabled:cursor-not-allowed disabled:opacity-50"
                       style={{
-                        background: colors.accentDark,
-                        color: '#f7f4ef',
-                        borderRadius: '2px',
-                        letterSpacing: '0.12em',
-                        textTransform: 'uppercase',
+                        background: '#2d6cdf',
                         border: 'none',
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.background = '#1a1715';
-                        e.target.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
+                        e.target.style.background = '#1f59c7';
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = colors.accentDark;
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.background = '#2d6cdf';
                       }}
                     >
-                      {submitting ? 'Processing...' : 'Proceed to Pay'}
+                      {submitting ? 'Preparing checkout...' : 'Continue to secure payment'}
+                      {!submitting && <ArrowRight className="h-4 w-4" />}
                     </button>
                   </div>
 
@@ -1126,7 +1159,7 @@ const Booking = () => {
                     </h4>
                     <div className="flex items-center gap-2 text-[11px] font-medium mt-2" style={{ color: colors.textSecondary }}>
                       <ShieldCheck className="w-3.5 h-3.5" style={{ color: colors.accent }} />
-                      <span>Strictly No Cancellation</span>
+                      <span>Non-cancellable · Rescheduling available</span>
                     </div>
                   </div>
 
@@ -1215,6 +1248,40 @@ const Booking = () => {
 
         </div>
       </div>
+
+      {policyModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#17233d]/55 p-4" role="dialog" aria-modal="true" aria-labelledby="policy-modal-title" onClick={() => setPolicyModal(null)}>
+          <div className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-[#e8edf4] px-6 py-5">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#2d6cdf]">RABASys booking policy</p>
+                <h2 id="policy-modal-title" className="mt-1 text-xl font-semibold text-[#17233d]">{policyModal === 'terms' ? 'General Terms of Use' : 'Privacy Policy'}</h2>
+              </div>
+              <button type="button" onClick={() => setPolicyModal(null)} className="rounded-full px-2 text-2xl leading-none text-[#718096] hover:bg-[#f3f6fa] hover:text-[#17233d]" aria-label="Close policy">×</button>
+            </div>
+            <div className="max-h-[55vh] overflow-y-auto px-6 py-5 text-sm leading-7 text-[#61708a]">
+              {policyModal === 'terms' ? (
+                <>
+                  <p>By booking with RABAS Travel and Tours, you confirm that the information you provide is accurate and complete.</p>
+                  <p className="mt-4"><strong className="text-[#17233d]">Cancellation:</strong> Confirmed bookings are non-cancellable and payments are non-refundable.</p>
+                  <p className="mt-4"><strong className="text-[#17233d]">Rescheduling:</strong> You may request a change to your travel date through your account, subject to availability and operator approval. Completed trips cannot be rescheduled.</p>
+                  <p className="mt-4"><strong className="text-[#17233d]">Booking details:</strong> Please review your travel date, guest count, traveler names, contact details, package inclusions, and meeting instructions carefully before continuing. Changes to these details may require contacting RABAS Travel directly.</p>
+                  <p className="mt-4"><strong className="text-[#17233d]">Availability:</strong> A rescheduled date is only confirmed once it has been successfully updated in your account. If the requested date is unavailable, you will need to choose another available date.</p>
+                </>
+              ) : (
+                <>
+                  <p>RABASys uses your contact and booking information to create your reservation, process payment, provide trip updates, and support your travel experience.</p>
+                  <p className="mt-4">Payment information is handled by our payment provider and is not stored by RABASys. We retain only the transaction and booking information needed to manage your reservation and provide customer support.</p>
+                  <p className="mt-4">We do not sell your personal information. You may contact RABASys to ask about the information associated with your booking.</p>
+                </>
+              )}
+            </div>
+            <div className="border-t border-[#e8edf4] px-6 py-4 text-right">
+              <button type="button" onClick={() => setPolicyModal(null)} className="rounded-xl bg-[#2d6cdf] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1f59c7]">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

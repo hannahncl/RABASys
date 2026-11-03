@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { packageService } from '../../services/packageService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
@@ -11,20 +11,27 @@ const PackageDetail = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [joinerAvailability, setJoinerAvailability] = useState(null);
+  const [joinerAvailabilityError, setJoinerAvailabilityError] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedItineraryDay, setSelectedItineraryDay] = useState(null);
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     const loadDetails = async () => {
       setLoading(true);
+      setLoadError(false);
       try {
         const data = await packageService.getById(id);
         if (!active) return;
@@ -34,9 +41,10 @@ const PackageDetail = () => {
         if (data) {
           loadReviewsForPackage(id);
           if (String(data.packageType || data.package_type || data.category || '').toLowerCase() === 'joiner') {
+            setJoinerAvailabilityError(false);
             api(`/bookings/joiner-availability/${id}`)
               .then((availability) => { if (active) setJoinerAvailability(availability); })
-              .catch(() => {});
+              .catch(() => { if (active) setJoinerAvailabilityError(true); });
           }
         } else {
           setReviews([]);
@@ -44,25 +52,20 @@ const PackageDetail = () => {
         }
       } catch (error) {
         console.error('Failed to load package details:', error);
-        if (active) setPkg(null);
+        if (active) { setPkg(null); setLoadError(true); }
       } finally {
         if (active) setLoading(false);
       }
     };
     loadDetails();
     return () => { active = false; };
-  }, [id, user]);
+  }, [id, user, loadAttempt]);
 
   const loadReviewsForPackage = async (packageId) => {
-    if (!user) {
-      setReviews([]);
-      setLoadingReviews(false);
-      return;
-    }
-
+    setReviewsError(false);
     setLoadingReviews(true);
     try {
-      const allReviewsData = await api(`/reviews?package_id=${packageId}`).catch(() => []);
+      const allReviewsData = await api(`/reviews?package_id=${packageId}`);
 
       const packageReviews = allReviewsData
         .filter(r => String(r.package_id) === String(packageId))
@@ -78,6 +81,7 @@ const PackageDetail = () => {
       setReviews(packageReviews);
     } catch (err) {
       console.error('Failed to load reviews:', err);
+      setReviewsError(true);
     } finally {
       setLoadingReviews(false);
     }
@@ -106,11 +110,12 @@ const PackageDetail = () => {
 
   const handleBookClick = () => {
     if (pkg.isPreview) return;
+    const bookingPath = `/booking/${id}${location.search}`;
     if (!user) {
-      navigate('/login', { state: { from: { pathname: `/booking/${id}` } } });
+      navigate('/login', { state: { from: { pathname: bookingPath } } });
       return;
     }
-    navigate(`/booking/${id}`);
+    navigate(bookingPath);
   };
 
   // Shared style constants
@@ -162,11 +167,12 @@ const PackageDetail = () => {
             textTransform: 'uppercase',
           }}
         >
-          Package Not Found
+          {loadError ? 'Unable to Load Package' : 'Package Not Found'}
         </h2>
         <p className="text-[13px]" style={{ color: colors.textMuted }}>
-          We couldn't retrieve details for this specific package.
+          {loadError ? 'There was a problem retrieving this package. Please try again.' : "We couldn't retrieve details for this specific package."}
         </p>
+        {loadError && <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mx-auto inline-block px-6 py-2.5 text-[11px] font-semibold" style={{ border: `1px solid ${colors.accentDark}`, color: colors.accentDark }}>Try again</button>}
         <Link
           to="/packages"
           className="inline-block px-6 py-2.5 text-[11px] font-semibold transition-all duration-300"
@@ -196,6 +202,7 @@ const PackageDetail = () => {
     else days.push({ day: entry.day, entries: [entry] });
     return days;
   }, []);
+  const activeItineraryDay = itineraryDays.find(({ day }) => day === selectedItineraryDay) || itineraryDays[0];
   const formatTimeRange = (entry) => {
     const format = (value) => new Date(`2000-01-01T${value}`).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -241,7 +248,7 @@ const PackageDetail = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
 
           {/* Left Column (Content) */}
           <div className="lg:col-span-7 space-y-12">
@@ -404,19 +411,39 @@ const PackageDetail = () => {
                 Tour Itinerary
               </h2>
 
-              <div className="mt-5 space-y-6">
-                {itineraryDays.map(({ day, entries }) => (
-                  <section key={day} aria-label={`Day ${day} itinerary`}>
-                    <h3
-                      className="mb-4 text-[11px] font-bold uppercase tracking-[0.12em]"
-                      style={{ color: colors.accentDark }}
+              <div className="mt-5">
+                {itineraryDays.length > 0 && (
+                  <>
+                    <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Itinerary days">
+                      {itineraryDays.map(({ day }) => {
+                        const isSelected = activeItineraryDay?.day === day;
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            role="tab"
+                            aria-selected={isSelected}
+                            onClick={() => setSelectedItineraryDay(day)}
+                            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                            style={{
+                              color: isSelected ? colors.bg : colors.accentDark,
+                              background: isSelected ? colors.accentDark : colors.subtleBg,
+                            }}
+                          >
+                            Day {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <section
+                      key={activeItineraryDay.day}
+                      role="tabpanel"
+                      aria-label={`Day ${activeItineraryDay.day} itinerary`}
                     >
-                      Day {day}
-                    </h3>
                     <div className="space-y-0">
-                      {entries.map((entry, index) => (
-                        <div key={`${day}-${index}`} className="relative pl-8 pb-4 last:pb-0">
-                          {index < entries.length - 1 && (
+                      {activeItineraryDay.entries.map((entry, index) => (
+                        <div key={`${activeItineraryDay.day}-${index}`} className="relative pl-8 pb-4 last:pb-0">
+                          {index < activeItineraryDay.entries.length - 1 && (
                             <div
                               className="absolute left-[9px] top-[20px] bottom-0 w-px"
                               style={{ background: colors.border }}
@@ -450,8 +477,9 @@ const PackageDetail = () => {
                         </div>
                       ))}
                     </div>
-                  </section>
-                ))}
+                    </section>
+                  </>
+                )}
               </div>
             </div>
 
@@ -612,6 +640,11 @@ const PackageDetail = () => {
                     }}
                   />
                 </div>
+              ) : reviewsError ? (
+                <div className="py-10 text-center">
+                  <p className="mb-3 text-[12px]" style={{ color: colors.textMuted }}>Reviews could not be loaded.</p>
+                  <button type="button" onClick={() => loadReviewsForPackage(id)} className="text-[11px] font-semibold underline" style={{ color: colors.accentDark }}>Try again</button>
+                </div>
               ) : reviews.length === 0 ? (
                 <div
                   className="text-center py-14"
@@ -695,7 +728,7 @@ const PackageDetail = () => {
 
               {/* Booking Card */}
               <div
-                className="max-w-sm p-6"
+                className="w-full max-w-none p-7"
                 style={{
                   border: `1px solid ${colors.border}`,
                   borderRadius: '4px',
@@ -737,6 +770,7 @@ const PackageDetail = () => {
                       ₱{pkg.price.toLocaleString()}
                     </p>
                     {isJoiner && <p className="mt-0.5 text-[11px] text-[#777064]">Price per person</p>}
+                    {!isJoiner && <p className="mt-0.5 text-[11px] text-[#777064]">Fixed package price{pkg.maximumCapacity ? ` · up to ${pkg.maximumCapacity} guests` : ''}</p>}
                   </div>
 
                   <div className="flex items-center gap-2 text-[12px]" style={{ color: colors.textSecondary }}>
@@ -769,7 +803,8 @@ const PackageDetail = () => {
                       {joinerAvailability?.scheduleValid === false
                         ? <p className="font-medium text-amber-800">The booking deadline must be at least 3 days before departure. The operator needs to correct this schedule.</p>
                         : (joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline) && <p><strong>Booking deadline:</strong> {formatJoinerDate(joinerAvailability?.bookingDeadline || pkg.joinerBookingDeadline)} <span className="text-[#777064]">(at least 3 days before departure)</span></p>}
-                      <p className="pt-1 leading-relaxed text-[#777064]">Your booking stays pending until the operator reviews and confirms it.</p>
+                      {joinerAvailabilityError && <button type="button" onClick={() => { setJoinerAvailabilityError(false); api(`/bookings/joiner-availability/${id}`).then(setJoinerAvailability).catch(() => setJoinerAvailabilityError(true)); }} className="text-left font-semibold text-[#7b1717] underline">Availability could not be checked. Try again.</button>}
+                      <p className="pt-1 leading-relaxed text-[#777064]">Your booking is confirmed after successful payment. The operator will follow up with trip details.</p>
                     </div>
                   )}
 

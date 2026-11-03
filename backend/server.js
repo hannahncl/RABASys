@@ -27,11 +27,34 @@ async function startServer() {
         await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(100)");
         await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_amount NUMERIC(10,2)");
         await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50)");
+        await db.query("ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB");
+        await db.query(`
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'booking'
+                      AND column_name = 'customized_details'
+                      AND data_type = 'json'
+                ) THEN
+                    ALTER TABLE booking ALTER COLUMN customized_details TYPE JSONB
+                    USING customized_details::jsonb;
+                END IF;
+            END $$;
+        `);
+        // Quote workflow statuses were added after the original booking
+        // constraint. Keep the database check aligned with the statuses used
+        // by bookingRoutes so sending or accepting a custom quote can persist.
+        await db.query(`
+            ALTER TABLE booking DROP CONSTRAINT IF EXISTS ck_booking_booking_status;
+            ALTER TABLE booking ADD CONSTRAINT ck_booking_booking_status
+                CHECK (booking_status IN (
+                    'Pending', 'Pending Verification', 'Quote Sent', 'Quote Accepted',
+                    'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'
+                ));
+        `);
         if (process.env.RUN_MIGRATIONS === "true") {
-            await db.query(
-                "ALTER TABLE booking ADD COLUMN IF NOT EXISTS customized_details JSONB"
-            );
-
             await db.query(
                 "ALTER TABLE account ADD COLUMN IF NOT EXISTS profile_picture TEXT"
             );
