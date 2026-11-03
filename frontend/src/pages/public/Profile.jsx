@@ -61,19 +61,40 @@ const Profile = () => {
 
   useEffect(() => {
     const bookingStatus = searchParams.get('booking_status');
-    if (!bookingStatus) return;
+    const bookingReference = searchParams.get('booking_reference');
+    if (!bookingStatus && !bookingReference) return;
+
+    let active = true;
 
     setProfileView('history');
-    const message = bookingStatus === 'success'
-      ? 'Successfully booked. Your booking is now in Booking History.'
-      : bookingStatus === 'pending'
-        ? 'Payment received. Your booking is still syncing.'
-        : 'We could not verify the payment yet. Please check your booking history.';
-    showNotification(message, bookingStatus === 'success' ? 'success' : 'warning');
 
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('booking_status');
-    setSearchParams(nextParams, { replace: true });
+    const finish = (status) => {
+      if (!active) return;
+      const message = status === 'success'
+        ? 'Successfully booked. Your booking is now in Booking History.'
+        : status === 'pending'
+          ? 'Payment received. Your booking is still syncing.'
+          : 'We could not verify the payment yet. Please check your booking history.';
+      showNotification(message, status === 'success' ? 'success' : 'warning');
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('booking_status');
+      nextParams.delete('booking_reference');
+      setSearchParams(nextParams, { replace: true });
+    };
+
+    if (bookingReference) {
+      api('/payments/xendit/finalize', {
+        method: 'POST',
+        body: JSON.stringify({ booking_reference: bookingReference }),
+      })
+        .then((result) => finish(result.finalized ? 'success' : 'pending'))
+        .catch(() => finish('error'));
+    } else {
+      finish(bookingStatus);
+    }
+
+    return () => { active = false; };
   }, [searchParams, setSearchParams, showNotification]);
 
   // Bookings state

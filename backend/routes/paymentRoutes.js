@@ -136,7 +136,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
                 const [firstName = "Customer", ...lastNameParts] = String(customer.first_name || "Customer").trim().split(/\s+/);
                 const origin = clientOrigin();
                 const redirectUrls = /^https:\/\//i.test(origin)
-                    ? { success_return_url: `${origin}/payment/success?booking_reference=${reference}`, cancel_return_url: `${origin}/profile?payment=cancelled` }
+                    ? { success_return_url: `${origin}/profile?view=history&booking_reference=${reference}`, cancel_return_url: `${origin}/profile?payment=cancelled` }
                     : {};
                 const session = await xenditRequest("/sessions", {
                     reference_id: reference, session_type: "PAY", mode: "PAYMENT_LINK",
@@ -225,7 +225,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
             const origin = clientOrigin();
             const redirectUrls = /^https:\/\//i.test(origin)
                 ? {
-                    success_return_url: `${origin}/payment/success?booking_reference=${reference}`,
+                    success_return_url: `${origin}/profile?view=history&booking_reference=${reference}`,
                     cancel_return_url: `${origin}/profile?payment=cancelled`,
                 }
                 : {};
@@ -331,7 +331,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
         const origin = clientOrigin();
         const redirectUrls = /^https:\/\//i.test(origin)
             ? {
-                    success_return_url: `${origin}/payment/success?booking_id=${booking.booking_id}`,
+                    success_return_url: `${origin}/profile?view=history&booking_reference=${booking.booking_reference}`,
                 cancel_return_url: `${origin}/profile?payment=cancelled&booking_id=${booking.booking_id}`,
             }
             : {};

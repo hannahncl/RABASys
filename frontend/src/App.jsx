@@ -28,7 +28,6 @@ const RescheduleTrip = lazy(() => import('./pages/public/RescheduleTrip'));
 const Wishlist = lazy(() => import('./pages/public/Wishlist'));
 const SupportChat = lazy(() => import('./pages/public/SupportChat'));
 const Booking = lazy(() => import('./pages/public/Booking'));
-const PaymentSuccess = lazy(() => import('./pages/public/PaymentSuccess'));
 
 // Pages - Auth
 const Login = lazy(() => import('./pages/auth/Login'));
@@ -89,7 +88,6 @@ function App() {
               <Route path="about" element={<AboutUs />} />
               <Route path="wishlist" element={<Wishlist />} />
               <Route path="support/chat" element={<SupportChat />} />
-              <Route path="payment/success" element={<PaymentSuccess />} />
               
               <Route 
                 path="profile" 
