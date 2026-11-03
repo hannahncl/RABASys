@@ -69,6 +69,7 @@ const CarBooking = () => {
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
 
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -91,15 +92,19 @@ const CarBooking = () => {
         if (!data || data.category !== 'car' || String(data.availabilityStatus ?? data.availability_status ?? 'Available').trim().toLowerCase() !== 'available') throw new Error('Not found');
         setCar(data);
 
-        if (user) {
-          try {
-            const availability = await api(`/rental-bookings/availability/${id}`);
-            setBookedRanges(Array.isArray(availability?.bookings) ? availability.bookings : []);
-          } catch (availabilityError) {
-            // The server-side conflict check remains authoritative if the
-            // calendar availability request fails.
-            console.error('Failed to load vehicle availability:', availabilityError);
-          }
+        try {
+          // Availability is public so every account sees the same booked
+          // dates and cannot click a date reserved by another renter.
+          setAvailabilityLoaded(false);
+          const availability = await api(`/rental-bookings/availability/${id}`);
+          setBookedRanges(Array.isArray(availability?.bookings) ? availability.bookings : []);
+          setAvailabilityLoaded(true);
+        } catch (availabilityError) {
+          // The server-side conflict check remains authoritative if the
+          // calendar availability request fails.
+          console.error('Failed to load vehicle availability:', availabilityError);
+          setBookedRanges([]);
+          setAvailabilityLoaded(false);
         }
       } catch (error) {
         showNotification('Car not found', 'error');
@@ -129,12 +134,12 @@ const CarBooking = () => {
     const dateKey = typeof dateValue === 'string'
       ? dateValue.slice(0, 10)
       : `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
-    return bookedRanges.some(({ pickupDate, returnDate }) => pickupDate <= dateKey && dateKey < returnDate);
+    return bookedRanges.some(({ pickupDate, returnDate }) => pickupDate <= dateKey && dateKey <= returnDate);
   };
 
   const isRentalRangeAvailable = (startDate, endDate) => {
     if (!startDate || !endDate) return true;
-    return !bookedRanges.some(({ pickupDate, returnDate }) => pickupDate < endDate && returnDate > startDate);
+    return !bookedRanges.some(({ pickupDate, returnDate }) => pickupDate <= endDate && returnDate >= startDate);
   };
 
   const handleBookCar = async (e) => {
@@ -632,7 +637,7 @@ const CarBooking = () => {
                           }}
                           onClose={() => setShowPickupCal(false)}
                           weatherData={pickupCalWeather}
-                          isDateDisabled={(dateKey) => isDateOccupied(dateKey)}
+                          isDateDisabled={(dateKey) => !availabilityLoaded || isDateOccupied(dateKey)}
                         />
                       )}
                     </div>
@@ -677,6 +682,7 @@ const CarBooking = () => {
                           onClose={() => setShowReturnCal(false)}
                           weatherData={returnCalWeather}
                           isDateDisabled={(dateKey) => {
+                            if (!availabilityLoaded) return true;
                             if (!pickupDate) return isDateOccupied(dateKey);
                             return !isRentalRangeAvailable(pickupDate, dateKey);
                           }}

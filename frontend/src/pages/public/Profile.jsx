@@ -59,6 +59,23 @@ const Profile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [profileView, setProfileView] = useState(searchParams.get('view') === 'history' ? 'history' : 'overview');
 
+  useEffect(() => {
+    const bookingStatus = searchParams.get('booking_status');
+    if (!bookingStatus) return;
+
+    setProfileView('history');
+    const message = bookingStatus === 'success'
+      ? 'Successfully booked. Your booking is now in Booking History.'
+      : bookingStatus === 'pending'
+        ? 'Payment received. Your booking is still syncing.'
+        : 'We could not verify the payment yet. Please check your booking history.';
+    showNotification(message, bookingStatus === 'success' ? 'success' : 'warning');
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('booking_status');
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams, showNotification]);
+
   // Bookings state
   const [allBookings, setAllBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
@@ -370,7 +387,7 @@ const Profile = () => {
     <div className="bg-white min-h-screen pb-24 pt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="mb-10 border-b border-slate-100 pb-8">
+        <div className="mb-10 pb-8">
           <h1 className="text-2xl text-slate-400 tracking-widest uppercase mb-1">My Account</h1>
         </div>
 
@@ -379,7 +396,7 @@ const Profile = () => {
             Account &amp; Photos
           </button>
           <button type="button" onClick={() => setSearchParams({ view: 'history' })} className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition ${profileView === 'history' ? 'border-yellow-400 text-[#2d2a24]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            <History className="h-3.5 w-3.5" /> Trip History <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{allBookings.length}</span>
+            <History className="h-3.5 w-3.5" /> Booking History <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] text-yellow-700">{allBookings.length}</span>
           </button>
         </div>
 
@@ -503,7 +520,7 @@ const Profile = () => {
           )}
 
           {/* ════════════════════════════════
-              TRIP HISTORY
+              BOOKING HISTORY
           ════════════════════════════════ */}
           {profileView === 'history' && (
           <div className="lg:col-span-12 space-y-5">
@@ -515,7 +532,7 @@ const Profile = () => {
               <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
                 <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2">
                   <History className="h-4 w-4 text-yellow-500" />
-                  Trip History
+                  Booking History
                 </h3>
                 <Link
                   to="/packages"
@@ -552,7 +569,7 @@ const Profile = () => {
                 {loadingBookings ? (
                   <div className="flex flex-col items-center justify-center py-12 text-slate-600">
                     <Loader2 className="mb-2 h-7 w-7 animate-spin text-yellow-500" />
-                    <p className="text-xs font-medium">Loading your trip history...</p>
+                    <p className="text-xs font-medium">Loading your booking history...</p>
                   </div>
                 ) : filteredBookings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-slate-600">
