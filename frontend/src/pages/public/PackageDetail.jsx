@@ -588,8 +588,8 @@ const PackageDetail = () => {
                   >
                     Cancellation & Rescheduling
                   </p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>
-                    No cancellation policy - only rescheduling is allowed based on availability.
+                  <p className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-relaxed text-red-700">
+                    <span className="font-semibold">Non-cancellable.</span> Rescheduling is available based on availability.
                   </p>
                 </div>
               </div>

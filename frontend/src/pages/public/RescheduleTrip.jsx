@@ -138,7 +138,7 @@ const RescheduleTrip = () => {
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#1a1a1a]">
                 Select a New Schedule Date
               </h1>
-              <p className="mt-1.5 text-xs text-[#6b6255] leading-relaxed">
+              <p className="mt-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-700">
                 Cancellation is not available for confirmed bookings. You can choose a new available travel date below.
               </p>
             </div>
@@ -217,11 +217,11 @@ const RescheduleTrip = () => {
               </div>
 
               {/* Policy note */}
-              <div className="flex items-start gap-2.5 rounded-lg border border-yellow-200 bg-yellow-50/60 p-3.5 text-xs text-yellow-900">
-                <ShieldAlert className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
+                <ShieldAlert className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold block">Reschedule Policy</span>
-                  <span className="text-[11px] text-yellow-800 leading-relaxed">
+                  <span className="text-[11px] text-red-700 leading-relaxed">
                     Rescheduled dates are subject to slot availability and guide or vehicle dispatch verification. You will receive an updated confirmation once verified.
                   </span>
                 </div>

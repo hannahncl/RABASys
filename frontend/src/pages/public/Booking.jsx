@@ -1157,8 +1157,8 @@ const Booking = () => {
                     >
                       {pkg.title}
                     </h4>
-                    <div className="flex items-center gap-2 text-[11px] font-medium mt-2" style={{ color: colors.textSecondary }}>
-                      <ShieldCheck className="w-3.5 h-3.5" style={{ color: colors.accent }} />
+                    <div className="mt-2 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] font-semibold text-red-700">
+                      <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-red-600" />
                       <span>Non-cancellable · Rescheduling available</span>
                     </div>
                   </div>
