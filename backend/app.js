@@ -70,7 +70,7 @@ app.use((error, req, res, next) => {
     if (Number(error.status) === 413) {
         return res.status(413).json({ message: "The uploaded request is too large." });
     }
-    if ([400, 404, 409, 422].includes(Number(error.status))) {
+    if ([400, 404, 409, 422, 503].includes(Number(error.status))) {
         return res.status(Number(error.status)).json({ message: error.message });
     }
     if (error.code === "23505") return res.status(409).json({ message: "A record with that unique value already exists." });

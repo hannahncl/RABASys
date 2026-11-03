@@ -341,8 +341,9 @@ router.patch("/:id/quote", requireAuth, allowRoles("Admin"), async (req, res, ne
         } catch (error) {
             console.error("[booking] custom quote audit logging failed:", error.message);
         }
+        let quoteEmailSent = false;
         try {
-            await sendBookingConfirmation(updatedBooking, "custom-quote");
+            quoteEmailSent = await sendBookingConfirmation(updatedBooking, "custom-quote");
         } catch (error) {
             console.error("[booking] custom quote email error:", error.message);
         }
@@ -351,7 +352,7 @@ router.patch("/:id/quote", requireAuth, allowRoles("Admin"), async (req, res, ne
         } catch (error) {
             console.error("[booking] custom quote notification failed:", error.message);
         }
-        res.json(updatedBooking);
+        res.json({ ...updatedBooking, quoteEmailSent });
     } catch (error) {
         console.error("[booking] custom quote save failed:", error.message, error.code || "");
         next(error);

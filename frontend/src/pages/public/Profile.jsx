@@ -641,7 +641,6 @@ const Profile = () => {
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0 space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[10px] font-medium text-slate-600">#{booking.id}</span>
                                 <StatusBadge status={booking.status} />
                               </div>
                               <h4 className="truncate text-sm font-semibold leading-snug text-[#1a1a1a]">
@@ -805,11 +804,11 @@ const Profile = () => {
           onClick={() => setViewingBooking(null)}
         >
           <div
-            className="w-full max-w-sm space-y-4 rounded-md border border-[#e0dbd0] bg-white p-5 shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-4xl space-y-4 overflow-y-auto overscroll-contain rounded-2xl border border-[#e8e1d5] bg-white p-4 shadow-[0_16px_48px_rgba(0,0,0,0.12)] sm:p-6"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-[#eae5db] pb-3">
+            <div className="flex items-center justify-between border-b border-[#e8e1d5] pb-3">
               <div>
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8576]">
                   {viewingBooking.id}
@@ -818,21 +817,23 @@ const Profile = () => {
               </div>
               <button
                 onClick={() => setViewingBooking(null)}
-                className="cursor-pointer rounded border border-[#e0dbd0] bg-white p-1.5 text-[#6b6255] transition-colors hover:bg-[#fcfbf9] hover:text-[#2d2a24]"
+                className="cursor-pointer rounded-lg border border-[#e8e1d5] bg-[#fcfbf8] p-2 text-[#6b6255] transition-colors hover:bg-[#f5f1e9] hover:text-[#2d2a24]"
                 title="Close invoice"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-4">
             {/* Package */}
-            <div className="rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+            <div className="rounded-xl border border-[#e8e1d5] bg-[#fcfbf8] p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Tour Package</p>
               <h4 className="mt-1 text-sm font-semibold leading-snug text-[#1a1a1a]">{viewingBooking.packageName}</h4>
             </div>
 
             {/* Status + Date */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#e8e1d5] bg-white p-4">
               <div>
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Status</p>
                 <StatusBadge status={viewingBooking.status} />
@@ -848,7 +849,7 @@ const Profile = () => {
             </div>
 
             {/* Guest info */}
-            <div className="grid grid-cols-2 gap-3 border-y border-[#eae5db] py-3">
+            <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#e8e1d5] bg-white p-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Lead Guest</p>
                 <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.customerName}</p>
@@ -859,13 +860,15 @@ const Profile = () => {
                 <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">{viewingBooking.guestsCount} pax</p>
               </div>
             </div>
+              </div>
 
+              <div className="space-y-4">
             {/* Payment or quote status */}
             {viewingBooking.customizedDetails ? (
-              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
-                <Row
-                  label="Quote status"
-                  value={!hasPricedCustomQuote(viewingBooking)
+              <div className="space-y-3 rounded-xl border border-[#e8e1d5] bg-[#fcfbf8] p-4">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-[#6b6255]">Quote status</span>
+                  <span className="text-right font-semibold text-[#2d2a24]">{!hasPricedCustomQuote(viewingBooking)
                     ? 'Pricing under review'
                     : viewingBooking.paymentStatus === 'Paid'
                       ? 'Paid'
@@ -877,56 +880,58 @@ const Profile = () => {
                           : 'Quote accepted, payment due'
                         : viewingBooking.status === 'Quote Sent'
                           ? 'Quote ready for acceptance'
-                          : 'Pricing under review'}
-                />
+                          : 'Pricing under review'}</span>
+                </div>
                 {hasPricedCustomQuote(viewingBooking) && (
                   <>
                     {viewingBooking.customizedDetails.quoteItinerary && (
-                      <div className="border-t border-[#e0dbd0] pt-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Proposed itinerary</p>
-                        <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-[#1a1a1a]">{viewingBooking.customizedDetails.quoteItinerary}</p>
-                      </div>
+                      <details className="border-t border-[#e8e1d5] pt-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-[#4a453b]">View proposed itinerary</summary>
+                        <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-[#6b6255]">{viewingBooking.customizedDetails.quoteItinerary}</p>
+                      </details>
                     )}
                     {Array.isArray(viewingBooking.customizedDetails.priceBreakdown) && viewingBooking.customizedDetails.priceBreakdown.length > 0 && (
-                      <div className="space-y-1 border-t border-[#e0dbd0] pt-3">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#6b6255]">Price breakdown</p>
+                      <details className="border-t border-[#e8e1d5] pt-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-[#4a453b]">View price breakdown ({viewingBooking.customizedDetails.priceBreakdown.length} items)</summary>
+                        <div className="mt-2 space-y-1.5">
                         {viewingBooking.customizedDetails.priceBreakdown.map((line, index) => (
-                          <div key={`${line.description}-${index}`} className="flex justify-between gap-3 text-xs text-[#4a453b]">
-                            <span>{line.description}</span>
+                          <div key={`${line.description}-${index}`} className="flex justify-between gap-3 text-xs text-[#6b6255]">
+                            <span className="min-w-0">{line.description}</span>
                             <span className="shrink-0">PHP {Number(line.amount).toLocaleString()}</span>
                           </div>
                         ))}
-                      </div>
+                        </div>
+                      </details>
                     )}
-                    <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
-                      <span>Final quote:</span>
-                      <span className="text-sm text-[#2d2a24]">PHP {viewingBooking.totalPrice?.toLocaleString()}</span>
+                    <div className="flex items-center justify-between rounded-lg bg-[#f3efe7] px-3 py-3 text-sm font-semibold text-[#1a1a1a]">
+                      <span>Total</span>
+                      <span className="text-base text-[#2d2a24]">PHP {viewingBooking.totalPrice?.toLocaleString()}</span>
                     </div>
                     {viewingBooking.paymentStatus === 'Paid' && (
-                      <div className="rounded border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-800">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-800">
                         <p className="font-bold">Payment verified by Xendit.</p>
                         <Row label="Payment reference" value={viewingBooking.paymentTransactionReference || 'Unavailable'} />
                       </div>
                     )}
                     {viewingBooking.paymentStatus === 'Sample' && (
-                      <p className="rounded border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">This is a legacy demo record. No payment was received; contact the business to arrange payment.</p>
+                      <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900">This is a legacy demo record. No payment was received; contact the business to arrange payment.</p>
                     )}
                   </>
                 )}
               </div>
             ) : (
-              <div className="space-y-2 rounded border border-[#e0dbd0] bg-[#fcfbf9] p-3">
+              <div className="space-y-3 rounded-xl border border-[#e8e1d5] bg-[#fcfbf8] p-4">
                 <Row label="Payment Mode" value={viewingBooking.paymentMethod} />
                 {viewingBooking.gcashNumber && <Row label="GCash Mobile" value={viewingBooking.gcashNumber} />}
                 {viewingBooking.paymentRef && (
                   <div className="flex items-center justify-between gap-3 text-xs text-[#6b6255]">
                     <span>Reference ID:</span>
-                    <strong className="rounded border border-[#e0dbd0] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#2d2a24]">
+                  <strong className="rounded-md border border-[#e8e1d5] bg-white px-2 py-1 font-mono text-[10px] text-[#2d2a24]">
                       {viewingBooking.paymentRef}
                     </strong>
                   </div>
                 )}
-                <div className="my-2 flex items-center justify-between border-t border-[#e0dbd0] pt-2 text-xs font-semibold text-[#1a1a1a]">
+                <div className="flex items-center justify-between rounded-lg bg-[#f3efe7] px-3 py-3 text-xs font-semibold text-[#1a1a1a]">
                   <span>Grand Total Paid:</span>
                   <span className="text-sm text-[#2d2a24]">₱{viewingBooking.totalPrice?.toLocaleString()}</span>
                 </div>
@@ -940,7 +945,7 @@ const Profile = () => {
                     type="button"
                     onClick={() => handleCustomQuotePayment(viewingBooking)}
                     disabled={acceptingQuoteId === viewingBooking.id}
-                    className="w-full rounded bg-[#2d2a24] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-wait disabled:opacity-60"
+                    className="w-full rounded-xl bg-[#2d2a24] px-4 py-3 text-xs font-semibold text-white transition hover:bg-[#403a31] disabled:cursor-wait disabled:opacity-60"
                   >
                     {acceptingQuoteId === viewingBooking.id
                       ? 'Opening secure checkout...'
@@ -950,54 +955,43 @@ const Profile = () => {
                   </button>
                 )}
                 {hasPricedCustomQuote(viewingBooking) && viewingBooking.paymentStatus === 'Pending' && (
-                  <p className="text-center text-[10px] text-[#8f8576]">A Xendit checkout session is open. Return here after completing or cancelling checkout.</p>
+                  <p className="rounded-lg bg-[#f3efe7] px-3 py-2 text-center text-[10px] text-[#6b6255]">A checkout session is open. Return here after payment or cancellation.</p>
                 )}
               </div>
             )}
+              </div>
+            </div>
 
             {/* Review Section */}
             {viewingBooking.hasReviewed && viewingBooking.review && (
-              <div className="space-y-3 rounded border border-[#e0dbd0] bg-white p-3">
-                <div className="flex items-center gap-2">
+              <details className="rounded-xl border border-[#e8e1d5] bg-[#fcfbf8] px-4 py-3">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold text-[#6b6255]">
                   <Star className="h-3.5 w-3.5 fill-[#c4b99a] text-[#c4b99a]" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6b6255]">Your Review</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${
-                          star <= viewingBooking.review.rating
-                            ? 'fill-[#c4b99a] text-[#c4b99a]'
-                            : 'fill-[#f5f2ee] text-[#d6cfc2]'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-1 text-xs font-semibold text-[#4a453b]">
-                      {viewingBooking.review.rating}/5
-                    </span>
-                  </div>
+                  Your review · {viewingBooking.review.rating}/5
+                </summary>
+                <div className="mt-3 flex items-start gap-3 border-t border-[#e8e1d5] pt-3">
+                  <div className="min-w-0 flex-1">
                   {viewingBooking.review.comment && (
-                    <p className="border-l-2 border-[#d6cfc2] pl-3 text-xs italic text-[#4a453b]">
+                    <p className="line-clamp-3 text-xs leading-relaxed text-[#4a453b]">
                       "{viewingBooking.review.comment}"
                     </p>
                   )}
-                  {viewingBooking.review.imageUrl && (
-                    <img src={viewingBooking.review.imageUrl} alt="Your review" className="h-32 w-32 rounded object-cover" />
-                  )}
-                  <p className="text-[10px] text-[#8f8576]">
+                  <p className="mt-1 text-[10px] text-[#8f8576]">
                     Reviewed on {new Date(viewingBooking.review.createdAt).toLocaleDateString('en-US', {
                       month: 'short', day: 'numeric', year: 'numeric'
                     })}
                   </p>
                 </div>
-              </div>
+                  {viewingBooking.review.imageUrl && (
+                    <img src={viewingBooking.review.imageUrl} alt="Your review" className="h-12 w-12 shrink-0 rounded object-cover" />
+                  )}
+                </div>
+              </details>
             )}
 
             <button
               onClick={() => setViewingBooking(null)}
-              className="w-full cursor-pointer rounded border border-[#e0dbd0] bg-white py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#4a453b] transition-colors hover:bg-[#fcfbf9]"
+              className="w-full cursor-pointer rounded-xl border border-[#e8e1d5] bg-white py-3 text-xs font-semibold text-[#4a453b] transition-colors hover:bg-[#fcfbf8]"
             >
               Close
             </button>
