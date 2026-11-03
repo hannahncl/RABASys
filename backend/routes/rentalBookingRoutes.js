@@ -5,6 +5,7 @@ const { requireAuth, allowRoles } = require("../middleware/auth");
 const { logAudit } = require("../utils/auditLogger");
 const { sendBookingConfirmation } = require("../config/mailer");
 const { createInAppNotification } = require("../utils/notification");
+const { findRentalConflict } = require("../utils/rentalAvailability");
 const router = express.Router();
 
 const bookingSelect = `SELECT b.*, 
@@ -18,7 +19,7 @@ const bookingSelect = `SELECT b.*,
 
 router.get("/", requireAuth, async (req, res, next) => {
     try {
-        await db.query("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE return_date <= NOW() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
+        await db.query("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE return_date::date < CURRENT_DATE AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL");
         const admin = ["Admin", "Tour Guide"].includes(req.user.role);
         const { rows } = await db.query(
             `${bookingSelect} WHERE b.deleted_at IS NULL${admin ? "" : " AND b.account_id = $1"} ORDER BY b.created_at DESC`,
@@ -30,13 +31,16 @@ router.get("/", requireAuth, async (req, res, next) => {
     }
 });
 
-// Return the dates already occupied by active bookings for a vehicle. Rental
-// intervals are treated as [pickup, return), so a new rental may start on the
-// same calendar day another rental is returned.
-router.get("/availability/:vehicleId", requireAuth, async (req, res, next) => {
+// Return the dates already occupied by active bookings for a vehicle. Both
+// pickup and return dates are unavailable to keep one vehicle to one account
+// per calendar day.
+// Vehicle availability is public because every account needs to see the same
+// booked dates before choosing a rental date.
+router.get("/availability/:vehicleId", async (req, res, next) => {
     try {
         const { rows } = await db.query(
-            `SELECT pickup_date, return_date
+            `SELECT pickup_date::date::text AS pickup_date,
+                    return_date::date::text AS return_date
              FROM car_rental_booking
              WHERE vehicle_id = $1
                AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
@@ -58,7 +62,7 @@ router.get("/availability/:vehicleId", requireAuth, async (req, res, next) => {
 
 router.get("/:id", requireAuth, async (req, res, next) => {
     try {
-        await db.query("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE rental_booking_id = $1 AND return_date <= NOW() AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);
+        await db.query("UPDATE car_rental_booking SET booking_status = 'Completed' WHERE rental_booking_id = $1 AND return_date::date < CURRENT_DATE AND booking_status IN ('Confirmed', 'Rescheduled') AND deleted_at IS NULL", [req.params.id]);
         const { rows } = await db.query(`${bookingSelect} WHERE b.rental_booking_id = $1 AND b.deleted_at IS NULL`, [req.params.id]);
         const booking = rows[0];
         if (!booking) return res.status(404).json({ message: "Booking not found." });
@@ -110,18 +114,8 @@ router.post("/", requireAuth, async (req, res, next) => {
                 throw error;
             }
 
-            const { rows: conflicts } = await client.query(
-                `SELECT rental_booking_id, pickup_date, return_date
-                 FROM car_rental_booking
-                 WHERE vehicle_id = $1
-                   AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled')
-                   AND deleted_at IS NULL
-                   AND pickup_date < $2
-                   AND return_date > $3
-                 LIMIT 1`,
-                [vehicle_id, return_date, pickup_date]
-            );
-            if (conflicts.length) {
+            const conflict = await findRentalConflict(client, vehicle_id, pickup_date, return_date);
+            if (conflict) {
                 const error = new Error("That vehicle is already booked for part of the selected dates. Please choose different dates.");
                 error.status = 409;
                 throw error;
@@ -172,18 +166,19 @@ router.post("/", requireAuth, async (req, res, next) => {
 });
 
 router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
+    let client;
     try {
         const { requested_schedule_date } = req.body;
         if (!/^\d{4}-\d{2}-\d{2}$/.test(String(requested_schedule_date || ""))) {
             return res.status(422).json({ message: "A valid new pickup date is required." });
         }
-        const { rows: existingRows } = await db.query("SELECT * FROM car_rental_booking WHERE rental_booking_id = $1 AND deleted_at IS NULL", [req.params.id]);
+        client = await db.connect();
+        await client.query("BEGIN");
+        const { rows: existingRows } = await client.query("SELECT * FROM car_rental_booking WHERE rental_booking_id = $1 AND deleted_at IS NULL FOR UPDATE", [req.params.id]);
         const booking = existingRows[0];
-        if (!booking) return res.status(404).json({ message: "Booking not found." });
-        if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) return res.status(403).json({ message: "Forbidden." });
-        if (!["Confirmed", "Rescheduled"].includes(booking.booking_status)) {
-            return res.status(422).json({ message: "Only confirmed rentals can be rescheduled." });
-        }
+        if (!booking) throw Object.assign(new Error("Booking not found."), { status: 404 });
+        if (req.user.role === "Customer" && booking.account_id !== req.user.accountId) throw Object.assign(new Error("Forbidden."), { status: 403 });
+        if (!["Confirmed", "Rescheduled"].includes(booking.booking_status)) throw Object.assign(new Error("Only confirmed rentals can be rescheduled."), { status: 422 });
 
         const oldStart = new Date(booking.pickup_date);
         const oldEnd = new Date(booking.return_date);
@@ -193,13 +188,14 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
         nextEnd.setDate(nextEnd.getDate() + rentalDays);
         const nextEndDate = nextEnd.toISOString().slice(0, 10);
 
-        const { rows: conflicts } = await db.query(
-            "SELECT rental_booking_id FROM car_rental_booking WHERE vehicle_id = $1 AND rental_booking_id <> $2 AND booking_status IN ('Pending', 'Confirmed', 'Rescheduled') AND deleted_at IS NULL AND pickup_date < $3 AND return_date > $4 LIMIT 1",
-            [booking.vehicle_id, req.params.id, nextEndDate, requested_schedule_date]
-        );
-        if (conflicts.length) return res.status(409).json({ message: "That date is not available for this vehicle." });
+        await client.query("SELECT vehicle_id FROM vehicle WHERE vehicle_id = $1 FOR UPDATE", [booking.vehicle_id]);
+        const conflict = await findRentalConflict(client, booking.vehicle_id, requested_schedule_date, nextEndDate, req.params.id);
+        if (conflict) throw Object.assign(new Error("That date is not available for this vehicle."), { status: 409 });
 
-        await db.query("UPDATE car_rental_booking SET pickup_date = $1, return_date = $2, booking_status = 'Rescheduled' WHERE rental_booking_id = $3 AND deleted_at IS NULL", [requested_schedule_date, nextEndDate, req.params.id]);
+        await client.query("UPDATE car_rental_booking SET pickup_date = $1, return_date = $2, booking_status = 'Rescheduled' WHERE rental_booking_id = $3 AND deleted_at IS NULL", [requested_schedule_date, nextEndDate, req.params.id]);
+        await client.query("COMMIT");
+        client.release();
+        client = null;
         const { rows } = await db.query(`${bookingSelect} WHERE b.rental_booking_id = $1`, [req.params.id]);
         await logAudit({ accountId: req.user.accountId, sessionId: req.user.sessionId, action: "RESCHEDULE", tableName: "car_rental_booking", recordId: req.params.id, oldValues: booking, newValues: rows[0], req });
         try {
@@ -213,7 +209,13 @@ router.patch("/:id/reschedule", requireAuth, async (req, res, next) => {
             console.error(`[rental-booking] reschedule notification failed for account ${booking.account_id}:`, error.message);
         }
         res.json(rows[0]);
-    } catch (e) { next(e); }
+    } catch (e) {
+        if (client) {
+            try { await client.query("ROLLBACK"); } catch { /* ignore rollback failure */ }
+            client.release();
+        }
+        next(e);
+    }
 });
 
 router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), async (req, res, next) => {
@@ -241,6 +243,17 @@ router.patch("/:id/status", requireAuth, allowRoles("Admin", "Tour Guide"), asyn
                 });
             } catch (error) {
                 console.error(`[rental-booking] status notification failed for account ${before[0].account_id}:`, error.message);
+            }
+        }
+        // Direct/admin-confirmed rentals need a confirmation email when the
+        // booking moves from Pending to Confirmed. Xendit-paid rentals are
+        // already emailed during payment finalization/webhook handling, so
+        // this transition check avoids sending a duplicate there.
+        if (before[0].booking_status === "Pending" && req.body.booking_status === "Confirmed") {
+            try {
+                await sendBookingConfirmation(rows[0], "rental");
+            } catch (error) {
+                console.error(`[rental-booking] confirmation email failed for booking ${req.params.id}:`, error.message);
             }
         }
         res.json(rows[0]);

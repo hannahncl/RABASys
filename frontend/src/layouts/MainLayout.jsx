@@ -203,7 +203,7 @@ const MainLayout = () => {
                         className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-semibold text-slate-600 hover:text-[#603524] hover:bg-[#603524]/5 transition-colors border-b border-slate-100"
                       >
                         <History className="h-3.5 w-3.5 text-slate-500" />
-                        Trip History
+                        Booking History
                       </Link>
                     )}
 

@@ -379,6 +379,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ? "Your customized trip request has been reviewed and quoted."
             : isCustomTrip
                 ? "We received your customized trip request."
+                : isRental && booking.booking_status === "Confirmed"
+                    ? "Your car rental booking is confirmed and your vehicle is reserved."
                 : isConfirmedJoiner
                     ? "Your Joiner booking is confirmed and your spots are reserved."
                     : "Your booking has been received.";
@@ -392,6 +394,8 @@ async function sendBookingConfirmation(booking, type = "tour") {
             ? "To accept this itinerary and quote, sign in to your RABAS account and accept it from your booking details. No payment has been taken yet."
             : isCustomTrip
                 ? "Our team will review your selections and email you with the final quote and updates. No payment is required until pricing is reviewed."
+                : isRental && booking.booking_status === "Confirmed"
+                    ? "Please keep this confirmation email for your records. We will contact you with any updates."
                 : isConfirmedJoiner
                     ? "Your Joiner departure is confirmed. Please keep this email for your records."
                 : "Please keep this email for your records. We will contact you with any updates.";

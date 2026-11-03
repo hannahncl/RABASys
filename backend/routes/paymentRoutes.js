@@ -6,6 +6,7 @@ const { sendBookingConfirmation } = require("../config/mailer");
 const { isJoinerDeadlineValid } = require("../utils/joinerSchedule");
 const { ensurePaymentCheckoutTable } = require("../utils/paymentCheckout");
 const { createInAppNotification } = require("../utils/notification");
+const { findRentalConflict } = require("../utils/rentalAvailability");
 
 const router = express.Router();
 const XENDIT_API = "https://api.xendit.co";
@@ -108,12 +109,25 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
                 if (!Number.isInteger(vehicleId) || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate) || !/^\d{4}-\d{2}-\d{2}$/.test(returnDate) || end <= start || !data.pickupLocation) {
                     return res.status(422).json({ message: "Complete rental details are required before payment." });
                 }
-                const { rows: vehicles } = await db.query(
-                    "SELECT vehicle_name, daily_rate FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL",
-                    [vehicleId]
-                );
-                const vehicle = vehicles[0];
-                if (!vehicle) return res.status(404).json({ message: "Available vehicle not found." });
+                const availabilityClient = await db.connect();
+                let vehicle;
+                try {
+                    await availabilityClient.query("BEGIN");
+                    const { rows: vehicles } = await availabilityClient.query(
+                        "SELECT vehicle_name, daily_rate FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
+                        [vehicleId]
+                    );
+                    vehicle = vehicles[0];
+                    if (!vehicle) throw Object.assign(new Error("Available vehicle not found."), { status: 404 });
+                    const conflict = await findRentalConflict(availabilityClient, vehicleId, pickupDate, returnDate);
+                    if (conflict) throw Object.assign(new Error("That vehicle is already booked for one or more selected dates. Please choose different dates."), { status: 409 });
+                    await availabilityClient.query("COMMIT");
+                } catch (error) {
+                    try { await availabilityClient.query("ROLLBACK"); } catch { /* ignore rollback failure */ }
+                    throw error;
+                } finally {
+                    availabilityClient.release();
+                }
                 const amount = Number(vehicle.daily_rate) * days;
                 const { rows: customerRows } = await db.query("SELECT first_name, last_name, email, contact_number FROM account WHERE account_id = $1 AND deleted_at IS NULL", [req.user.accountId]);
                 const customer = customerRows[0];
@@ -122,7 +136,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
                 const [firstName = "Customer", ...lastNameParts] = String(customer.first_name || "Customer").trim().split(/\s+/);
                 const origin = clientOrigin();
                 const redirectUrls = /^https:\/\//i.test(origin)
-                    ? { success_return_url: `${origin}/payment/success?booking_reference=${reference}`, cancel_return_url: `${origin}/profile?payment=cancelled` }
+                    ? { success_return_url: `${origin}/profile?view=history&booking_reference=${reference}`, cancel_return_url: `${origin}/profile?payment=cancelled` }
                     : {};
                 const session = await xenditRequest("/sessions", {
                     reference_id: reference, session_type: "PAY", mode: "PAYMENT_LINK",
@@ -211,7 +225,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
             const origin = clientOrigin();
             const redirectUrls = /^https:\/\//i.test(origin)
                 ? {
-                    success_return_url: `${origin}/payment/success?booking_reference=${reference}`,
+                    success_return_url: `${origin}/profile?view=history&booking_reference=${reference}`,
                     cancel_return_url: `${origin}/profile?payment=cancelled`,
                 }
                 : {};
@@ -317,7 +331,7 @@ router.post("/xendit/checkout-session", requireAuth, async (req, res, next) => {
         const origin = clientOrigin();
         const redirectUrls = /^https:\/\//i.test(origin)
             ? {
-                    success_return_url: `${origin}/payment/success?booking_id=${booking.booking_id}`,
+                    success_return_url: `${origin}/profile?view=history&booking_reference=${booking.booking_reference}`,
                 cancel_return_url: `${origin}/profile?payment=cancelled&booking_id=${booking.booking_id}`,
             }
             : {};
@@ -454,12 +468,20 @@ router.post("/xendit/finalize", requireAuth, async (req, res, next) => {
         let rentalPaymentFinalized = false;
         try {
             await client.query("BEGIN");
+            const vehicleId = Number(data.vehicleId);
+            const { rows: vehicles } = await client.query(
+                "SELECT vehicle_id FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
+                [vehicleId]
+            );
+            if (!vehicles[0]) throw Object.assign(new Error("Available vehicle not found."), { status: 404 });
+            const conflict = await findRentalConflict(client, vehicleId, data.pickupDate, data.returnDate);
+            if (conflict) throw Object.assign(new Error("That vehicle was booked before payment was finalized. The selected dates are no longer available."), { status: 409 });
             const claim = await client.query("UPDATE payment_checkout SET finalized_at = NOW() WHERE session_id = $1 AND finalized_at IS NULL RETURNING session_id", [checkout.session_id]);
             if (claim.rows[0]) {
                 await client.query(
                     `INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method)
                      VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Confirmed', 'Xendit')`,
-                    [checkout.account_id, Number(data.vehicleId), checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, Number(session.amount || data.totalPrice || 0)]
+                    [checkout.account_id, vehicleId, checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, Number(session.amount || data.totalPrice || 0)]
                 );
                 rentalPaymentFinalized = true;
             }
@@ -523,10 +545,18 @@ router.post("/xendit/webhook", async (req, res, next) => {
                     if (claim.rows[0]) {
                         if (data.bookingType === "rental") {
                             const totalAmount = Number(session.amount || data.totalPrice || 0);
+                            const vehicleId = Number(data.vehicleId);
+                            const { rows: vehicles } = await client.query(
+                                "SELECT vehicle_id FROM vehicle WHERE vehicle_id = $1 AND availability_status = 'Available' AND deleted_at IS NULL FOR UPDATE",
+                                [vehicleId]
+                            );
+                            if (!vehicles[0]) throw Object.assign(new Error("Available vehicle not found."), { status: 404 });
+                            const conflict = await findRentalConflict(client, vehicleId, data.pickupDate, data.returnDate);
+                            if (conflict) throw Object.assign(new Error("That vehicle was booked before payment was finalized. The selected dates are no longer available."), { status: 409 });
                             await client.query(
                                 `INSERT INTO car_rental_booking (account_id, vehicle_id, booking_reference, booking_date, pickup_date, return_date, pickup_location, total_amount, booking_status, payment_method)
                                  VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, 'Confirmed', 'Xendit')`,
-                                [checkout.account_id, Number(data.vehicleId), checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, totalAmount]
+                                [checkout.account_id, vehicleId, checkout.booking_reference, data.pickupDate, data.returnDate, data.pickupLocation, totalAmount]
                             );
                             createdPaidRental = true;
                             await client.query("COMMIT");
