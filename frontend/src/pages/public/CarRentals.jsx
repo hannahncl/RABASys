@@ -182,8 +182,8 @@ const CarRentals = () => {
           <div className="flex-1">
             <div className="mb-5 flex items-end justify-between gap-4">
               <h2
-                className="text-lg font-semibold"
-                style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+                className="text-xl font-bold"
+                style={{ color: '#1a1a1a', fontFamily: "'Inter', 'Georgia', serif" }}
               >
                 Available Car Rentals
               </h2>
@@ -234,6 +234,8 @@ const CarRentals = () => {
                       <img
                         src={car.image || 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600'}
                         alt={car.vehicleName}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                       {/* Subtle gradient overlay at the bottom of image */}

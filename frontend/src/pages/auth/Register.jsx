@@ -1,9 +1,10 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
-import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { sanitizeInput, validateEmail, validateName, validatePassword } from '../../utils/validation';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import FeedbackNotice from '../../components/ui/FeedbackNotice';
 
 const Register = () => {
   const { register, googleLogin } = useContext(AuthContext);
@@ -87,12 +88,7 @@ const Register = () => {
         </p>
       </div>
 
-        {error && (
-          <div className="mb-3 flex items-start gap-2.5 rounded border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <FeedbackNotice message={error} onDismiss={() => setError('')} />}
 
         <form onSubmit={handleSubmit} className="space-y-2.5">
           <div>

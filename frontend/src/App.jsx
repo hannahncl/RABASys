@@ -8,6 +8,7 @@ import { ConfirmationProvider } from './contexts/ConfirmationContext';
 
 // Route Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
+import LoadingScreen from './components/ui/LoadingScreen';
 
 // Pages - Public
 const MainLayout = lazy(() => import('./layouts/MainLayout'));
@@ -74,7 +75,7 @@ function App() {
       <NotificationProvider>
         <ConfirmationProvider>
           <BrowserRouter>
-          <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-600">Loading...</div>}>
+          <Suspense fallback={<LoadingScreen />}>
           <Routes>
             {/* Public Tourist Journeys */}
             <Route path="/" element={<MainLayout />}>

@@ -3,9 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { bookingService } from '../../services/bookingService';
+import FeedbackNotice from '../../components/ui/FeedbackNotice';
 import { 
   Calendar, ArrowLeft, RefreshCw, CheckCircle2, 
-  AlertCircle, Clock, MapPin, User, ShieldAlert, Sparkles
+  Clock, MapPin, User, ShieldAlert, Sparkles
 } from 'lucide-react';
 
 const RescheduleTrip = () => {
@@ -227,12 +228,7 @@ const RescheduleTrip = () => {
                 </div>
               </div>
 
-              {errorMsg && (
-                <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
+              {errorMsg && <FeedbackNotice message={errorMsg} onDismiss={() => setErrorMsg('')} />}
 
               {/* Action Buttons */}
               <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-2">

@@ -97,29 +97,35 @@ const Packages = () => {
   const [priceRange, setPriceRange] = useState([0, 100000]);
 
   useEffect(() => {
+    let active = true;
     const loadPackages = async () => {
       setLoading(true);
       setLoadError('');
       try {
         const allPkgs = await packageService.getAll();
+        if (!active) return;
         setPackages(allPkgs);
-        const joiners = allPkgs.filter((pkg) => getPackageVisualCategory(pkg) === 'joiner');
-        const availability = await Promise.all(joiners.map(async (pkg) => {
-          try {
-            return [String(pkg.id), await api(`/bookings/joiner-availability/${pkg.id}`)];
-          } catch {
-            return [String(pkg.id), null];
-          }
-        }));
-        setJoinerAvailability(Object.fromEntries(availability));
-      } catch (error) {
-        setPackages([]);
-        setLoadError(error?.message || 'We could not load tour packages. Please try again.');
-      } finally {
         setLoading(false);
+        const joiners = allPkgs.filter((pkg) => getPackageVisualCategory(pkg) === 'joiner');
+        joiners.forEach(async (pkg) => {
+          try {
+            const availability = await api(`/bookings/joiner-availability/${pkg.id}`);
+            if (active) setJoinerAvailability((current) => ({ ...current, [String(pkg.id)]: availability }));
+          } catch {
+            if (active) setJoinerAvailability((current) => ({ ...current, [String(pkg.id)]: null }));
+          }
+        });
+      } catch (error) {
+        if (active) {
+          setPackages([]);
+          setLoadError(error?.message || 'We could not load tour packages. Please try again.');
+        }
+      } finally {
+        if (active) setLoading(false);
       }
     };
     loadPackages();
+    return () => { active = false; };
   }, [loadAttempt]);
 
   // Update searchQuery state if url params change
@@ -293,8 +299,8 @@ const Packages = () => {
           <div className="flex-1">
             <div className="mb-5 flex items-end justify-between gap-4">
               <h2
-                className="text-lg font-semibold"
-                style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
+                className="text-xl font-bold"
+                style={{ color: '#1a1a1a', fontFamily: "'Inter', 'Georgia', serif" }}
               >
                 {selectedCategoryConfig.label}
               </h2>
@@ -344,6 +350,8 @@ const Packages = () => {
                       <img
                         src={pkg.image || '/CAGSAWA.jpg'}
                         alt={pkg.title}
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         onError={(e) => {
                           e.currentTarget.src = '/CAGSAWA.jpg';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
@@ -7,7 +7,7 @@ import { customizationService } from '../../services/customizationService';
 import { bookingService } from '../../services/bookingService';
 import { api } from '../../services/api';
 import WeatherWidget from '../../components/feedback/WeatherWidget';
-import { Loader, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader, Calendar, CheckCircle2, ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { weatherService } from '../../services/weatherService';
 
 /* ─── Color Palette & Common Styles ─── */
@@ -49,28 +49,28 @@ const SelectionPage = ({ title, description, onBack, actionLabel, onAction, chil
   <div className="min-h-screen bg-white px-4 py-10 sm:px-8 sm:py-14" style={{ fontFamily: "'Inter', 'Georgia', serif" }}>
     <div className="mx-auto max-w-5xl">
       <div className="bg-white p-0 sm:p-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-[#6b6255] transition-colors hover:text-[#1a1715]"
-        >
-          <span aria-hidden="true">←</span>
-          Back
-        </button>
-        <div className="mb-7 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold" style={{ color: colors.textPrimary }}>{title}</h1>
-            <p className="mt-2 text-sm" style={{ color: colors.textMuted }}>{description}</p>
-          </div>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d6cfc2] px-3 text-sm font-medium text-[#4a453b] transition-colors hover:border-[#8a8275] hover:bg-[#fcfbf9] hover:text-[#1a1715]"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back
+          </button>
           {actionLabel && (
             <button
               type="button"
               onClick={onAction}
-              className="mt-1 shrink-0 rounded-md bg-[#1a1715] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-[#332e2a]"
+              className="min-h-10 shrink-0 rounded-md bg-[#1a1715] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-[#332e2a]"
             >
               {actionLabel}
             </button>
           )}
+        </div>
+        <div className="mb-7">
+          <h1 className="text-2xl font-semibold" style={{ color: colors.textPrimary }}>{title}</h1>
+          <p className="mt-2 text-sm" style={{ color: colors.textMuted }}>{description}</p>
         </div>
         {children}
       </div>
@@ -93,87 +93,95 @@ const OptionPickerModal = ({ title, description, onClose, children }) => (
   </div>
 );
 
-const AccommodationPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="accommodation-preference-title"
-      className="w-full max-w-md rounded-lg border border-[#d6cfc2] bg-white p-5 shadow-2xl sm:p-6"
-      onMouseDown={event => event.stopPropagation()}
-    >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h3 id="accommodation-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Tell us about your preferred stay</h3>
-          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>We’ll pass your request to our team. Your preferred stay may not be available.</p>
-        </div>
-        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close accommodation preference">×</button>
-      </div>
-      <label htmlFor="other-accommodation-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What are you looking for?</label>
-      <textarea
-        id="other-accommodation-preference"
-        autoFocus
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        placeholder="For example, a beachfront stay or a family room"
-        rows={4}
-        className="w-full resize-y rounded-md border border-[#d6cfc2] px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
-      />
-      <div className="mt-5 flex justify-end gap-3">
-        <button type="button" onClick={onClose} className="rounded-md border border-[#d6cfc2] px-4 py-2.5 text-sm font-medium text-[#4a453b] hover:bg-[#fcfbf9]">Cancel</button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!value.trim()}
-          className="rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#332e2a] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Save preference
-        </button>
-      </div>
-    </div>
-  </div>
-);
+const PreferenceListDialog = ({ kind, value, onChange, onClose, onSave }) => {
+  const isAccommodation = kind === 'accommodation';
+  const titleId = `${kind}-preference-title`;
+  const items = value ? value.split('\n') : [''];
+  const heading = isAccommodation ? 'Tell us about your preferred stay' : 'Request activities';
+  const description = isAccommodation
+    ? 'Add each stay option separately. Our team will review availability.'
+    : 'Add each activity separately so our team can review your requests.';
+  const fieldLabel = isAccommodation ? 'Stay option' : 'Activity';
+  const placeholder = isAccommodation
+    ? 'For example, a beachfront stay or family room'
+    : 'For example, a cooking class or guided nature walk';
+  const saveLabel = isAccommodation ? 'Save preferences' : 'Save activities';
 
-const ActivityPreferenceDialog = ({ value, onChange, onClose, onSave }) => (
+  const updateItem = (index, nextValue) => {
+    const nextItems = [...items];
+    nextItems[index] = nextValue;
+    onChange(nextItems.join('\n'));
+  };
+
+  const removeItem = index => {
+    const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
+    onChange(nextItems.join('\n'));
+  };
+
+  return (
   <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="activity-preference-title"
+      aria-labelledby={titleId}
       className="w-full max-w-md rounded-lg border border-[#d6cfc2] bg-white p-5 shadow-2xl sm:p-6"
       onMouseDown={event => event.stopPropagation()}
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h3 id="activity-preference-title" className="text-base font-semibold" style={{ color: colors.textPrimary }}>Request activities</h3>
-          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>Add as many as you like. Put each activity on a separate line and our team will review them.</p>
+          <h3 id={titleId} className="text-base font-semibold" style={{ color: colors.textPrimary }}>{heading}</h3>
+          <p className="mt-1 text-[12px]" style={{ color: colors.textMuted }}>{description}</p>
         </div>
-        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label="Close activity request">×</button>
+        <button type="button" onClick={onClose} className="text-xl leading-none" style={{ color: colors.textMuted }} aria-label={`Close ${heading}`}>×</button>
       </div>
-      <label htmlFor="other-activity-preference" className="mb-2 block text-sm font-medium" style={{ color: colors.textSecondary }}>What activities would you like?</label>
-      <textarea
-        id="other-activity-preference"
-        autoFocus
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        placeholder={'For example:\nCooking class\nGuided nature walk'}
-        rows={4}
-        className="w-full resize-y rounded-md border border-[#d6cfc2] px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
-      />
+      <div className="max-h-[50vh] space-y-3 overflow-y-auto pr-1">
+        {items.map((item, index) => (
+          <div key={`${kind}-preference-${index}`} className="rounded-md border border-[#eae5db] bg-[#fcfbf9] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label htmlFor={`${kind}-preference-${index}`} className="text-xs font-semibold" style={{ color: colors.textSecondary }}>{fieldLabel} {index + 1}</label>
+              {items.length > 1 && (
+                <button type="button" onClick={() => removeItem(index)} className="inline-flex items-center gap-1 text-xs text-[#8a8275] hover:text-[#1a1715]">
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              )}
+            </div>
+            <textarea
+              id={`${kind}-preference-${index}`}
+              autoFocus={index === 0}
+              value={item}
+              onChange={event => updateItem(index, event.target.value.replace(/\n/g, ' '))}
+              placeholder={placeholder}
+              rows={2}
+              className="w-full resize-y rounded-md border border-[#d6cfc2] bg-white px-3 py-2.5 text-sm focus:border-[#1a1715] focus:outline-none focus:ring-2 focus:ring-[#1a1715]/10"
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange([...items, ''].join('\n'))}
+        className="mt-3 inline-flex items-center gap-2 rounded-md border border-[#d6cfc2] px-3 py-2 text-sm font-medium text-[#4a453b] hover:bg-[#fcfbf9]"
+      >
+        <Plus className="h-4 w-4" /> Add another {isAccommodation ? 'stay option' : 'activity'}
+      </button>
       <div className="mt-5 flex justify-end gap-3">
         <button type="button" onClick={onClose} className="rounded-md border border-[#d6cfc2] px-4 py-2.5 text-sm font-medium text-[#4a453b] hover:bg-[#fcfbf9]">Cancel</button>
         <button
           type="button"
           onClick={onSave}
-          disabled={!value.trim()}
+          disabled={!value.split('\n').some(item => item.trim())}
           className="rounded-md bg-[#1a1715] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#332e2a] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save request
+          {saveLabel}
         </button>
       </div>
     </div>
   </div>
-);
+  );
+};
+
+const AccommodationPreferenceDialog = props => <PreferenceListDialog {...props} kind="accommodation" />;
+const ActivityPreferenceDialog = props => <PreferenceListDialog {...props} kind="activity" />;
 
 const OptionCard = ({ item, selected, price, multiSelect = false, compact = false, checkboxPosition = 'top-right', disabled = false, onClick }) => (
   <button
@@ -201,8 +209,29 @@ const OptionCard = ({ item, selected, price, multiSelect = false, compact = fals
   </button>
 );
 
-const DestinationDropdown = ({ dayIndex, selectedDestinations, destinations, onToggle, onOpen, isOpen }) => (
-  <details open={isOpen} className="group relative">
+const DestinationDropdown = ({ dayIndex, selectedDestinations, destinations, onToggle, onOpen, onClose, isOpen }) => {
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleOutsidePointer = event => {
+      if (!dropdownRef.current?.contains(event.target)) onClose();
+    };
+    const handleEscape = event => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointer);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointer);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, onClose]);
+
+  return (
+  <details ref={dropdownRef} open={isOpen} className="group relative">
     <summary onClick={event => { event.preventDefault(); onOpen(dayIndex); }} className="flex min-h-[44px] cursor-pointer list-none items-center justify-between rounded-md border px-3 py-2.5 text-[13px] [&::-webkit-details-marker]:hidden" style={inputStyle}>
       <span className={selectedDestinations.length ? '' : 'text-[#8a8275]'}>{selectedDestinations[0] || 'Select a destination'}</span>
       <span className="ml-3 text-base transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -219,17 +248,16 @@ const DestinationDropdown = ({ dayIndex, selectedDestinations, destinations, onT
       {Object.keys(destinations).map(destinationName => {
         const selected = selectedDestinations.includes(destinationName);
         return (
-          <button key={destinationName} type="button" onClick={() => onToggle(dayIndex, destinationName)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[13px] hover:bg-[#f7f4ef]" style={{ color: colors.textPrimary }}>
-            <span className="flex h-4 w-4 items-center justify-center rounded-full border" style={{ borderColor: selected ? colors.accentDark : colors.border }}>
-              {selected && <span className="h-2 w-2 rounded-full" style={{ background: colors.accentDark }} />}
-            </span>
+          <button key={destinationName} type="button" onClick={() => onToggle(dayIndex, destinationName)} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[13px] hover:bg-[#f7f4ef] ${selected ? 'bg-[#f7f4ef] font-semibold' : ''}`} style={{ color: colors.textPrimary }}>
             {destinationName}
+            {selected && <span className="ml-3 text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.accent }}>Selected</span>}
           </button>
         );
       })}
     </div>
   </details>
-);
+  );
+};
 
 const getWeatherEmoji = (description = '') => {
   const condition = description.toLowerCase();
@@ -510,7 +538,11 @@ const CustomPlanner = () => {
   };
 
   const saveAccommodationPreference = () => {
-    const preference = accommodationPreferenceDraft.trim();
+    const preference = accommodationPreferenceDraft
+      .split('\n')
+      .map(option => option.trim())
+      .filter(Boolean)
+      .join('\n');
     const customHotel = { id: '__other__', name: 'Custom accommodation request', pricePerGuest: 0 };
     setOtherAccommodationPreference(preference);
     setSelectedHotel(customHotel);
@@ -691,35 +723,34 @@ const CustomPlanner = () => {
 
   if (requestReference) {
     return (
-      <div className="min-h-screen px-4 py-16 sm:py-24" style={{ background: 'linear-gradient(135deg, #fcfbf9 0%, #f4eee5 100%)', fontFamily: "'Inter', 'Georgia', serif" }}>
-        <div className="mx-auto max-w-2xl overflow-hidden rounded-sm border shadow-[0_20px_60px_rgba(74,62,48,0.12)]" style={{ borderColor: colors.border, background: colors.cardBg }}>
-          <div className="h-1.5" style={{ background: colors.accentDark }} />
-          <div className="px-6 py-10 text-center sm:px-14 sm:py-12">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full" style={{ background: '#eee8de', color: colors.accentDark }}>
-              <CheckCircle2 className="h-11 w-11" strokeWidth={1.5} />
+      <div className="min-h-screen px-4 py-12 sm:py-20" style={{ background: '#f7f8f6', fontFamily: "'Inter', 'Georgia', serif" }}>
+        <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border shadow-[0_12px_36px_rgba(35,48,38,0.06)]" style={{ borderColor: '#e4e9e3', background: colors.cardBg }}>
+          <div className="px-6 py-9 text-center sm:px-14 sm:py-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full" style={{ background: '#edf4ed', color: '#426348' }}>
+              <CheckCircle2 className="h-8 w-8" strokeWidth={1.6} />
             </div>
-            <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: colors.accent }}>Request received</p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: colors.textPrimary }}>Your custom trip is on its way</h1>
-            <p className="mx-auto mt-4 max-w-lg text-sm leading-7" style={{ color: colors.textSecondary }}>
-            The business will review your trip details and prepare the final pricing. No payment is due yet. We’ll email you with the quote and any updates.
+            <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: '#56765b' }}>Request received</p>
+            <h1 className="mt-2 text-2xl font-medium leading-tight sm:text-[30px]" style={{ color: colors.textPrimary, fontFamily: "Georgia, 'Times New Roman', serif" }}>Your custom trip is on its way</h1>
+            <p className="mx-auto mt-3 max-w-lg text-sm leading-6" style={{ color: colors.textSecondary }}>
+              Our team will review your trip and email the final quote and any updates. No payment is due yet.
             </p>
 
-            <div className="mx-auto mt-8 grid max-w-lg grid-cols-1 gap-3 text-left sm:grid-cols-2">
-              <div className="border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Request reference</p>
-                <p className="mt-2 text-sm font-semibold" style={{ color: colors.textPrimary }}>{requestReference}</p>
+            <div className="mx-auto mt-6 max-w-lg rounded-lg border px-4 text-left" style={{ borderColor: '#e7ebe6', background: '#fbfcfa' }}>
+              <div className="flex items-center justify-between gap-4 py-3">
+                <p className="shrink-0 text-xs" style={{ color: colors.textMuted }}>Request reference</p>
+                <p className="text-right text-sm font-semibold" style={{ color: colors.textPrimary }}>{requestReference}</p>
               </div>
-              <div className="border p-4" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Updates sent to</p>
-                <p className="mt-2 truncate text-sm font-semibold" style={{ color: colors.textPrimary }}>{email || user?.email}</p>
+              <div className="flex items-center justify-between gap-4 border-t py-3" style={{ borderColor: '#e7ebe6' }}>
+                <p className="shrink-0 text-xs" style={{ color: colors.textMuted }}>Updates sent to</p>
+                <p className="min-w-0 truncate text-right text-sm font-semibold" style={{ color: colors.textPrimary }}>{email || user?.email}</p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="mt-9 inline-flex items-center gap-3 px-7 py-3.5 text-[11px] font-semibold uppercase tracking-wider transition-all hover:gap-4"
-              style={{ background: colors.accentDark, color: '#f7f4ef', borderRadius: '2px' }}
+              className="mt-6 inline-flex items-center gap-2.5 rounded-md px-5 py-3 text-[11px] font-semibold uppercase tracking-wider transition-all hover:gap-3.5 hover:brightness-110"
+              style={{ background: '#294136', color: '#ffffff' }}
             >
               Return to home <ArrowRight className="h-4 w-4" />
             </button>
@@ -933,9 +964,9 @@ const CustomPlanner = () => {
             />
           ))}
         </div>
-        {!activeDayActivities.length && (
+        {!activeAccommodationHotels.length && (
           <p className="mx-auto mt-4 max-w-4xl text-[12px]" style={{ color: colors.textMuted }}>
-            Select a destination for Day {activityDayBeingEdited + 1} to see matching activities. This selection is optional.
+            No listed stays are available for this destination. You can still request a preferred stay above.
           </p>
         )}
         {showAccommodationPreferenceDialog && (
@@ -989,6 +1020,11 @@ const CustomPlanner = () => {
             />
           ))}
         </div>
+        {!activeDayActivities.length && (
+          <p className="mx-auto mt-4 max-w-4xl text-center text-[12px]" style={{ color: colors.textMuted }}>
+            No listed activities are available for this destination. You can still request an activity above.
+          </p>
+        )}
         {showActivityPreferenceDialog && (
           <ActivityPreferenceDialog
             value={activityPreferenceDraft}
@@ -1018,11 +1054,8 @@ const CustomPlanner = () => {
     <div className="min-h-screen pb-24 pt-10" style={{ background: colors.bg, fontFamily: "'Inter', 'Georgia', serif" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="mb-6">
-          <h1
-            className="text-lg font-semibold"
-            style={{ color: '#1a1a1a', fontFamily: "'Outfit', Georgia, serif", letterSpacing: '0.03em' }}
-          >
+        <div className="mb-10 border-b border-slate-100 pb-8">
+          <h1 className="mb-1 text-2xl uppercase tracking-widest text-slate-400">
             Customize Your Trip
           </h1>
         </div>
@@ -1223,6 +1256,7 @@ const CustomPlanner = () => {
                     destinations={data.destinations}
                     onToggle={toggleDayDestination}
                     onOpen={openDayDestinationSelector}
+                    onClose={() => setOpenDestinationDay(null)}
                     isOpen={openDestinationDay === activeDayIndex}
                   />
                 </div>
@@ -1246,7 +1280,14 @@ const CustomPlanner = () => {
                   <div className="mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: colors.borderLight, background: colors.subtleBg }}>
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: colors.textMuted }}>Custom stay request</p>
-                      <p className="mt-1 break-words text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>{otherAccommodationPreference}</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {otherAccommodationPreference.split('\n').map(option => option.trim()).filter(Boolean).map((option, index) => (
+                          <li key={`${option}-${index}`} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: colors.textSecondary }}>
+                            <span className="mt-0.5 shrink-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textMuted }}>Option {index + 1}</span>
+                            <span className="break-words">{option}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                     <button
                       type="button"

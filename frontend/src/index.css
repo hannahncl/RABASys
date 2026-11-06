@@ -82,6 +82,30 @@
 
 /* Base custom styles */
 @layer base {
+  /* Treat page copy as non-editable UI. Keep selection and the text caret for fields. */
+  *,
+  *::before,
+  *::after {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"],
+  [role="textbox"] {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+
+  select {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+  }
+
   html {
     font-family: var(--font-sans);
   }

@@ -847,7 +847,7 @@ const PackageDetail = () => {
                         Secure Payment
                       </p>
                       <p className="text-[11px] mt-0.5" style={{ color: colors.textMuted }}>
-                        GCash payment with confirmation.
+                        Secure payment powered by Xendit.
                       </p>
                     </div>
                   </div>

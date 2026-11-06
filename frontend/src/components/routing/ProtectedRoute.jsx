@@ -1,20 +1,14 @@
 import React, { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, normalizeFrontendRole } from '../../contexts/AuthContext';
+import LoadingScreen from '../ui/LoadingScreen';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
-          <p className="font-display font-medium tracking-wide">Loading Rabas Travel...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen title="Checking your session" detail="We’re getting your account ready." />;
   }
 
   // Not authenticated

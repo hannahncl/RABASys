@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MessageSquare, RefreshCw, Send } from 'lucide-react';
 import { inquiryService } from '../../services/api';
+import FeedbackNotice from '../../components/ui/FeedbackNotice';
 
 const STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
@@ -91,7 +92,7 @@ const Inquiries = () => {
         </button>
       </div>
 
-      {error && <div className="rounded-lg border border-[#e5b9aa] bg-[#fff6f3] px-4 py-3 text-sm text-[#9b3f27]">{error}</div>}
+      {error && <FeedbackNotice message={error} onDismiss={() => setError('')} />}
 
       <div className="grid min-h-[560px] gap-4 lg:grid-cols-[320px_1fr]">
         <section className="overflow-hidden rounded-xl border border-[#e0dbd0] bg-white">

@@ -18,6 +18,10 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (characte
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
 }[character]));
 
+function emailLayout(content) {
+    return `<div style="font-family:Arial,sans-serif;color:#24303b;line-height:1.55;max-width:750px;margin:0 auto;padding:24px 0"><h2 style="margin:0 0 28px;color:#0B4F6C;text-align:center">RABAS Travel &amp; Tours Services</h2>${content}<p style="margin:24px 0 0;padding-top:14px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">This is an automated email from RABAS Travel &amp; Tours Services. Please do not reply.</p></div>`;
+}
+
 async function sendEmail(email, subject, text, html, label, attachments = []) {
     if (!email) return false;
     const transporter = getMailer();
@@ -243,13 +247,13 @@ function normalizeItineraryLines(value) {
 
 async function sendPasswordResetOtp(email, otp) {
     const text = `Dear Customer,\n\nYour RABAS Travel & Tours Services password reset code is ${otp}. It is valid for 10 minutes. If you did not request this code, ignore this email. Do not share the code with anyone.`;
-    const html = `<div style="font-family:Arial,sans-serif;color:#333;line-height:1.6;max-width:600px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear Customer,</p><p>Your password reset verification code is:</p><p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0B4F6C">${escapeHtml(otp)}</p><p>This code is valid for 10 minutes. If you did not request it, ignore this email. Do not share the code with anyone.</p></div>`;
+    const html = emailLayout(`<p style="margin:0 0 4px">Dear Customer,</p><p>Your password reset verification code is:</p><p style="margin:18px 0;padding:14px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;color:#0B4F6C">${escapeHtml(otp)}</p><p style="font-size:13px">This code is valid for 10 minutes. If you did not request it, ignore this email. Do not share the code with anyone.</p>`);
     return sendEmail(email, "Password Reset Verification Code", text, html, "Password reset email");
 }
 
 async function sendTwoFactorOtp(email, otp) {
     const text = `Dear Customer,\n\nYour RABAS Travel & Tours Services sign-in verification code is ${otp}. It is valid for 10 minutes. Do not share this code with anyone.`;
-    const html = `<div style="font-family:Arial,sans-serif;color:#333;line-height:1.6;max-width:600px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear Customer,</p><p>Your sign-in verification code is:</p><p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0B4F6C">${escapeHtml(otp)}</p><p>This code is valid for 10 minutes. Do not share it with anyone.</p></div>`;
+    const html = emailLayout(`<p style="margin:0 0 4px">Dear Customer,</p><p>Your sign-in verification code is:</p><p style="margin:18px 0;padding:14px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;color:#0B4F6C">${escapeHtml(otp)}</p><p style="font-size:13px">This code is valid for 10 minutes. Do not share it with anyone.</p>`);
     return sendEmail(email, "Two-Factor Authentication Verification Code", text, html, "Two-factor authentication email");
 }
 
@@ -366,9 +370,6 @@ async function sendBookingConfirmation(booking, type = "tour") {
     const priceText = isCustomTrip && !hasQuote
         ? "Final pricing will be provided after business review. No payment is due yet."
         : `Final quote total: PHP ${total}`;
-    const priceHtml = isCustomTrip && !hasQuote
-        ? "<p><strong>Final pricing:</strong> To be provided after business review. No payment is due yet.</p>"
-        : `<p style="font-size:16px"><strong>Final quote total: PHP ${escapeHtml(total)}</strong></p>`;
     const message = isCustomSamplePayment
         ? "Your customized trip sample payment has been recorded."
         : isCustomPayment
@@ -396,9 +397,10 @@ async function sendBookingConfirmation(booking, type = "tour") {
                     ? "Your Joiner departure is confirmed. Please keep this email for your records."
                 : "Please keep this email for your records. We will contact you with any updates.";
     const status = isCustomTrip && !hasQuote ? "Under review" : booking.booking_status || "Pending";
-    const html = isCustomQuote || isCustomAccepted
-        ? `<div style="font-family:Arial,sans-serif;color:#24303b;line-height:1.55;max-width:600px;margin:auto;padding:24px"><h2 style="margin:0;color:#0B4F6C">RABAS Travel & Tours Services</h2><p style="margin:20px 0 4px">Dear ${escapeHtml(booking.first_name || "Customer")},</p><p style="margin:0 0 18px">${isCustomAccepted ? "Your customized trip quote has been accepted." : "Your customized trip quote is ready."}</p><p style="margin:0 0 12px;color:#64748b;font-size:13px">Booking reference <strong style="color:#24303b">${escapeHtml(booking.booking_reference)}</strong></p><table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}<p style="margin:18px 0;padding:14px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:18px"><strong>Total trip price</strong><strong style="float:right">PHP ${escapeHtml(total)}</strong></p><p style="font-size:13px">${isCustomAccepted ? "Our team will contact you with next steps and payment instructions. Payment has not been taken." : "Sign in to your RABAS account to review and accept the quote. No payment has been taken."}</p><p style="margin-top:24px">RABAS Travel & Tours Services</p></div>`
-        : `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>${escapeHtml(message)}</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>Status:</strong> ${escapeHtml(status)}</p><table style="width:100%;border-collapse:collapse">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}${priceHtml}</div><p>${escapeHtml(followUp)}</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p><p style="font-size:12px;color:#64748b">This is an automated email. Please do not reply.</p></div>`;
+    const bookingMessage = isCustomQuote || isCustomAccepted
+        ? (isCustomAccepted ? "Your customized trip quote has been accepted." : "Your customized trip quote is ready.")
+        : message;
+    const html = emailLayout(`<p style="margin:0 0 4px">Dear ${escapeHtml(booking.first_name || "Customer")},</p><p style="margin:0 0 18px">${escapeHtml(bookingMessage)}</p><p style="margin:0 0 12px;color:#64748b;font-size:13px">Booking reference <strong style="color:#24303b">${escapeHtml(booking.booking_reference)}</strong></p>${!isCustomQuote && !isCustomAccepted ? `<p style="margin:0 0 12px;color:#64748b;font-size:13px">Status <strong style="color:#24303b">${escapeHtml(status)}</strong></p>` : ""}<table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${detailsHtml}</table>${itineraryHtml}${breakdownHtml}<p style="margin:18px 0;padding:14px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:18px"><strong>${hasQuote ? "Total trip price" : "Total amount"}</strong><strong style="float:right">PHP ${escapeHtml(total)}</strong></p><p style="font-size:13px">${escapeHtml(isCustomQuote ? "Sign in to your RABAS account to review and accept the quote. No payment has been taken." : isCustomAccepted ? "Our team will contact you with next steps and payment instructions. Payment has not been taken." : followUp)}</p>`);
     const text = isCustomQuote || isCustomAccepted
         ? `Dear ${booking.first_name || "Customer"},\n\n${isCustomAccepted ? "Your customized trip quote has been accepted." : "Your customized trip quote is ready."}\n\nBooking reference: ${booking.booking_reference}\n${detailsText}${itineraryText}${breakdownText}\n\nTotal trip price: PHP ${total}\n\n${isCustomAccepted ? "Our team will contact you with next steps and payment instructions. Payment has not been taken." : "Sign in to your RABAS account to review and accept the quote. No payment has been taken."}\n\nRABAS Travel & Tours Services`
         : `Dear ${booking.first_name || "Customer"},\n\n${message}\n\nBooking reference: ${booking.booking_reference}\nStatus: ${status}\n${detailsText}${itineraryText}${breakdownText}\n\n${priceText}\n\n${followUp}\n\nRABAS Travel & Tours Services`;
@@ -432,7 +434,9 @@ async function sendTripReminder(booking, type = "tour") {
     const tripName = isRental ? booking.vehicle_name : booking.package_name;
     const location = isRental ? booking.pickup_location : booking.destination;
     const text = `Dear ${booking.first_name || "Customer"},\n\nThis is a friendly reminder that your ${isRental ? "car rental" : "trip"} is scheduled for tomorrow.\n\nBooking reference: ${booking.booking_reference}\n${isRental ? "Vehicle" : "Tour package"}: ${tripName || "-"}\nDate: ${scheduleLabel}\n${location ? `${isRental ? "Pickup location" : "Destination"}: ${location}\n` : ""}\nIf you need to change your schedule, use the rescheduling option in your RABAS account. Cancellation is not available.\n\nRABAS Travel & Tours Services`;
-    const html = `<div style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.6;max-width:620px;margin:auto;padding:20px"><h2 style="color:#0B4F6C">RABAS Travel & Tours Services</h2><p>Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>This is a friendly reminder that your ${isRental ? "car rental" : "trip"} is scheduled for <strong>tomorrow</strong>.</p><div><p><strong>Booking reference:</strong> ${escapeHtml(booking.booking_reference)}</p><p><strong>${isRental ? "Vehicle" : "Tour package"}:</strong> ${escapeHtml(tripName || "-")}</p><p><strong>Date:</strong> ${escapeHtml(scheduleLabel)}</p>${location ? `<p><strong>${isRental ? "Pickup location" : "Destination"}:</strong> ${escapeHtml(location)}</p>` : ""}</div><p>If you need to change your schedule, use the rescheduling option in your RABAS account. Cancellation is not available.</p><p>Sincerely,<br><strong>RABAS Travel & Tours Services</strong></p></div>`;
+    const reminderRows = [[isRental ? "Vehicle" : "Tour package", tripName], ["Date", scheduleLabel], ...(location ? [[isRental ? "Pickup location" : "Destination", location]] : [])];
+    const reminderHtml = reminderRows.map(([label, value]) => `<tr><td style="padding:7px 12px;color:#64748b">${escapeHtml(label)}</td><td style="padding:7px 12px;font-weight:bold">${escapeHtml(value || "-")}</td></tr>`).join("");
+    const html = emailLayout(`<p style="margin:0 0 4px">Dear ${escapeHtml(booking.first_name || "Customer")},</p><p>This is a friendly reminder that your ${isRental ? "car rental" : "trip"} is scheduled for <strong>tomorrow</strong>.</p><p style="margin:0 0 12px;color:#64748b;font-size:13px">Booking reference <strong style="color:#24303b">${escapeHtml(booking.booking_reference)}</strong></p><table style="width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${reminderHtml}</table><p style="font-size:13px;margin-top:18px">If you need to change your schedule, use the rescheduling option in your RABAS account. Cancellation is not available.</p>`);
     return sendEmail(email, `Trip Reminder - Your ${isRental ? "car rental" : "tour"} is tomorrow`, text, html, "Trip reminder email");
 }
 

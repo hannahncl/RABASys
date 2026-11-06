@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { weatherService } from '../../services/weatherService';
-import { CloudSun, Wind, Droplets, AlertCircle, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';
+import { CloudSun, Wind, Droplets, CloudRain, Sun, Cloud, CloudLightning, Calendar, Sparkles } from 'lucide-react';
+import FeedbackNotice from '../ui/FeedbackNotice';
 
 const WeatherWidget = ({ destination, tourDate, durationDays = 3, theme = 'light' }) => {
   const [weatherData, setWeatherData] = useState(null);
@@ -149,10 +150,7 @@ const WeatherWidget = ({ destination, tourDate, durationDays = 3, theme = 'light
           <p className="text-[11px] font-medium text-stone-500">Predicting weather for selected dates...</p>
         </div>
       ) : error ? (
-        <div className="flex items-center gap-2 text-xs py-4 text-rose-600">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
+        <FeedbackNotice message={error} onDismiss={() => setError(null)} />
       ) : weatherData ? (
         <div className="space-y-4 pt-4">
 

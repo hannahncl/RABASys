@@ -3,6 +3,7 @@ import { Bot, MessageSquare, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 import { inquiryService } from '../../services/api';
+import FeedbackNotice from '../../components/ui/FeedbackNotice';
 
 const FAQS = [
   ['How do I book a tour package?', 'Choose a package from Tour Packages, open View Details, select your date and guests, then complete the booking steps.'],
@@ -77,7 +78,7 @@ const SupportChat = () => {
     <div className="min-h-[calc(100vh-5rem)] bg-[#fcfbf9] px-4 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6"><h1 className="text-3xl font-bold text-[#2d2a24] sm:text-4xl">How can we help?</h1><p className="mt-2 max-w-2xl text-[#756d63]">Ask a question, browse quick answers, or continue a conversation with the RABAS support team.</p></div>
-        {error && <div className="mb-4 rounded-xl border border-[#e5b9aa] bg-[#fff6f3] px-4 py-3 text-sm text-[#9b3f27]">{error}</div>}
+        {error && <FeedbackNotice message={error} onDismiss={() => setError('')} />}
 
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
           <aside className="space-y-5">

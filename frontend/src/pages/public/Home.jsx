@@ -29,6 +29,13 @@ const Home = () => {
   const [searchDestination, setSearchDestination] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [searchTravelers, setSearchTravelers] = useState('1');
+  const [heroVideoReady, setHeroVideoReady] = useState(false);
+
+  useEffect(() => {
+    // Let the hero poster and page content paint before starting the large video request.
+    const timer = window.setTimeout(() => setHeroVideoReady(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -79,12 +86,13 @@ const Home = () => {
           <div className="relative overflow-hidden rounded-2xl border border-[#fed7b8]/80 bg-[#561C24] p-1.5 shadow-[0_18px_42px_rgba(86,28,36,0.24)] ring-1 ring-[#C7B7A3]/60">
             <video
               className="h-[17rem] w-full object-cover sm:h-[22rem] lg:h-[60vh] lg:min-h-[25rem] lg:max-h-[38rem]"
-              src="/rabas-travel-showcase.mov"
+              src={heroVideoReady ? '/rabas-travel-showcase.mov' : undefined}
               autoPlay
               muted
               loop
               playsInline
-              preload="metadata"
+              disablePictureInPicture
+              preload="none"
               poster="/hero-mayon.jpg"
               aria-label="Travel scenery from Bicol"
             >

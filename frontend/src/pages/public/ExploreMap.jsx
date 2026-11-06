@@ -6,7 +6,7 @@ import {
   Camera, MapPin, X, ArrowLeft,
   Image as ImageIcon, Send, RefreshCw, Search,
   Link2, VideoOff, Heart, Trash2,
-  Sparkles, Flame, Plus, Grid, List,
+  Sparkles, Flame, Plus, Grid, List, SlidersHorizontal,
   Navigation, Compass, Crosshair, LocateFixed, Locate,
   Play, Pause, RotateCcw, Car, Footprints
 } from 'lucide-react';
@@ -126,6 +126,7 @@ const normalizeDestinationName = (value) => String(value || '')
   .trim();
 
 const BICOL_PROVINCES = ['Albay', 'Camarines Norte', 'Camarines Sur', 'Catanduanes', 'Masbate', 'Sorsogon'];
+const GALLERY_PAGE_SIZE = 6;
 
 const getProvinceFromLocation = (...values) => {
   const normalizedLocation = normalizeDestinationName(values.filter(Boolean).join(', '));
@@ -150,10 +151,14 @@ const getSpotProvince = (spot) => {
 };
 
 const getSpotDisplayName = (spot) => String(
-  spot?.name || spot?.locationName || spot?.description || 'Selected location'
-);
+  spot?.name || spot?.locationName || spot?.display_name || spot?.description || ''
+).trim();
 
-const getSpotShortName = (spot) => getSpotDisplayName(spot).split(',')[0];
+const getSpotShortName = (spot) => getSpotDisplayName(spot).split(',')[0] || 'Location';
+
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[character]));
 
 const createSearchedSpot = (name, coords, description = name, province = '') => ({
   id: `searched-${coords[0].toFixed(6)}-${coords[1].toFixed(6)}`,
@@ -285,6 +290,8 @@ const ExploreMap = () => {
   const [spots, setSpots] = useState([]);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [uploads, setUploads] = useState([]);
+  const [allStoryUploads, setAllStoryUploads] = useState([]);
+  const [selectedStoryClusterKey, setSelectedStoryClusterKey] = useState('');
   const [mapCenter, setMapCenter] = useState([13.4, 123.6]);
   const [mapZoom, setMapZoom] = useState(8.5);
   const [searchQuery, setSearchQuery] = useState('');
@@ -311,11 +318,16 @@ const ExploreMap = () => {
   // Gallery filter state
   const [galleryFilterValue, setGalleryFilterValue] = useState('All');
   const [galleryView, setGalleryView] = useState('grid'); // 'grid' | 'list'
+  const [galleryPage, setGalleryPage] = useState(1);
+  const galleryListRef = useRef(null);
 
   // Story Viewer state
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
+  const [storyFiltersOpen, setStoryFiltersOpen] = useState(false);
+  const [storyFilterProvince, setStoryFilterProvince] = useState('All');
+  const [storyFilterLocation, setStoryFilterLocation] = useState('All');
 
   // Upload modal state
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -579,11 +591,14 @@ const ExploreMap = () => {
 
       try {
         const stories = await mapGalleryService.getAllUploads();
+        setAllStoryUploads(stories);
         const savedLocations = new Map();
         stories.forEach(story => {
           const latitude = Number(story.latitude);
           const longitude = Number(story.longitude);
-          if (story.locationName && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          if (story.locationName && story.latitude != null && story.longitude != null
+            && story.latitude !== '' && story.longitude !== ''
+            && Number.isFinite(latitude) && Number.isFinite(longitude)) {
             const location = createSearchedSpot(story.locationName, [latitude, longitude], story.locationName, story.province);
             savedLocations.set(location.id, location);
           }
@@ -618,6 +633,7 @@ const ExploreMap = () => {
           setUploads(spotPhotos);
         } else {
           const all = await mapGalleryService.getAllUploads();
+          setAllStoryUploads(all);
           setUploads(all);
         }
       } catch (error) {
@@ -630,9 +646,11 @@ const ExploreMap = () => {
 
   const handleSpotClick = (spot) => {
     const namedSpot = { ...spot, name: getSpotDisplayName(spot) };
+    setSelectedStoryClusterKey('');
     setHasSearchedMap(false);
     setSelectedSpot(namedSpot);
     setGalleryFilterValue(getSpotProvince(namedSpot) || 'All');
+    setGalleryPage(1);
     setMapCenter(namedSpot.coords);
     setMapZoom(11);
     setFollowUser(false);
@@ -669,6 +687,7 @@ const ExploreMap = () => {
     setSpots(current => [...current.filter(spot => spot.id !== searchedSpot.id), searchedSpot]);
     setSelectedSpot(searchedSpot);
     setGalleryFilterValue('All');
+    setGalleryPage(1);
     setFollowUser(false);
     setMapCenter(coords);
     setMapZoom(zoom);
@@ -681,8 +700,10 @@ const ExploreMap = () => {
   };
 
   const handleBackToAll = () => {
+    setSelectedStoryClusterKey('');
     setSelectedSpot(null);
     setGalleryFilterValue('All');
+    setGalleryPage(1);
     setDestinationSearchQuery('');
     setMapSearchResults([]);
     setMapSearchError('');
@@ -862,12 +883,15 @@ const ExploreMap = () => {
       const hasValidCoordinates = Array.isArray(namedSpot.coords)
         && namedSpot.coords.length === 2
         && namedSpot.coords.every(Number.isFinite);
+      const locationName = namedSpot.name || (hasValidCoordinates
+        ? `Location at ${namedSpot.coords[0].toFixed(4)}, ${namedSpot.coords[1].toFixed(4)}`
+        : '');
       setSelectedSpot(namedSpot);
-      setStoryLocationQuery(namedSpot.name);
+      setStoryLocationQuery(locationName);
       setStoryLocationResults([]);
-      setSelectedStoryLocation(hasValidCoordinates ? {
-        name: namedSpot.name,
-        display_name: namedSpot.description || namedSpot.name,
+      setSelectedStoryLocation(hasValidCoordinates && locationName ? {
+        name: locationName,
+        display_name: namedSpot.description || locationName,
         lat: String(namedSpot.coords[0]),
         lon: String(namedSpot.coords[1]),
         province: getSpotProvince(namedSpot),
@@ -946,7 +970,9 @@ const ExploreMap = () => {
       );
 
       setUploads(prev => [newUpload, ...prev]);
+      setAllStoryUploads(prev => [newUpload, ...prev.filter(upload => upload.id !== newUpload.id)]);
       setGalleryFilterValue(storyProvinceName || 'All');
+      setGalleryPage(1);
       setSpots(current => [...current.filter(spot => spot.id !== namedSpot.id), namedSpot]);
       setSelectedSpot(namedSpot);
 
@@ -981,6 +1007,7 @@ const ExploreMap = () => {
       const updated = await mapGalleryService.likeUpload(uploadId);
       if (updated) {
         setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
+        setAllStoryUploads(prev => prev.map(u => u.id === uploadId ? { ...u, isLiked: updated.isLiked, likesCount: updated.likesCount } : u));
       }
     } catch (error) {
       showNotification(error.message || 'Could not update your like.', 'error');
@@ -996,6 +1023,7 @@ const ExploreMap = () => {
       return;
     }
     setUploads(current => current.filter(item => item.id !== upload.id));
+    setAllStoryUploads(current => current.filter(item => item.id !== upload.id));
     showNotification('Photo removed from Explore Map.', 'success');
   };
 
@@ -1006,9 +1034,35 @@ const ExploreMap = () => {
   };
 
   const openStoryViewer = (index = 0) => {
-    setActiveStoryIndex(index);
+    const selectedStory = galleryUploads[index];
+    const storyIndex = allStoryUploads.findIndex(upload => upload.id === selectedStory?.id);
+    setStoryFilterProvince('All');
+    setStoryFilterLocation('All');
+    setStoryFiltersOpen(false);
+    setActiveStoryIndex(Math.max(0, storyIndex));
     setStoryProgress(0);
     setStoryViewerOpen(true);
+  };
+
+  const openStoryCluster = (cluster) => {
+    const firstStory = cluster.uploads[0];
+    const province = firstStory?.province
+      || getSpotProvince(spots.find(spot => spot.id === firstStory?.spotId) || { name: cluster.location, description: cluster.location });
+    const locationKey = `${normalizeDestinationName(province)}::${normalizeDestinationName(cluster.location)}`;
+    const provinceStories = !province ? allStoryUploads : allStoryUploads.filter(upload =>
+      (upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId))) === province);
+    const storyIndex = Math.max(0, provinceStories.findIndex(upload => upload.id === firstStory?.id));
+
+    setSelectedStoryClusterKey(cluster.key);
+    setStoryFilterProvince(province || 'All');
+    setStoryFilterLocation(locationKey);
+    setStoryFiltersOpen(false);
+    setActiveStoryIndex(storyIndex);
+    setStoryProgress(0);
+    setStoryViewerOpen(true);
+    setFollowUser(false);
+    setMapCenter(cluster.coords);
+    setMapZoom(13);
   };
 
   const getMarkerIcon = (spot) => {
@@ -1033,6 +1087,56 @@ const ExploreMap = () => {
     });
   };
 
+  const storyLocationClusters = (() => {
+    const groups = new Map();
+    allStoryUploads.forEach((upload) => {
+      const linkedSpot = spots.find(spot => spot.id === upload.spotId);
+      const location = String(upload.locationName || linkedSpot?.name || '').trim();
+      if (!location) return;
+      const hasStoryCoordinates = upload.latitude != null && upload.longitude != null
+        && upload.latitude !== '' && upload.longitude !== ''
+        && Number.isFinite(Number(upload.latitude)) && Number.isFinite(Number(upload.longitude));
+      const fallbackCoordinates = linkedSpot?.coords || getDestinationCoordinates(location);
+      const latitude = hasStoryCoordinates ? Number(upload.latitude) : Number(fallbackCoordinates?.[0]);
+      const longitude = hasStoryCoordinates ? Number(upload.longitude) : Number(fallbackCoordinates?.[1]);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+        || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
+      const province = upload.province
+        || getSpotProvince(linkedSpot || { name: location, description: location });
+      const key = `${normalizeDestinationName(province)}::${normalizeDestinationName(location)}`;
+      const group = groups.get(key) || { key, location, province, uploads: [], latitudeTotal: 0, longitudeTotal: 0 };
+      group.uploads.push(upload);
+      group.latitudeTotal += latitude;
+      group.longitudeTotal += longitude;
+      groups.set(key, group);
+    });
+    return [...groups.values()].map(group => ({
+      ...group,
+      coords: [group.latitudeTotal / group.uploads.length, group.longitudeTotal / group.uploads.length],
+      uploads: group.uploads.sort((first, second) => new Date(second.date || 0) - new Date(first.date || 0)),
+    }));
+  })();
+
+  const getStoryClusterIcon = (cluster) => {
+    const preview = escapeHtml(cluster.uploads[0]?.imageUrl || cluster.uploads[0]?.photoUrl || '');
+    const title = escapeHtml(cluster.location);
+    const count = cluster.uploads.length;
+    const selected = selectedStoryClusterKey === cluster.key;
+    return L.divIcon({
+      className: 'story-map-marker',
+      html: `<div title="${title}" style="position:relative;width:58px;height:72px;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 5px rgba(25,20,15,.35));transform:${selected ? 'scale(1.08)' : 'scale(1)'};transition:transform .16s ease;">
+        <div style="position:absolute;top:4px;left:12px;width:38px;height:48px;border-radius:12px;border:2px solid white;background:#d5c7ae;transform:rotate(9deg);overflow:hidden;"></div>
+        <div style="position:relative;width:42px;height:52px;border:3px solid white;border-radius:13px;background:#e9e1d4;overflow:hidden;box-shadow:0 0 0 2px ${selected ? '#d99b52' : '#d1c5b2'};">
+          ${preview ? `<img src="${preview}" alt="" style="width:100%;height:100%;object-fit:cover;" />` : '<span style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:18px;color:#8c6b48;">◎</span>'}
+          <span style="position:absolute;left:3px;bottom:3px;width:17px;height:17px;border:2px solid white;border-radius:50%;background:#db7759;color:white;font:700 9px/13px Inter,sans-serif;text-align:center;">◎</span>
+        </div>
+        ${count > 1 ? `<span style="margin-top:2px;padding:1px 5px;border-radius:9px;background:rgba(255,255,255,.96);color:#2f2a23;font:700 10px/1.35 Inter,sans-serif;white-space:nowrap;">+${count - 1} more</span>` : ''}
+      </div>`,
+      iconSize: [58, 72],
+      iconAnchor: [29, 53],
+    });
+  };
+
   const filteredSpots = spots.filter(spot =>
     spot.id === selectedSpot?.id || getSpotDisplayName(spot).toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1051,6 +1155,33 @@ const ExploreMap = () => {
       .filter(Boolean)
       .sort((first, second) => first.localeCompare(second))
   )];
+  const getUploadLocation = (upload) => upload.locationName || spots.find(spot => spot.id === upload.spotId)?.name || '';
+  const storyProvinceOptions = ['All', ...new Set(
+    allStoryUploads
+      .map(upload => upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId)))
+      .filter(Boolean)
+      .sort((first, second) => first.localeCompare(second))
+  )];
+  const storyProvinceUploads = allStoryUploads.filter(upload => storyFilterProvince === 'All'
+    || (upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId))) === storyFilterProvince);
+  const storyLocationGroups = new Map();
+  storyProvinceUploads.forEach(upload => {
+    const province = upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId));
+    const location = getUploadLocation(upload);
+    if (!location) return;
+    const key = `${normalizeDestinationName(province)}::${normalizeDestinationName(location)}`;
+    const group = storyLocationGroups.get(key);
+    if (group) group.count += 1;
+    else storyLocationGroups.set(key, { key, location, province, count: 1 });
+  });
+  const storyLocationOptions = [...storyLocationGroups.values()]
+    .sort((first, second) => first.location.localeCompare(second.location));
+  const storyViewerUploads = storyProvinceUploads.filter(upload => {
+    const province = upload.province || getSpotProvince(spots.find(spot => spot.id === upload.spotId));
+    const location = getUploadLocation(upload);
+    const groupKey = `${normalizeDestinationName(province)}::${normalizeDestinationName(location)}`;
+    return storyFilterLocation === 'All' || groupKey === storyFilterLocation;
+  });
   // Filtered uploads for gallery
   const galleryUploads = uploads.filter(up => {
     const spot = spots.find(s => s.id === up.spotId);
@@ -1060,18 +1191,26 @@ const ExploreMap = () => {
     const matchesSearch = !query || [up.caption, up.touristName, spot?.name, up.locationName].some(value => String(value || '').toLowerCase().includes(query));
     return matchesProvince && matchesSearch;
   });
+  const galleryPageCount = Math.max(1, Math.ceil(galleryUploads.length / GALLERY_PAGE_SIZE));
+  const currentGalleryPage = Math.min(galleryPage, galleryPageCount);
+  const galleryPageStart = (currentGalleryPage - 1) * GALLERY_PAGE_SIZE;
+  const visibleGalleryUploads = galleryUploads.slice(galleryPageStart, galleryPageStart + GALLERY_PAGE_SIZE);
+
+  useEffect(() => {
+    if (galleryListRef.current) galleryListRef.current.scrollTop = 0;
+  }, [currentGalleryPage]);
 
   // Keep story playback aligned with the photos currently shown in the gallery.
   useEffect(() => {
     let timer;
-    if (storyViewerOpen && galleryUploads.length > 0) {
+    if (storyViewerOpen && storyViewerUploads.length > 0) {
       setStoryProgress(0);
       const interval = 50;
       const totalTime = 5000;
       timer = setInterval(() => {
         setStoryProgress(prev => {
           if (prev >= 100) {
-            if (activeStoryIndex < galleryUploads.length - 1) {
+            if (activeStoryIndex < storyViewerUploads.length - 1) {
               setActiveStoryIndex(idx => idx + 1);
               return 0;
             }
@@ -1083,7 +1222,7 @@ const ExploreMap = () => {
       }, interval);
     }
     return () => clearInterval(timer);
-  }, [storyViewerOpen, activeStoryIndex, galleryUploads.length]);
+  }, [storyViewerOpen, activeStoryIndex, storyViewerUploads.length, storyFilterProvince, storyFilterLocation]);
 
   // Calculate live navigation metrics
   const remainingDistanceKm = (userLocation && navigationTarget)
@@ -1103,6 +1242,7 @@ const ExploreMap = () => {
       <style>{`
         @keyframes explore-gallery-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .explore-gallery-card { animation: explore-gallery-enter .42s cubic-bezier(.2,.7,.2,1) both; }
+        .story-map-marker { background: transparent; border: 0; }
         @media (prefers-reduced-motion: reduce) { .explore-gallery-card { animation: none !important; } }
       `}</style>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
@@ -1174,7 +1314,7 @@ const ExploreMap = () => {
                   type="text"
                   placeholder="Search photos, captions, or destinations..."
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => { setSearchQuery(e.target.value); setGalleryPage(1); }}
                   style={{ width: '100%', paddingLeft: '2.5rem', paddingRight: '1rem', paddingTop: '0.625rem', paddingBottom: '0.625rem', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#1a1a1a', fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", outline: 'none', boxSizing: 'border-box' }}
                   onFocus={e => { e.target.style.borderColor = '#b0a68e'; e.target.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.12)'; }}
                   onBlur={e => { e.target.style.borderColor = '#d6cfc2'; e.target.style.boxShadow = 'none'; }}
@@ -1185,7 +1325,7 @@ const ExploreMap = () => {
               <label style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem', color: '#6b6255', fontSize: '0.7rem', fontWeight: 600 }}>
                 <select
                   value={galleryFilterValue}
-                  onChange={e => setGalleryFilterValue(e.target.value)}
+                  onChange={e => { setGalleryFilterValue(e.target.value); setGalleryPage(1); }}
                   aria-label="Filter photos by province"
                   style={{ minWidth: '12rem', maxWidth: '100%', border: '1px solid #d6cfc2', borderRadius: '4px', background: '#ffffff', color: '#2d2a24', padding: '0.6rem 2rem 0.6rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}
                   onFocus={e => { e.currentTarget.style.borderColor = '#b0a68e'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,166,142,0.12)'; }}
@@ -1198,7 +1338,7 @@ const ExploreMap = () => {
             </div>
 
             {/* Gallery Grid/List content wrapper */}
-            <div style={{ maxHeight: '640px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+            <div ref={galleryListRef} style={{ maxHeight: '640px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {galleryUploads.length === 0 ? (
                 <div style={{ padding: '4rem 1.5rem', textAlign: 'center', border: '1px solid #e0dbd0', borderRadius: '6px', background: 'rgba(255,255,255,0.6)' }}>
                   <ImageIcon style={{ width: '2.5rem', height: '2.5rem', margin: '0 auto 1rem', color: '#c4b99a', opacity: 0.6 }} />
@@ -1213,7 +1353,7 @@ const ExploreMap = () => {
                 </div>
               ) : galleryView === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
-                  {galleryUploads.map((up, index) => {
+                  {visibleGalleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
                     const uploadsIdx = galleryUploads.findIndex(u => u.id === up.id);
                     return (
@@ -1268,7 +1408,7 @@ const ExploreMap = () => {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {galleryUploads.map((up, index) => {
+                  {visibleGalleryUploads.map((up, index) => {
                     const spot = spots.find(s => s.id === up.spotId);
                     const uploadsIdx = galleryUploads.findIndex(u => u.id === up.id);
                     return (
@@ -1313,6 +1453,34 @@ const ExploreMap = () => {
                 </div>
               )}
             </div>
+            {galleryPageCount > 1 && (
+              <nav aria-label="Photo gallery pages" className="flex items-center justify-between gap-3 rounded-lg border border-[#e0dbd0] bg-white px-3 py-2.5">
+                <span className="text-xs text-[#6b6255]">
+                  Showing {galleryPageStart + 1}–{Math.min(galleryPageStart + GALLERY_PAGE_SIZE, galleryUploads.length)} of {galleryUploads.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGalleryPage(page => Math.max(1, page - 1))}
+                    disabled={currentGalleryPage === 1}
+                    className="rounded-md border border-[#d6cfc2] px-3 py-1.5 text-xs font-semibold text-[#3d3a34] transition hover:bg-[#f7f4ef] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <span className="min-w-[4.5rem] text-center text-xs font-medium text-[#6b6255]">
+                    {currentGalleryPage} / {galleryPageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGalleryPage(page => Math.min(galleryPageCount, page + 1))}
+                    disabled={currentGalleryPage === galleryPageCount}
+                    className="rounded-md border border-[#d6cfc2] px-3 py-1.5 text-xs font-semibold text-[#3d3a34] transition hover:bg-[#f7f4ef] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </nav>
+            )}
           </div>
 
           {/* ── RIGHT COLUMN: Map & Destinations (45% width) ── */}
@@ -1539,6 +1707,15 @@ const ExploreMap = () => {
                 )}
 
                 {/* Destination Spots Markers */}
+                {storyLocationClusters.map(cluster => (
+                  <Marker
+                    key={`story-cluster-${cluster.key}`}
+                    position={cluster.coords}
+                    icon={getStoryClusterIcon(cluster)}
+                    zIndexOffset={500}
+                    eventHandlers={{ click: () => openStoryCluster(cluster) }}
+                  />
+                ))}
                 {filteredSpots.map(spot => (
                   <Marker key={spot.id} position={spot.coords} icon={getMarkerIcon(spot)} eventHandlers={{ click: () => handleSpotClick(spot) }}>
                     <Popup className="custom-spot-popup">
@@ -1780,7 +1957,7 @@ const ExploreMap = () => {
       </div>
 
       {/* ── STORY VIEWER MODAL ── */}
-      {storyViewerOpen && galleryUploads.length > 0 && galleryUploads[activeStoryIndex] && (
+      {storyViewerOpen && storyViewerUploads.length > 0 && storyViewerUploads[activeStoryIndex] && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(29,26,20,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(6px)' }}
           onClick={() => setStoryViewerOpen(false)}
@@ -1797,7 +1974,7 @@ const ExploreMap = () => {
           >
             {/* Progress bars */}
             <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', right: '0.75rem', zIndex: 30, display: 'flex', gap: '0.25rem' }}>
-              {galleryUploads.map((_, i) => (
+              {storyViewerUploads.map((_, i) => (
                 <div key={i} style={{ height: '2px', flex: 1, background: 'rgba(247,244,239,0.25)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', background: '#f7f4ef', transition: 'width 0.05s linear', width: i === activeStoryIndex ? `${storyProgress}%` : i < activeStoryIndex ? '100%' : '0%' }} />
                 </div>
@@ -1806,36 +1983,73 @@ const ExploreMap = () => {
             {/* Header */}
             <div style={{ position: 'absolute', top: '1.5rem', left: '1rem', right: '1rem', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                <img src={galleryUploads[activeStoryIndex].avatar} alt={galleryUploads[activeStoryIndex].touristName} style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #c4b99a' }} />
+                <img src={storyViewerUploads[activeStoryIndex].avatar} alt={storyViewerUploads[activeStoryIndex].touristName} style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #c4b99a' }} />
                 <div>
-                  <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f7f4ef', lineHeight: 1.2 }}>{galleryUploads[activeStoryIndex].touristName}</h4>
-                  <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.6)' }}>{getTimeAgo(galleryUploads[activeStoryIndex].date)}</span>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f7f4ef', lineHeight: 1.2 }}>{storyViewerUploads[activeStoryIndex].touristName}</h4>
+                  <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.6)' }}>{getTimeAgo(storyViewerUploads[activeStoryIndex].date)}</span>
                 </div>
               </div>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#f7f4ef', background: 'rgba(29,26,20,0.6)', border: '1px solid rgba(196,185,154,0.3)', padding: '0.25rem 0.625rem', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '0.25rem', backdropFilter: 'blur(4px)' }}>
                 <MapPin style={{ width: '0.625rem', height: '0.625rem', color: '#c4b99a' }} />
-                {(spots.find(s => s.id === galleryUploads[activeStoryIndex].spotId)?.name || galleryUploads[activeStoryIndex].locationName || 'Bicol Spot').split(',')[0]}
+                {(spots.find(s => s.id === storyViewerUploads[activeStoryIndex].spotId)?.name || storyViewerUploads[activeStoryIndex].locationName || 'Bicol Spot').split(',')[0]}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => setStoryFiltersOpen(open => !open)}
+              aria-expanded={storyFiltersOpen}
+              aria-label="Filter stories by location"
+              style={{ position: 'absolute', top: '4.25rem', right: '1rem', zIndex: 40, display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.55rem', border: '1px solid rgba(196,185,154,0.45)', borderRadius: '4px', background: 'rgba(20,18,15,0.82)', color: '#f7f4ef', fontSize: '0.6rem', cursor: 'pointer' }}
+            >
+              <SlidersHorizontal style={{ width: '0.75rem', height: '0.75rem' }} /> Filter
+            </button>
+            {storyFiltersOpen && (
+              <div onClick={event => event.stopPropagation()} style={{ position: 'absolute', top: '6.6rem', right: '1rem', zIndex: 40, width: 'min(15rem, calc(100% - 2rem))', display: 'flex', flexDirection: 'column', gap: '0.55rem', padding: '0.75rem', border: '1px solid rgba(196,185,154,0.35)', borderRadius: '6px', background: 'rgba(20,18,15,0.94)', boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: '#d9cfbd', fontSize: '0.6rem', fontWeight: 600 }}>
+                  Province
+                  <select
+                    value={storyFilterProvince}
+                    onChange={event => { setStoryFilterProvince(event.target.value); setStoryFilterLocation('All'); setActiveStoryIndex(0); setStoryProgress(0); }}
+                    aria-label="Filter stories by province"
+                    style={{ width: '100%', padding: '0.45rem', border: '1px solid rgba(196,185,154,0.35)', borderRadius: '4px', background: '#25221d', color: '#f7f4ef', fontSize: '0.65rem' }}
+                  >
+                    {storyProvinceOptions.map(province => <option key={province} value={province}>{province === 'All' ? 'All provinces' : province}</option>)}
+                  </select>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: '#d9cfbd', fontSize: '0.6rem', fontWeight: 600 }}>
+                  Destination or location
+                  <select
+                    value={storyFilterLocation}
+                    onChange={event => { setStoryFilterLocation(event.target.value); setActiveStoryIndex(0); setStoryProgress(0); }}
+                    aria-label="Filter stories by destination or location"
+                    style={{ width: '100%', padding: '0.45rem', border: '1px solid rgba(196,185,154,0.35)', borderRadius: '4px', background: '#25221d', color: '#f7f4ef', fontSize: '0.65rem' }}
+                  >
+                    <option value="All">All locations in {storyFilterProvince === 'All' ? 'all provinces' : storyFilterProvince} ({storyProvinceUploads.length})</option>
+                    {storyLocationOptions.map(group => <option key={group.key} value={group.key}>{group.location}{group.province ? `, ${group.province}` : ''} ({group.count} stor{group.count === 1 ? 'y' : 'ies'})</option>)}
+                  </select>
+                </label>
+                <span style={{ color: 'rgba(247,244,239,0.55)', fontSize: '0.55rem' }}>{storyViewerUploads.length} matching stor{storyViewerUploads.length === 1 ? 'y' : 'ies'}</span>
+              </div>
+            )}
             {/* Image & Nav */}
             <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0c0a' }}>
-              <img src={galleryUploads[activeStoryIndex].imageUrl} alt={galleryUploads[activeStoryIndex].caption} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={storyViewerUploads[activeStoryIndex].imageUrl} alt={storyViewerUploads[activeStoryIndex].caption} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               <div onClick={() => { if (activeStoryIndex > 0) setActiveStoryIndex(i => i - 1); }} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '33%', cursor: 'pointer' }} />
-              <div onClick={() => { if (activeStoryIndex < galleryUploads.length - 1) setActiveStoryIndex(i => i + 1); else setStoryViewerOpen(false); }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '67%', cursor: 'pointer' }} />
+              <div onClick={() => { if (activeStoryIndex < storyViewerUploads.length - 1) setActiveStoryIndex(i => i + 1); else setStoryViewerOpen(false); }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '67%', cursor: 'pointer' }} />
             </div>
             {/* Caption & Actions */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to top, rgba(10,9,7,0.92) 0%, rgba(10,9,7,0.5) 60%, transparent 100%)', zIndex: 30 }}>
-              <p style={{ fontSize: '0.7rem', color: '#f7f4ef', lineHeight: 1.5, marginBottom: '0.75rem' }}>{galleryUploads[activeStoryIndex].caption}</p>
+              <p style={{ fontSize: '0.7rem', color: '#f7f4ef', lineHeight: 1.5, marginBottom: '0.75rem' }}>{storyViewerUploads[activeStoryIndex].caption}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <button
-                  onClick={e => handleLike(e, galleryUploads[activeStoryIndex].id)}
+                  onClick={e => handleLike(e, storyViewerUploads[activeStoryIndex].id)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 700, background: 'none', border: 'none', color: '#f7f4ef', cursor: 'pointer' }}
                 >
-                  <Heart style={{ width: '1.125rem', height: '1.125rem', fill: galleryUploads[activeStoryIndex].isLiked ? '#f7f4ef' : 'none' }} />
-                  {galleryUploads[activeStoryIndex].likesCount || 0} Likes
+                  <Heart style={{ width: '1.125rem', height: '1.125rem', fill: storyViewerUploads[activeStoryIndex].isLiked ? '#f7f4ef' : 'none' }} />
+                  {storyViewerUploads[activeStoryIndex].likesCount || 0} Likes
                 </button>
                 <span style={{ fontSize: '0.6rem', color: 'rgba(247,244,239,0.5)', letterSpacing: '0.04em' }}>
-                  {activeStoryIndex + 1} of {galleryUploads.length}
+                  {activeStoryIndex + 1} of {storyViewerUploads.length}
                 </span>
               </div>
             </div>
@@ -1881,7 +2095,7 @@ const ExploreMap = () => {
                         setStoryLocationResults([]);
                         setStoryLocationError('');
                       }}
-                      placeholder="Search a city, town, or landmark..."
+                      placeholder="Search city or location..."
                       autoComplete="off"
                       style={{ width: '100%', boxSizing: 'border-box', background: '#ffffff', border: '1px solid #d6cfc2', borderRadius: '4px', padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#1a1a1a', outline: 'none', fontFamily: "'Inter', sans-serif" }}
                     />
